@@ -12,3 +12,8 @@ app.include_router(artists.router)
 @app.get("/")
 def home():
     return {"message": "running"}
+'''
+uvicorn app.main:app --reload
+use this command for dev mode
+and /docs for API documentation
+'''
