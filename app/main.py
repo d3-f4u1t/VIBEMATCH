@@ -4,14 +4,11 @@ from app.routes import users, artists
 
 Base.metadata.create_all(bind= engine)
 
-app = FastAPI()
+app = FastAPI(title= "VIBEMatch API", version = "0.1.0")
 
 app.include_router(users.router)
 app.include_router(artists.router)
 
-users = []
-
 @app.get("/")
 def home():
-    return {"message":"running"}
-
+    return {"message": "running"}

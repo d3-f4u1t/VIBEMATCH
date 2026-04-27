@@ -9,7 +9,7 @@ engine = create_engine(
 )
 SessionLoacl = sessionmaker(bind=engine, autoflush = False, autocommit = False)
 
-base = declarative_base()
+Base = declarative_base()
 
 #dependency
 

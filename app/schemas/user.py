@@ -1,22 +1,25 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field
 from datetime import datetime
 
 
 class UserCreate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str
     email: EmailStr #for email validation // might even use just str
     bio: str | None = None
-    loaction_city: str | None = None
+    location_city: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("location_city", "location_city"),
+    )
 
 class UserResponse(BaseModel):
-    model_config = ConfigDict(from_attributes= True)
-    id : int
+    model_config = ConfigDict(from_attributes=True)
+
+    id : str
     name : str
     email : EmailStr
     bio : str | None
     location_city: str | None
     created_at : datetime
-
-    class Config:
-        from_attributes = True
-
+       
