@@ -6,6 +6,7 @@ from app.models.user import User
 from app.models.artist import Artist
 from app.schemas.user import UserCreate, UserResponse
 from app.schemas.artist import ArtistCreate, ArtistResponse
+from app.auth import get_current_user
 
 router = APIRouter(tags= ["users"])
 
@@ -43,12 +44,12 @@ def get_user(user_id: str, db: Session = Depends(get_db)):
 def add_artist_to_user(
     user_id : int,
     data: ArtistCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user : User = Depends(get_current_user)
 ):
-    #user cross check along database
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code= 404, detail= "user not found")
+    if current_user.id != user_id:
+        raise HTTPException(status_code= 403, detail="not allowed")
+    
     
     #check if artist is in db
     '''if not we add em in the database '''
@@ -61,15 +62,15 @@ def add_artist_to_user(
         db.refresh(artist)
 
         #check if user already has that perticuler astist
-        if artist in user.artists:
+        if artist in current_user.artists:
             raise HTTPException(status_code= 400, detail= "artist already added to your account")
         
         #link artist to user/account
-        user.artists.append(artist)
+        current_user.artists.append(artist)
         db.commit()
 
 
-        return {"message": f"Artist {artist.name} added to user {user.name}"}
+        return {"message": f"Artist {artist.name} added to user {current_user.name}"}
     
     @router.get("/user/{user_id}/artists")
     def get_user_artists(user_id: int, db: Session= Depends(get_db)):
@@ -78,7 +79,7 @@ def add_artist_to_user(
         if not user:
             raise HTTPException(status_code= 404, detail= "user not found")
         
-        artist = db.query(Artist).filter(Artist.mb_id == data.mb_id).first()
+        
 
         #create artist if not already there 
         return{
