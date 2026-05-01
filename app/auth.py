@@ -2,7 +2,7 @@
 
 from datetime  import datetime, timedelta , timezone
 from jose import JWTError , jwt
-from passlib.context import CryptoContext
+from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -14,7 +14,7 @@ SECRET_KEY = "vibematch-indev"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60*24
 
-pwd_context = CryptoContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 #fist for hashing and verfiing password
 
