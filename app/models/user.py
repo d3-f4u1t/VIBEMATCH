@@ -1,9 +1,9 @@
 import uuid
-from sqlalchemy import Column, Integer, String, DateTime,JSON
-from datetime import datetime
+from sqlalchemy import Column, DateTime, JSON, String
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.models.artist import user_artist
+from app.models.track import user_track
 from app.database import Base
 
 class User(Base):
@@ -19,4 +19,5 @@ class User(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     #relationship vector base
     artists = relationship("Artist", secondary= user_artist, back_populates="users")
+    tracks = relationship("Track", secondary=user_track, back_populates="users")
     

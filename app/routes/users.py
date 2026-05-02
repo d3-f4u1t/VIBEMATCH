@@ -4,8 +4,10 @@ from sqlalchemy.exc import IntegrityError
 from app.database import get_db
 from app.models.user import User
 from app.models.artist import Artist
+from app.models.track import Track
 from app.schemas.user import UserCreate, UserResponse
-from app.schemas.artist import ArtistCreate, ArtistResponse
+from app.schemas.artist import ArtistCreate
+from app.schemas.track import TrackCreate
 from app.auth import get_current_user
 
 router = APIRouter(tags= ["users"])
@@ -42,7 +44,7 @@ def get_user(user_id: str, db: Session = Depends(get_db)):
 @router.post("/user/{user_id}/add_artist", status_code=201)
 
 def add_artist_to_user(
-    user_id : int,
+    user_id : str,
     data: ArtistCreate,
     db: Session = Depends(get_db),
     current_user : User = Depends(get_current_user)
@@ -61,34 +63,81 @@ def add_artist_to_user(
         db.commit()
         db.refresh(artist)
 
-        #check if user already has that perticuler astist
-        if artist in current_user.artists:
-            raise HTTPException(status_code= 400, detail= "artist already added to your account")
-        
-        #link artist to user/account
-        current_user.artists.append(artist)
-        db.commit()
-
-
-        return {"message": f"Artist {artist.name} added to user {current_user.name}"}
+    #check if user already has that perticuler astist
+    if artist in current_user.artists:
+        raise HTTPException(status_code= 400, detail= "artist already added to your account")
     
-    @router.get("/user/{user_id}/artists")
-    def get_user_artists(user_id: int, db: Session= Depends(get_db)):
-        user = db.query(User).filter(User.id ==  user_id).first()
+    #link artist to user/account
+    current_user.artists.append(artist)
+    db.commit()
 
-        if not user:
-            raise HTTPException(status_code= 404, detail= "user not found")
-        
-        
+    return {"message": f"Artist {artist.name} added to user {current_user.name}"}
 
-        #create artist if not already there 
-        return{
-            "user_id" : user_id,
-            "name" : user.name,
-            "artists" : [
-                {
-                    "mb_id" : a.mb_id, "name" : a.name, "tags" : a.tags
-                }
-                for a in user.artists
-            ]
-        }
+@router.get("/user/{user_id}/artists")
+def get_user_artists(user_id: str, db: Session= Depends(get_db)):
+    user = db.query(User).filter(User.id ==  user_id).first()
+
+    if not user:
+        raise HTTPException(status_code= 404, detail= "user not found")
+
+    #create artist if not already there 
+    return{
+        "user_id" : user_id,
+        "name" : user.name,
+        "artists" : [
+            {
+                "mb_id" : a.mb_id, "name" : a.name, "tags" : a.tags
+            }
+            for a in user.artists
+        ]
+    }
+
+
+@router.post("/user/{user_id}/add_track", status_code=201)
+def add_track_to_user(
+    user_id: str,
+    data: TrackCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="not allowed")
+
+    track = db.query(Track).filter(Track.mb_id == data.mb_id).first()
+    if not track:
+        track = Track(**data.model_dump())
+        db.add(track)
+        db.commit()
+        db.refresh(track)
+
+    if track in current_user.tracks:
+        raise HTTPException(status_code=400, detail="track already added to your account")
+
+    current_user.tracks.append(track)
+    db.commit()
+
+    return {"message": f"Track {track.title} added to user {current_user.name}"}
+
+
+@router.get("/user/{user_id}/tracks")
+def get_user_tracks(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="user not found")
+
+    return {
+        "user_id": user_id,
+        "name": user.name,
+        "tracks": [
+            {
+                "mb_id": t.mb_id,
+                "artist_mb_id": t.artist_mb_id,
+                "artist_name": t.artist_name,
+                "title": t.title,
+                "release_title": t.release_title,
+                "length_ms": t.length_ms,
+            }
+            for t in user.tracks
+        ],
+    }

@@ -6,6 +6,7 @@ class ArtistCreate(BaseModel):
     name : str
     country : str | None = None
     tags : list[str] = []
+    artist_type : str | None = None
 
 
 class ArtistResponse(BaseModel):
@@ -14,6 +15,7 @@ class ArtistResponse(BaseModel):
     name : str
     country : str | None
     tags : list[str]
+    artist_type : str | None
 
     class Config:
         from_attributes = True

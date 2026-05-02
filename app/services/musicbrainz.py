@@ -16,22 +16,29 @@ def clean_tags(tags: list) -> list:
 
     ]
 
-def search_artist(name):
-    url = f"{base_url}artist/"
 
+def _request_mb(path: str, params: dict) -> dict:
+    headers = {
+        "User-Agent": "VibeMatch/1.0 (vibematch@gmailcom)"
+    }
+    res = request.get(
+        f"{base_url}{path}",
+        params=params,
+        headers=headers,
+        timeout=15,
+    )
+    res.raise_for_status()
+    time.sleep(1)
+    return res.json()
+
+def search_artist(name):
     params = {
         "query": name,
         "fmt" : "json",
         "limit" : 5
     }
-
-    headers = {
-        "User-Agent": "VibeMatch/1.0 (vibematch@gmailcom)"   
-    }
     try:
-        res = request.get(url, params = params, headers = headers)
-        res.raise_for_status()
-        data = res.json()
+        data = _request_mb("artist/", params)
 
         artists = []
 
@@ -46,9 +53,45 @@ def search_artist(name):
                 "score" : a.get("score")
             })
 
-        time.sleep(1)
         return {"artists": artists}
     except request.exceptions.Timeout:
         return {"error" : "'musicbrainz API request timed out"}
     except request.exceptions.RequestException as e:
-        return {"error" : f"Request failed: {str()}"}
+        return {"error" : f"Request failed: {str(e)}"}
+
+
+def search_artist_recordings(artist_mb_id: str, limit: int = 10):
+    params = {
+        "artist": artist_mb_id,
+        "fmt": "json",
+        "limit": limit,
+        "inc": "releases",
+    }
+
+    try:
+        data = _request_mb("recording", params)
+        tracks = []
+
+        for recording in data.get("recordings", []):
+            release_title = None
+            releases = recording.get("releases") or []
+            if releases:
+                release_title = releases[0].get("title")
+
+            artist_credit = recording.get("artist-credit") or []
+            artist_name = artist_credit[0].get("name") if artist_credit else ""
+
+            tracks.append({
+                "mb_id": recording.get("id"),
+                "artist_mb_id": artist_mb_id,
+                "artist_name": artist_name,
+                "title": recording.get("title"),
+                "release_title": release_title,
+                "length_ms": recording.get("length"),
+            })
+
+        return {"tracks": tracks}
+    except request.exceptions.Timeout:
+        return {"error": "musicbrainz API request timed out"}
+    except request.exceptions.RequestException as e:
+        return {"error": f"Request failed: {str(e)}"}

@@ -8,9 +8,9 @@ user_artist = Table(
 
     "user_artist",
     Base.metadata,
-    Column("user_id", Integer, ForeignKey("users.id"), primary_key =True),
+    Column("user_id", String, ForeignKey("users.id"), primary_key =True),
     Column("artist_id", Integer, ForeignKey("artists.id"), primary_key = True),
-    Column("added_at", DateTime, default = lambda: datetime.now(timezone.ist))
+    Column("added_at", DateTime, default = lambda: datetime.now(timezone.utc))
 )
     
 
@@ -23,7 +23,7 @@ class Artist(Base):
     name = Column(String, nullable = False)
     country = Column(String, nullable = True)
     tags = Column(JSON, default = list)
-    artist_type = Column(String, nullable = False)
+    artist_type = Column(String, nullable = True)
 
     users = relationship("User", secondary= user_artist, back_populates= "artists")
 
