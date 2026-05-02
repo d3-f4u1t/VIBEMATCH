@@ -1,0 +1,417 @@
+VIBEMATCH
+GALE ALGO BASED DATING APP
+Phase 1 — Raw User Data
+When a user signs up, you collect everything:
+Music taste    → they search and pick artists via MusicBrainz
+               → select genres, moods, era preference
+
+Photos         → minimum 2, maximum 6 photos uploaded
+
+Bio            → free text about themselves
+
+Quiz answers   → 10-15 music-themed personality questions
+               → "pick a song for a first date"
+               → "what do you play at 2am when sad"
+               → "road trip song" etc.
+
+Location       → city-level from browser, opt-in only
+Looking for    → friends / dating / both
+Nothing from any third party account. All self-reported. All yours to own legally.
+
+Phase 2 — Feature Extraction
+Each data type gets converted into a numerical vector:
+Music Vector (128-dim)
+pythondef build_music_vector(user):
+    text = f"""
+        artists: {', '.join(user.top_artists)}
+        genres:  {', '.join(user.genres)}
+        moods:   {', '.join(user.moods)}
+        era:     {user.era}
+    """
+    return SentenceTransformer('all-MiniLM-L6-v2').encode(text)
+    # Output: 384-dim vector → reduce to 128 via PCA
+Face Embedding (512-dim)
+pythondef build_face_vector(photos):
+    embeddings = [DeepFace.represent(p, model_name="Facenet512")
+                  for p in photos]
+    return np.mean(embeddings, axis=0)
+    # Average across all photos for stability
+Personality Vector (64-dim)
+pythondef build_personality_vector(bio, quiz_answers):
+    combined = bio + " " + " ".join(quiz_answers)
+    raw = SentenceTransformer('all-MiniLM-L6-v2').encode(combined)
+    # Extract Big 5 traits from text classifier
+    traits = big5_classifier(combined)
+    return np.concatenate([raw[:59], traits])  # 64-dim total
+Behaviour Vector (32-dim) — built over time
+python# Populated after they start using the app
+behaviour = {
+    'swipe_rate':       0.23,  # likes 23% of profiles
+    'decision_speed':   2.1,   # seconds per swipe
+    'active_hours':     [22,23,0,1],
+    'response_rate':    0.78,
+    'convo_depth':      0.65,
+    'selectivity':      0.31
+}
+
+Phase 3 — The User Profile Vector
+All four vectors concatenated into one master representation:
+pythondef build_profile_vector(user):
+    return np.concatenate([
+        user.music_vector      * 0.35,  # weighted most heavily
+        user.personality_vector * 0.25,
+        user.face_vector        * 0.25,
+        user.behaviour_vector   * 0.15
+    ])
+    # Stored in Pinecone / pgvector for fast similarity search
+This single vector IS the user's digital identity in your system. Everything downstream uses it.
+
+Phase 4 — DBSCAN Clustering into Behavioural Sets
+This is the core of your idea. You don't cluster users by who they ARE — you cluster them by what they SWIPE RIGHT ON.
+pythondef build_preference_vector(user):
+    liked = get_liked_profiles(user)
+    if len(liked) < 10:
+        return None  # not enough data yet
+
+    # What does their average right-swipe look like?
+    return np.mean([p.profile_vector for p in liked], axis=0)
+
+def cluster_all_users():
+    pref_vectors = [
+        (user.id, build_preference_vector(user))
+        for user in all_users
+        if build_preference_vector(user) is not None
+    ]
+
+    vectors = np.array([pv[1] for pv in pref_vectors])
+
+    # DBSCAN — finds natural clusters, no need to specify count
+    clustering = DBSCAN(
+        eps=0.35,          # similarity threshold
+        min_samples=200,   # minimum set size (liquidity floor)
+        metric='cosine'
+    ).fit(vectors)
+
+    return clustering.labels_
+    # Each unique label = one behavioural set (S1, S2, S3...)
+    # Label -1 = outlier, handled separately
+Why DBSCAN not K-Means
+K-Means forces you to decide the number of clusters upfront and creates equal-sized blobs. DBSCAN finds natural groupings in the data and handles outliers — much better for real messy human preference data.
+Set Liquidity Rule
+pythonMIN_SET_SIZE = 200   # below this → merge with nearest set
+MAX_SET_SIZE = 10000 # above this → split into sub-sets
+
+def enforce_liquidity(sets):
+    for s in sets:
+        if len(s.members) < MIN_SET_SIZE:
+            nearest = find_nearest_set(s)
+            merge_sets(s, nearest)
+        elif len(s.members) > MAX_SET_SIZE:
+            split_set(s)  # creates two child sets via k-means(k=2)
+
+Phase 5 — The Multiset Rating System
+Every user gets a score NOT universally but specifically for each set. This replaces the flawed "this person is a 7/10" model.
+pythonclass MultisetRating:
+    def compute_rating(self, user, set_S):
+        """
+        How desirable is this user TO members of set S?
+        """
+        # 1. How much do set S members actually swipe right on this user?
+        members = get_set_members(set_S)
+        swipe_rights = count_right_swipes_on(user, from_users=members)
+        swipe_rate = swipe_rights / len(members)
+
+        # 2. Elo score within this set only
+        elo = self.get_elo_score(user, set_S)
+
+        # 3. Vector similarity — does this user LOOK LIKE
+        #    what set S members tend to like?
+        set_preference_vector = get_set_preference_vector(set_S)
+        vector_sim = cosine_similarity(
+            user.profile_vector,
+            set_preference_vector
+        )
+
+        # Combined rating for THIS set
+        rating = (
+            swipe_rate    * 0.40 +
+            elo           * 0.35 +
+            vector_sim    * 0.25
+        )
+
+        return rating  # 0.0 → 1.0
+
+    def full_multiset_rating(self, user):
+        return {
+            set_id: self.compute_rating(user, set_id)
+            for set_id in all_sets
+        }
+        # Result: { S1: 0.87, S2: 0.43, S3: 0.91, S4: 0.12 ... }
+The Elo Component (Per-Set)
+pythondef update_elo(user, swiper, action, set_id):
+    """
+    Standard Elo but scoped to one set.
+    Being liked by a high-Elo member of set S
+    raises your Elo IN set S more than being
+    liked by a low-Elo member.
+    """
+    K = 32
+    user_elo   = get_elo(user, set_id)
+    swiper_elo = get_elo(swiper, set_id)
+
+    expected = 1 / (1 + 10 ** ((swiper_elo - user_elo) / 400))
+    actual   = 1 if action == "like" else 0
+
+    new_elo = user_elo + K * (actual - expected)
+    set_elo(user, set_id, new_elo)
+
+Phase 6 — Cross-Set Mutual Attraction
+Now you find which sets are compatible WITH each other using mutual scoring:
+pythondef cross_set_mutual_score(set_A, set_B):
+    """
+    Does set A like what set B members look like?
+    Does set B like what set A members look like?
+    Both must be true for a good match.
+    """
+    # Get each set's preference vector
+    # (average profile of who they swipe right on)
+    pref_A = get_set_preference_vector(set_A)
+    pref_B = get_set_preference_vector(set_B)
+
+    # Get each set's member profile vector
+    # (average profile of who they ARE)
+    profile_A = get_set_member_vector(set_A)
+    profile_B = get_set_member_vector(set_B)
+
+    # Does A's preference match B's members?
+    A_likes_B = cosine_similarity(pref_A, profile_B)
+
+    # Does B's preference match A's members?
+    B_likes_A = cosine_similarity(pref_B, profile_A)
+
+    # Harmonic mean — punishes one-sided attraction hard
+    # If A likes B 0.9 but B likes A 0.1:
+    # arithmetic mean = 0.5 (misleadingly high)
+    # harmonic mean   = 0.18 (correctly low)
+    mutual = 2 * (A_likes_B * B_likes_A) / (A_likes_B + B_likes_A)
+
+    return {
+        "mutual":   mutual,
+        "A_likes_B": A_likes_B,
+        "B_likes_A": B_likes_A,
+        "type": classify(A_likes_B, B_likes_A)
+    }
+
+def classify(a, b):
+    if a > 0.7 and b > 0.7:   return "MUTUAL"      # both want each other
+    if a > 0.7 and b < 0.3:   return "ONE_SIDED"   # A chases B
+    if abs(a - b) < 0.1:      return "BALANCED"
+    return "ASYMMETRIC"
+
+Phase 7 — Gale-Shapley at Set Level
+Now run Gale-Shapley on the sets themselves. This is fast because the number of sets (s) is small — maybe 20-50 sets total even at millions of users.
+pythondef gale_shapley_sets(all_sets):
+    """
+    Level 1 of hierarchical matching.
+    Sets propose to each other based on mutual score.
+    Result: stable pairs of sets.
+
+    Stable means: no two sets S_A and S_B would
+    both prefer each other over their current match.
+    """
+    free_sets  = set(all_sets)
+    proposals  = {s: [] for s in all_sets}
+    matched    = {}
+
+    # Pre-compute preference ranking for each set
+    rankings = {
+        s: sorted(
+            [other for other in all_sets if other != s],
+            key=lambda x: cross_set_mutual_score(s, x)['mutual'],
+            reverse=True
+        )
+        for s in all_sets
+    }
+
+    while free_sets:
+        for proposer in list(free_sets):
+            # Find best unproposed-to set
+            candidates = [
+                c for c in rankings[proposer]
+                if c not in proposals[proposer]
+            ]
+            if not candidates:
+                free_sets.discard(proposer)
+                continue
+
+            target = candidates[0]
+            proposals[proposer].append(target)
+
+            if target not in matched:
+                matched[target]  = proposer
+                matched[proposer] = target
+                free_sets.discard(proposer)
+            else:
+                current = matched[target]
+                # Does target prefer proposer over current?
+                target_pref = rankings[target]
+                if target_pref.index(proposer) < target_pref.index(current):
+                    # Upgrade match
+                    matched[target]   = proposer
+                    matched[proposer] = target
+                    free_sets.discard(proposer)
+                    free_sets.add(current)
+                    del matched[current]
+
+    return matched
+    # Result: { S1: S7, S7: S1, S2: S4, S4: S2 ... }
+
+Phase 8 — Gale-Shapley at Individual Level
+Within each matched set pair, run individual matching. This is where your users actually get paired:
+pythondef gale_shapley_individuals(set_A, set_B):
+    """
+    Level 2 of hierarchical matching.
+    Individuals from set_A propose to individuals in set_B.
+
+    Complexity: O(k²) where k = set size
+    With k=500, that's 250,000 operations — very fast.
+    """
+    members_A = get_set_members(set_A)
+    members_B = get_set_members(set_B)
+
+    free_A    = set(members_A)
+    proposals = {u: [] for u in members_A}
+    matched   = {}
+
+    # Individual preference ranking within set pair
+    def rank_for(user, candidates):
+        scores = []
+        for c in candidates:
+            score = individual_compatibility(user, c)
+            scores.append((c, score))
+        return [c for c, _ in sorted(scores, key=lambda x: x[1], reverse=True)]
+
+    rankings_A = {u: rank_for(u, members_B) for u in members_A}
+    rankings_B = {u: rank_for(u, members_A) for u in members_B}
+
+    while free_A:
+        for proposer in list(free_A):
+            candidates = [
+                c for c in rankings_A[proposer]
+                if c not in proposals[proposer]
+            ]
+            if not candidates:
+                free_A.discard(proposer)
+                continue
+
+            target = candidates[0]
+            proposals[proposer].append(target)
+
+            if target not in matched:
+                matched[target]   = proposer
+                matched[proposer] = target
+                free_A.discard(proposer)
+            else:
+                current = matched[target]
+                if rankings_B[target].index(proposer) < rankings_B[target].index(current):
+                    matched[target]   = proposer
+                    matched[proposer] = target
+                    free_A.discard(proposer)
+                    free_A.add(current)
+                    del matched[current]
+
+    return matched
+
+def individual_compatibility(user_A, user_B):
+    """The full compatibility score used inside GS"""
+    return (
+        cosine_similarity(user_A.music_vector,       user_B.music_vector)       * 0.35 +
+        cosine_similarity(user_A.personality_vector, user_B.personality_vector) * 0.25 +
+        user_B.multiset_rating[user_A.belongs_to_set]                           * 0.20 +
+        location_score(user_A, user_B)                                           * 0.10 +
+        activity_score(user_B)                                                   * 0.10
+    )
+
+Phase 9 — Game Theory Layer
+Four mechanisms that make the system self-correcting and resistant to abuse:
+Mechanism 1 — Costly Signaling
+pythonDAILY_LIKES      = 20   # free, low signal
+SUPER_LIKES      = 5    # limited, high signal — weighted 3x in GS scoring
+BOOSTS           = 1    # costs premium, shows you to more people
+Mechanism 2 — Selectivity Penalty
+pythondef selectivity_adjustment(user):
+    like_rate = user.likes_sent / user.profiles_seen
+
+    if like_rate > 0.80:   # liking almost everyone
+        visibility_multiplier = 0.4   # shown to far fewer people
+        elo_gain_multiplier   = 0.3   # likes mean less signal
+    elif like_rate < 0.05: # extremely picky
+        visibility_multiplier = 1.2   # slight boost for quality
+        elo_gain_multiplier   = 1.5   # their likes carry heavy signal
+    else:
+        visibility_multiplier = 1.0
+        elo_gain_multiplier   = 1.0
+Mechanism 3 — Feed Balancing (Two-Sided Market)
+pythondef balanced_feed(user):
+    d = user.desirability_score
+
+    return interleave({
+        'aspirational': get_users(d+10, d+25, limit=6),   # 30% of feed
+        'peer':         get_users(d-10, d+10, limit=10),  # 50%
+        'confidence':   get_users(d-25, d-10, limit=4),   # 20%
+    })
+Mechanism 4 — Multi-Armed Bandit (Cold Start + Exploration)
+pythondef feed_strategy(user):
+    if user.days_on_app < 14:
+        # Exploration: show diverse profiles, gather signal fast
+        return epsilon_greedy_feed(user, epsilon=0.4)
+    else:
+        # Exploitation: use learned preferences
+        return epsilon_greedy_feed(user, epsilon=0.1)
+
+def epsilon_greedy_feed(user, epsilon):
+    if random() < epsilon:
+        return random_diverse_profiles(user)    # explore
+    else:
+        return top_compatibility_profiles(user)  # exploit
+
+Phase 10 — Behaviour Shift Detection (Continuous Loop)
+The system never stops learning. Every week it checks if any user's preferences have shifted enough to re-cluster them:
+pythondef detect_and_handle_shift(user):
+    recent    = build_preference_vector(user, days=14)
+    historic  = build_preference_vector(user, days=90)
+
+    shift = 1 - cosine_similarity(recent, historic)
+
+    if shift > 0.30:   # significant preference change
+        new_set = find_nearest_set(recent)
+
+        if new_set != user.current_set:
+            migrate_user(user, new_set)
+            recalculate_multiset_ratings(user)
+
+The Full Complexity Picture
+Set clustering          O(n log n)   DBSCAN — runs weekly in batch
+Multiset rating         O(n × s)     n users, s sets — runs nightly
+Set-level GS            O(s²)        ~50 sets → 2500 ops — instant
+Individual-level GS     O(k²)        k=500 → 250k ops per set pair
+Feed generation         O(log n)     Vector search via Pinecone
+Behaviour shift check   O(n)         Runs weekly per user
+Even at 1 million users this is computationally tractable because the hierarchical structure means you never compare every user to every other user.
+
+
+AUTH SYSTEM
+
+What the Token Flow Looks Like
+User registers/logs in
+         ↓
+Gets back access_token (JWT string)
+         ↓
+Every protected request sends:
+Header: Authorization: Bearer <token>
+         ↓
+Server decodes token → gets user_id → loads user from DB
+         ↓
+Route gets current_user injected automatically
+
+

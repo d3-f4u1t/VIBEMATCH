@@ -12,8 +12,9 @@ class User(Base):
     id  = Column(String,primary_key = True, default = lambda: str(uuid.uuid4()))
     name = Column(String,nullable = False)
     email = Column(String, unique = True, index = True,nullable = False)
-    bio = Column(String, nullable= False)
-    location_city = Column(String, nullable = False)
+    password_hash = Column(String, nullable = False)
+    bio = Column(String, nullable= True)
+    location_city = Column(String, nullable = True)
     music_vector = Column(JSON, nullable = True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     #relationship vector base

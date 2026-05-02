@@ -31,16 +31,20 @@ def register(data: UserCreate, db: Session= Depends(get_db)):
             name = data.name,
             email = data.email,
             password_hash = hash_password(data.password),
-            bio = data.bio,
-            location_city = data.location_city
+            bio = data.bio or "",
+            location_city = data.location_city or ""
         )
 
-        token = create_access_token(user, id)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
-        return {"access_token": token, "token_type:": "bearer", "user" : user}
+        token = create_access_token(user.id)
+
+        return {"access_token": token, "token_type": "bearer", "user" : user}
     
     except Exception:
-        db.rollrollback()
+        db.rollback()
         raise HTTPException(status_code= 400, detail= "registration failed")
     
 @router.post("/login", response_model = TokenResponse)
