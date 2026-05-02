@@ -9,6 +9,7 @@ from app.schemas.user import UserCreate, UserResponse
 from app.schemas.artist import ArtistCreate
 from app.schemas.track import TrackCreate
 from app.auth import get_current_user
+from app.services.vector import build_and_save_vector
 
 router = APIRouter(tags= ["users"])
 
@@ -70,8 +71,9 @@ def add_artist_to_user(
     #link artist to user/account
     current_user.artists.append(artist)
     db.commit()
+    build_and_save_vector(current_user, db)
 
-    return {"message": f"Artist {artist.name} added to user {current_user.name}"}
+    return {"message": f"Artist {artist.name} added to user {current_user.name} and vector updated"}
 
 @router.get("/user/{user_id}/artists")
 def get_user_artists(user_id: str, db: Session= Depends(get_db)):
@@ -115,8 +117,9 @@ def add_track_to_user(
 
     current_user.tracks.append(track)
     db.commit()
+    build_and_save_vector(current_user, db)
 
-    return {"message": f"Track {track.title} added to user {current_user.name}"}
+    return {"message": f"Track {track.title} added to user {current_user.name} and vector updated"}
 
 
 @router.get("/user/{user_id}/tracks")
@@ -140,4 +143,25 @@ def get_user_tracks(user_id: str, db: Session = Depends(get_db)):
             }
             for t in user.tracks
         ],
+    }
+
+
+@router.get("/user/{user_id}/vector")
+def get_user_vector(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="user not found")
+
+    if not user.music_vector:
+        raise HTTPException(
+            status_code=404,
+            detail="No vector yet add artists and tracks first",
+        )
+
+    return {
+        "user_id": user_id,
+        "vector_length": len(user.music_vector),
+        "vector_preview": user.music_vector[:8],
+        "has_vector": True,
     }
