@@ -217,3 +217,73 @@ def get_music_profile_status(user_id: str, db: Session = Depends(get_db)):
         "artists_slots_left":max(0, max_artists - artist_count),
         "track_slots_left": max(0, max_tracks - track_count),
     }
+
+
+'''to remove the artist from the user'''
+@router.delete("user/{user_id}/artists/{artist_mb_id}")
+def remove_artist_from_user(
+    user_id : str,
+    artist_mb_id: str,
+    db: Session= Depends(get_db),
+    current_user: User = Depends(get_current_user)
+
+):
+    if current_user.id != user_id:
+        raise HTTPException(status_code= 403,detail=" not allowed")
+    
+    #cross check if the artist is in the db
+    artist = db.query(Artist).filter(Artist.mb_id == artist_mb_id).first()
+    if not artist:
+        raise HTTPException(status_code=404, detail="Artist not found")
+    
+    #to verify ifits linked to the user
+
+    if artist not in current_user.artists:
+        raise HTTPException(status_code=400, detail="artist not associated with your account")
+    
+    #to remove that relationship
+
+    current_user.artists.remove(artist)
+    db.commit()
+
+    #now after that is removed to rebuld the vector from the new raw data
+
+    build_and_save_vector(current_user, db)
+
+    return {"message": f"Artist {artist.name} removed from user {current_user.name} and vector updated"}
+
+'''to remove the track fromthe user'''
+@router.delete("/user/{user_id}/track/{track_mb_id}")
+
+def remove_track_from_user(
+    user_id: str,
+    track_mb_id: str,
+    db: Session = Depends(get_db),
+    current_user: User =Depends(get_current_user)
+
+):
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Not allowed")
+    
+    #find the track in the db
+
+    track = db.query(Track).filter(Track.mb_id == track_mb_id).first()
+
+    if not track:
+        raise HTTPException(status_code=404, detail="Track not found")
+    
+    #to checl if it is linked to the user
+    if track not in current_user.tracks:
+        raise HTTPException(status_code=400, detail="Track not associasted")
+    #remove the relationship
+    current_user.tracks.remove(track)
+    db.commit()
+
+    #rebuild the vector
+
+    build_and_save_vector(current_user,db)
+
+    return {"message": f"Track {track.title} removed from the user {current_user.name} and vector updated"}
+
+
+    
