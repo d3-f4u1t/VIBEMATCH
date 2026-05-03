@@ -220,7 +220,7 @@ def get_music_profile_status(user_id: str, db: Session = Depends(get_db)):
 
 
 '''to remove the artist from the user'''
-@router.delete("user/{user_id}/artists/{artist_mb_id}")
+@router.delete("/user/{user_id}/artists/{artist_mb_id}")
 def remove_artist_from_user(
     user_id : str,
     artist_mb_id: str,
@@ -253,7 +253,7 @@ def remove_artist_from_user(
     return {"message": f"Artist {artist.name} removed from user {current_user.name} and vector updated"}
 
 '''to remove the track fromthe user'''
-@router.delete("/user/{user_id}/track/{track_mb_id}")
+@router.delete("/user/{user_id}/tracks/{track_mb_id}")
 
 def remove_track_from_user(
     user_id: str,
