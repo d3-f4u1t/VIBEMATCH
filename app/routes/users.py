@@ -44,7 +44,7 @@ def get_user(user_id: str, db: Session = Depends(get_db)):
 
 @router.post("/user/{user_id}/add_artist", status_code=201)
 
-def add_artist_to_user(
+def add_artist_to_user(#this is used to add artist to user id for music vector
     user_id : str,
     data: ArtistCreate,
     db: Session = Depends(get_db),
@@ -69,6 +69,14 @@ def add_artist_to_user(
         raise HTTPException(status_code= 400, detail= "artist already added to your account")
     
     #link artist to user/account
+
+    if len(current_user.artists) >= 5:
+        raise HTTPException(
+            status_code= 400,
+            detail= "You can only select up to 5 artists"
+        )
+    
+
     current_user.artists.append(artist)
     db.commit()
     build_and_save_vector(current_user, db)
@@ -96,7 +104,7 @@ def get_user_artists(user_id: str, db: Session= Depends(get_db)):
 
 
 @router.post("/user/{user_id}/add_track", status_code=201)
-def add_track_to_user(
+def add_track_to_user( #this is usedd to add to tracks to user id
     user_id: str,
     data: TrackCreate,
     db: Session = Depends(get_db),
@@ -114,6 +122,11 @@ def add_track_to_user(
 
     if track in current_user.tracks:
         raise HTTPException(status_code=400, detail="track already added to your account")
+    if len(current_user.tracks) >= 7:
+        raise HTTPException(
+            status_code= 400,
+            detail= "you can only select up to 7 song"
+        )
 
     current_user.tracks.append(track)
     db.commit()
@@ -164,4 +177,43 @@ def get_user_vector(user_id: str, db: Session = Depends(get_db)):
         "vector_length": len(user.music_vector),
         "vector_preview": user.music_vector[:8],
         "has_vector": True,
+    }
+
+
+#music profile code
+
+@router.get("/user/{user_id}/music-profile-status")
+def get_music_profile_status(user_id: str, db: Session = Depends(get_db)):
+    user= db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code= 404, detail="user not found")
+    
+    artist_count = len(user.artists)
+    track_count = len(user.tracks)
+
+    min_artists = 3
+    max_artists = 5
+    min_tracks = 4
+    max_tracks = 7
+
+    return {
+        "user_id" : user_id,
+        "artist_count": artist_count,
+        "track_count": track_count,
+        "artist_rules": {
+            "min" : min_artists,
+            "max": max_artists,
+        },
+        "track_rules": {
+            "min": min_tracks,
+            "max": max_tracks
+        },
+        "artists_complete": artist_count >=min_artists,
+        "tracks_complete":track_count >= min_tracks,
+        "music_profile_complete": artist_count >= min_artists and track_count >= min_tracks,
+        "artists_rem_to_min": max(0, min_artists - artist_count),
+        "tracks_rem_to_min": max(0, min_tracks- track_count),
+        "artists_slots_left":max(0, max_artists - artist_count),
+        "track_slots_left": max(0, max_tracks - track_count),
     }
