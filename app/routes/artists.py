@@ -29,7 +29,13 @@ def get_artist_tracks(artist_mb_id: str, limit: int = 10):
 
 
 @router.get("/tracks/search")
-def search_tracks(title: str, user_id: str, db: Session = Depends(get_db), limit: int = 10):
+def search_tracks(
+    title: str,
+    user_id: str,
+    artist_name: str | None = None,
+    db: Session = Depends(get_db),
+    limit: int = 10,
+):
     if not title or len(title.strip()) < 2:
         raise HTTPException(status_code=400, detail="Track search term too short")
     if limit < 1 or limit > 25:
@@ -48,6 +54,7 @@ def search_tracks(title: str, user_id: str, db: Session = Depends(get_db), limit
 
     return search_tracks_by_title(
         title=title.strip(),
+        artist_name=artist_name.strip() if artist_name else None,
         preferred_artists=preferred_artists,
         preferred_artist_mbids=preferred_artist_mbids,
         limit=limit,

@@ -222,6 +222,7 @@ def search_artist_recordings(artist_mb_id: str, limit: int = 10):
 
 def search_tracks_by_title(
     title: str,
+    artist_name: str | None = None,
     preferred_artists: dict[str, str] | None = None,
     preferred_artist_mbids: set[str] | None = None,
     limit: int = 10,
@@ -233,6 +234,23 @@ def search_tracks_by_title(
     try:
         scored_tracks = []
         seen_titles = set()
+
+        if artist_name:
+            direct_params = {
+                "query": f'recording:"{title}" AND artist:"{artist_name}"',
+                "fmt": "json",
+                "limit": max(limit * 3, 15),
+            }
+            direct_data = _request_mb("recording/", direct_params)
+            scored_tracks.extend(
+                _collect_track_candidates(
+                    direct_data.get("recordings", []),
+                    preferred_artist_mbids=preferred_artist_mbids,
+                    preferred_artist_names=preferred_artists,
+                    base_score=12,
+                    seen_titles=seen_titles,
+                )
+            )
 
         for artist_mb_id, artist_name in preferred_artists.items():
             params = {
