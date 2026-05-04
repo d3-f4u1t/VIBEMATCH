@@ -219,6 +219,44 @@ def get_music_profile_status(user_id: str, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/user/{user_id}/can-complete-music-profile")
+def can_complete_music_profile(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="user not found")
+
+    artist_count = len(user.artists)
+    track_count = len(user.tracks)
+
+    min_artists = 3
+    min_tracks = 4
+
+    artists_remaining = max(0, min_artists - artist_count)
+    tracks_remaining = max(0, min_tracks - track_count)
+    can_continue = artists_remaining == 0 and tracks_remaining == 0
+
+    if can_continue:
+        reason = "Music profile complete"
+    else:
+        missing_parts = []
+        if artists_remaining:
+            label = "artist" if artists_remaining == 1 else "artists"
+            missing_parts.append(f"{artists_remaining} more {label}")
+        if tracks_remaining:
+            label = "song" if tracks_remaining == 1 else "songs"
+            missing_parts.append(f"{tracks_remaining} more {label}")
+        reason = "Select at least " + " and ".join(missing_parts)
+
+    return {
+        "user_id": user_id,
+        "can_continue": can_continue,
+        "reason": reason,
+        "artist_count": artist_count,
+        "track_count": track_count,
+    }
+
+
 '''to remove the artist from the user'''
 @router.delete("/user/{user_id}/artists/{artist_mb_id}")
 def remove_artist_from_user(
