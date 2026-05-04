@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.database import Base, engine
-from app.routes import users, artists,auth
+from app.routes import users, artists,auth, matching
 
 Base.metadata.create_all(bind= engine)
 
@@ -9,6 +9,7 @@ app = FastAPI(title= "VIBEMatch API", version = "0.3.0")
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(artists.router)
+app.include_router(matching.router)
 
 @app.get("/")
 def home():
