@@ -7,6 +7,21 @@ from app.services.vector import cosine_similarity
 
 router = APIRouter(tags=["matching"])
 
+def build_match_reason(shared_artists: list[str], shared_tracks: list[str], similarity: float) -> str:
+    if shared_tracks:
+        return f"You both connect with songs like {', '.join(shared_tracks[:2])}"
+    if shared_artists:
+        return f"Strong overlap in artists like {', '.join(shared_artists[:2])}"
+    
+    if similarity >= 0.8:
+        return "Very strong music taste compatibility"
+    
+    if similarity >= 0.6:
+        return "Good music taste compatibility"
+    return "Some overlap in music taste"
+
+
+
 @router.get("/match/{user_id}")
 def get_matches(user_id: str, db:Session = Depends(get_db), limit: int = 10):
     user = db.query(User).filter(User.id == user_id).first()
@@ -32,6 +47,9 @@ def get_matches(user_id: str, db:Session = Depends(get_db), limit: int = 10):
         .all()
     )
 
+    user_artist_names = {artist.name for artist in user.artists if artist.name}
+    user_track_titles = {track.title for track in user.tracks if track.title}
+
     matches = []
 
     for other in other_users:
@@ -41,11 +59,21 @@ def get_matches(user_id: str, db:Session = Depends(get_db), limit: int = 10):
             continue
 
         similarity= cosine_similarity(user.music_vector, other.music_vector)
+        other_artist_names = {artist.name for artist in other.artists if artist.name}
+        other_track_titles = {track.title for track in other.tracks if track.title}
+
+        shared_artists = sorted(user_artist_names & other_artist_names)
+        shared_tracks = sorted(user_track_titles & other_track_titles)
 
         matches.append({
             "user_id": other.id,
             "name": other.name,
             "similarity": round(similarity,4),
+            "artist_count": len(other.artists),
+            "track_count": len(other.tracks),
+            "shared_artists": shared_artists,
+            "shared_tracks": shared_tracks,
+            "match_reason": build_match_reason(shared_artists, shared_tracks, similarity),
         })
 
     matches.sort(key = lambda item: item["similarity"], reverse= True)

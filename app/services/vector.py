@@ -3,12 +3,16 @@ import numpy as np
 from sqlalchemy.orm import Session
 
 _model = None
+MODEL_NAME = "all-MiniLM-L6-v2"
 
 
 def get_model():
     global _model
     if _model is None:
-        _model = SentenceTransformer("all-MiniLM-L6-v2")
+        try:
+            _model = SentenceTransformer(MODEL_NAME)
+        except Exception:
+            _model = SentenceTransformer(MODEL_NAME, local_files_only=True)#used chashed file if internet isnt working
     return _model
 
 
