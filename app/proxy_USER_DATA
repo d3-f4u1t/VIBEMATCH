@@ -1,0 +1,94 @@
+{
+  "name": "Hardik",
+  "email": "hk123@gmail.com",
+  "password": "hardik",
+  "bio": "hello!!",
+  "location_city": "Palampur"
+}
+
+{
+  "name": "Khushi",
+  "email": "k123@gmail.com",
+  "password": "khsuhi",
+  "bio": "heyy!!",
+  "location_city": "kangra"
+}
+
+API:
+
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiZjI4YjczYi03MjBkLTRlMmItYTk1MS03MjcyZDZhNzFiOTkiLCJleHAiOjE3NzgwMDIxMzd9.eeCieQpwIOSdbJniq1k6Sm4wowFeEIXB17Ybwz6DVQo",
+  "token_type": "bearer",
+  "user": {
+    "id": "bf28b73b-720d-4e2b-a951-7272d6a71b99",
+    "name": "Khushi",
+    "email": "k123@gmail.com",
+    "bio": "heyy!!",
+    "location_city": "kangra",
+    "created_at": "2026-05-04T17:28:57.473893"
+  }
+}
+
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjMTE4YTk4Ni1lOTVmLTQ3MjEtOTViNy04MWEwM2ZhZDNjNDQiLCJleHAiOjE3NzgwMDIzNzB9.GvYQh7THfhfOJDf_G7LCkoAY1rFLXpOVE5ULCK_zaoE",
+  "token_type": "bearer",
+  "user": {
+    "id": "c118a986-e95f-4721-95b7-81a03fad3c44",
+    "name": "Hardik",
+    "email": "hk123@gmail.com",
+    "bio": "hello!!",
+    "location_city": "Palampur",
+    "created_at": "2026-05-04T17:23:54.420347"
+  }
+}
+
+ARTIST INFO
+kanye/ye:
+"mb_id": "164f0d73-1234-4e2c-8743-d77bf2191051",
+      "name": "Ye",
+      "country": "US",
+      "type": "Person",
+      "disambiguation": "formerly Kanye West",
+      "tags": [
+        "hip hop",
+        "pop rap",
+        "experimental hip hop"
+      ],
+      "score": 100
+
+DRAKE:
+      "mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+      "name": "Drake",
+      "country": "CA",
+      "type": "Person",
+      "disambiguation": "Canadian rapper",
+      "tags": [
+        "hip hop",
+        "pop rap",
+        "r&b"
+      ],
+      "score": 100
+
+Travis Scott:
+"mb_id": "e4a51f17-a57b-47b1-b37b-f552d0f8e9e6",
+      "name": "Travis Scott",
+      "country": "US",
+      "type": "Person",
+      "disambiguation": "US rapper",
+      "tags": [
+        "hip hop",
+        "trap"
+      ],
+      "score": 100
+    
+Central Cee:
+"mb_id": "b0337af1-8d93-4671-b6c9-ba306bf942bf",
+      "name": "Central Cee",
+      "country": null,
+      "type": "Person",
+      "disambiguation": "London rapper",
+      "tags": [],
+      "score": 100
+
+
+      

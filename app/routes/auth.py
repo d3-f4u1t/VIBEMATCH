@@ -1,10 +1,16 @@
 '''will handle auth/reg and auth/login'''
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse, LoginRequest, TokenResponse
+from app.schemas.user import (
+    AccessTokenResponse,
+    UserCreate,
+    UserResponse,
+    TokenResponse,
+)
 from app.auth import hash_password, verify_password, create_access_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags= ["auth"])
@@ -47,18 +53,22 @@ def register(data: UserCreate, db: Session= Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code= 400, detail= "registration failed")
     
-@router.post("/login", response_model = TokenResponse)
-def login(data: LoginRequest, db:Session = Depends(get_db)):
+@router.post("/login", response_model=AccessTokenResponse)
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db:Session = Depends(get_db)
+):
     #finds user by Mail
-    user = db.query(User).filter(User.email == data.email).first()
+    email = form_data.username.strip().lower()
+    user = db.query(User).filter(User.email == email).first()
     #error is kept constant for both pass and email in validations
-    if not user or not verify_password(data.password, user.password_hash):
+    if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code= 401,
             detail = "incorrect email or password"
         )
     token = create_access_token(user.id)
-    return {"access_token": token, "token_type": "bearer", "user" : user}
+    return {"access_token": token, "token_type": "bearer"}
 
 @router.get("/me", response_model= UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):

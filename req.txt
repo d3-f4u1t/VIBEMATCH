@@ -1,2 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+python-jose
+passlib
+python-multipart
+email-validator
+requests
 numpy
 sentence-transformers
