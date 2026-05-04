@@ -1,0 +1,133 @@
+
+{
+  "users": [
+    {
+      "name": "Hardik",
+      "email": "hk123@gmail.com",
+      "password": "hardik",
+      "bio": "hello!!",
+      "location_city": "Palampur",
+      "artists": [
+        {
+          "mb_id": "164f0d73-1234-4e2c-8743-d77bf2191051",
+          "name": "Ye",
+          "country": "US",
+          "tags": ["hip hop", "pop rap", "experimental hip hop"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+          "name": "Drake",
+          "country": "CA",
+          "tags": ["hip hop", "pop rap", "r&b"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "e4a51f17-a57b-47b1-b37b-f552d0f8e9e6",
+          "name": "Travis Scott",
+          "country": "US",
+          "tags": ["hip hop", "trap"],
+          "artist_type": "Person"
+        }
+      ],
+      "tracks": [
+        {
+          "mb_id": "seed-hardik-1",
+          "artist_mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+          "artist_name": "Drake",
+          "title": "God's Plan",
+          "release_title": "Scorpion",
+          "length_ms": 198973
+        },
+        {
+          "mb_id": "seed-hardik-2",
+          "artist_mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+          "artist_name": "Drake",
+          "title": "Hotline Bling",
+          "release_title": "Views",
+          "length_ms": 267066
+        },
+        {
+          "mb_id": "seed-hardik-3",
+          "artist_mb_id": "e4a51f17-a57b-47b1-b37b-f552d0f8e9e6",
+          "artist_name": "Travis Scott",
+          "title": "SICKO MODE",
+          "release_title": "ASTROWORLD",
+          "length_ms": 312820
+        },
+        {
+          "mb_id": "seed-hardik-4",
+          "artist_mb_id": "164f0d73-1234-4e2c-8743-d77bf2191051",
+          "artist_name": "Ye",
+          "title": "Stronger",
+          "release_title": "Graduation",
+          "length_ms": 311866
+        }
+      ]
+    },
+    {
+      "name": "Khushi",
+      "email": "k123@gmail.com",
+      "password": "khsuhi",
+      "bio": "heyy!!",
+      "location_city": "kangra",
+      "artists": [
+        {
+          "mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+          "name": "Drake",
+          "country": "CA",
+          "tags": ["hip hop", "pop rap", "r&b"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "b0337af1-8d93-4671-b6c9-ba306bf942bf",
+          "name": "Central Cee",
+          "country": null,
+          "tags": [],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "e4a51f17-a57b-47b1-b37b-f552d0f8e9e6",
+          "name": "Travis Scott",
+          "country": "US",
+          "tags": ["hip hop", "trap"],
+          "artist_type": "Person"
+        }
+      ],
+      "tracks": [
+        {
+          "mb_id": "seed-khushi-1",
+          "artist_mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+          "artist_name": "Drake",
+          "title": "One Dance",
+          "release_title": "Views",
+          "length_ms": 173986
+        },
+        {
+          "mb_id": "seed-khushi-2",
+          "artist_mb_id": "b0337af1-8d93-4671-b6c9-ba306bf942bf",
+          "artist_name": "Central Cee",
+          "title": "Doja",
+          "release_title": "23",
+          "length_ms": 97333
+        },
+        {
+          "mb_id": "seed-khushi-3",
+          "artist_mb_id": "e4a51f17-a57b-47b1-b37b-f552d0f8e9e6",
+          "artist_name": "Travis Scott",
+          "title": "goosebumps",
+          "release_title": "Birds in the Trap Sing McKnight",
+          "length_ms": 243836
+        },
+        {
+          "mb_id": "seed-khushi-4",
+          "artist_mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+          "artist_name": "Drake",
+          "title": "Passionfruit",
+          "release_title": "More Life",
+          "length_ms": 298940
+        }
+      ]
+    }
+  ]
+}

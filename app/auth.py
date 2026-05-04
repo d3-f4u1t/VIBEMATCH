@@ -39,7 +39,7 @@ def decode_access_token(token: str) -> str:
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token or expired")
     
-oauth2_secheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_secheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 def get_current_user(
         token: str = Depends(oauth2_secheme),

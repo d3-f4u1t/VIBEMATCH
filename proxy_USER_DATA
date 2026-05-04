@@ -91,4 +91,33 @@ Central Cee:
       "score": 100
 
 
-      
+    logging in details for testing:
+
+hardik:
+
+    {
+  "message": "Artist Ye added to user Hardik and vector updated"
+}
+Response headers
+ content-length: 63 
+ content-type: application/json 
+ date: Mon,04 May 2026 20:10:46 GMT 
+ server: uvicorn 
+ 
+ {
+  "message": "Artist Drake added to user Hardik and vector updated"
+}
+Response headers
+ content-length: 66 
+ content-type: application/json 
+ date: Mon,04 May 2026 20:15:21 GMT 
+ server: uvicorn 
+
+ {
+  "message": "Artist Travis Scott added to user Hardik and vector updated"
+}
+Response headers
+ content-length: 73 
+ content-type: application/json 
+ date: Mon,04 May 2026 20:17:41 GMT 
+ server: uvicorn 

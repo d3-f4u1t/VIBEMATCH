@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.user import (
     AccessTokenResponse,
+    LoginRequest,
     UserCreate,
     UserResponse,
     TokenResponse,
@@ -52,21 +53,37 @@ def register(data: UserCreate, db: Session= Depends(get_db)):
     except Exception:
         db.rollback()
         raise HTTPException(status_code= 400, detail= "registration failed")
-    
-@router.post("/login", response_model=AccessTokenResponse)
-def login(
+
+
+@router.post("/login", response_model=TokenResponse)
+def login(data: LoginRequest, db: Session = Depends(get_db)):
+    email = data.email.strip().lower()
+    user = db.query(User).filter(User.email == email).first()
+
+    if not user or not verify_password(data.password, user.password_hash):
+        raise HTTPException(
+            status_code=401,
+            detail="incorrect email or password"
+        )
+
+    token = create_access_token(user.id)
+    return {"access_token": token, "token_type": "bearer", "user": user}
+
+
+@router.post("/token", response_model=AccessTokenResponse)
+def issue_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db:Session = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
-    #finds user by Mail
     email = form_data.username.strip().lower()
     user = db.query(User).filter(User.email == email).first()
-    #error is kept constant for both pass and email in validations
+
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
-            status_code= 401,
-            detail = "incorrect email or password"
+            status_code=401,
+            detail="incorrect email or password"
         )
+
     token = create_access_token(user.id)
     return {"access_token": token, "token_type": "bearer"}
 
