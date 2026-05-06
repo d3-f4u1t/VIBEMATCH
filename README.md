@@ -7,9 +7,9 @@
   ## Features
 
 ### AI-Powered Vector Matching
-- **Semantic Embeddings**: Transforms music preferences into 384-dimensional vectors using SentenceTransformer (all-MiniLM-L6-v2) for deep semantic understanding
+- **Semantic Embeddings**: Transforms music preferences into 384 dimensional vectors using SentenceTransformer (all-MiniLM-L6-v2) for deep semantic understanding
 - **Cosine Similarity Engine**: Advanced mathematical matching that goes beyond simple playlist overlaps to find true compatibility
-- **Multi-Modal Architecture**: Designed for personality, behavior, and face embeddings - creating holistic user profiles
+- **Multi-Modal Architecture**: Designed for personality, behavior, and face embeddings, creating holistic user profiles
 - **Intelligent Match Explanations**: Provides human-readable reasons for matches (shared artists, genres, musical eras)
 
 ### Smart Music Intelligence
@@ -53,6 +53,26 @@
 - **Monitoring & Logging**: Structured logging and performance monitoring
 - **API Documentation**: Enhanced OpenAPI specs with examples
 
+### Development Guidelines
+
+#### Code Style
+- Follow PEP 8 Python style guidelines
+- Use type hints for all function parameters and return values
+- Write descriptive commit messages
+- Keep functions small and focused on single responsibilities
+
+#### Project Structure
+```
+VIBEMATCH/
+├── app/                    # Main application code
+│   ├── models/            # Database models
+│   ├── routes/            # API endpoints
+│   ├── schemas/           # Pydantic schemas
+│   ├── services/          # Business logic
+│   └── main.py            # Application entry point
+├── scripts/               # Utility scripts
+└── tests/                 # Test suite (when implemented)
+```
 
 ## Installation
 
@@ -85,3 +105,49 @@
 ```bash
 python scripts/seed_proxy_data.py
 ```
+### Testing
+
+1. **Run Existing Tests**
+   ```bash
+   pytest  # When test suite is implemented
+   ```
+
+2. **Add New Tests**
+   - Write unit tests for new functions
+   - Add integration tests for API endpoints
+   - Test edge cases and error conditions
+   - Maintain test coverage above 80%
+
+### Submitting Changes
+
+1. **Create a Feature Branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Make Your Changes**
+   - Implement your feature or fix
+   - Add/update tests
+   - Update documentation if needed
+
+3. **Commit Your Changes**
+   ```bash
+   git add .
+   git commit -m "feat: add amazing new feature"
+   ```
+
+4. **Push and Create Pull Request**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+   - Open a Pull Request on GitHub
+   - Provide a clear description of changes
+   - Reference any related issues
+
+### Communication
+
+- **Issues**: Report bugs or request features via GitHub Issues
+- **Discussions**: Join conversations in GitHub Discussions
+- **Code Review**: All PRs require review before merging
+- **Commit Convention**: Use conventional commits (feat, fix, docs, etc.)
+
