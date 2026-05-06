@@ -30,6 +30,30 @@
 - **Profile Completion Intelligence**: Smart validation ensuring minimum data requirements for meaningful matches
 - **Future-Proof Design**: Built for advanced algorithms like Gale-Shapley stable matching and density-based clustering
 
+## Roadmap
+
+### Current Development Focus
+- **Personality Vectors**: Adding bio and personality questionnaire data with semantic embeddings
+- **Behavior Tracking**: Implementing user interaction patterns (swipes, likes, passes) for behavior vectors
+- **Weighted Similarity**: Multi-factor compatibility scoring combining music, personality, and behavior
+
+### Upcoming Features
+- **Face Embeddings**: AI-powered facial recognition for visual compatibility matching
+- **Stable Matching Algorithm**: Implementing Gale-Shapley for reciprocal, stable pair matching
+- **Behavioral Clustering**: Density-based clustering to group users by attraction patterns
+- **Preference Vectors**: Learning what users are attracted to from their interaction history
+
+### Production Readiness
+- **Database Migration**: Transitioning from SQLite to PostgreSQL for scalability
+- **API Optimization**: Caching strategies and performance improvements
+- **Security Hardening**: Environment-based configuration, CORS, and rate limiting
+- **Containerization**: Docker setup for easy deployment
+
+### Quality Assurance
+- **Monitoring & Logging**: Structured logging and performance monitoring
+- **API Documentation**: Enhanced OpenAPI specs with examples
+
+
 ## Installation
 
 ### Prerequisites
