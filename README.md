@@ -64,7 +64,7 @@
 #### Project Structure
 ```
 VIBEMATCH/
-├── app/                    # Main application code
+├── app/                   # Main application code
 │   ├── models/            # Database models
 │   ├── routes/            # API endpoints
 │   ├── schemas/           # Pydantic schemas
