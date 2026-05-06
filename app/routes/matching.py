@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 #app IMPORTS
 from app.database import get_db
 from app.models.user import User
+from app.schemas.matching import MatchResponse
 from app.services.vector import cosine_similarity
 
 router = APIRouter(tags=["matching"])
@@ -22,7 +23,7 @@ def build_match_reason(shared_artists: list[str], shared_tracks: list[str], simi
 
 
 
-@router.get("/match/{user_id}")
+@router.get("/match/{user_id}", response_model=MatchResponse)
 def get_matches(user_id: str, db:Session = Depends(get_db), limit: int = 10):
     user = db.query(User).filter(User.id == user_id).first()
 
