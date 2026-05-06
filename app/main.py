@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.database import Base, engine
-from app.routes import users, artists,auth, matching
+from app.routes import users, artists, auth, matching, swipe
 
 Base.metadata.create_all(bind= engine)
 
@@ -10,6 +10,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(artists.router)
 app.include_router(matching.router)
+app.include_router(swipe.router)
 
 @app.get("/")
 def home():

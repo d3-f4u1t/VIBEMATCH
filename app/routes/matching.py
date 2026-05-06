@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.matching import MatchResponse
 from app.services.vector import cosine_similarity
+from app.services.swipe import get_users_already_swiped
 
 router = APIRouter(tags=["matching"])
 
@@ -24,7 +25,19 @@ def build_match_reason(shared_artists: list[str], shared_tracks: list[str], simi
 
 
 @router.get("/match/{user_id}", response_model=MatchResponse)
-def get_matches(user_id: str, db:Session = Depends(get_db), limit: int = 10):
+def get_matches(
+    user_id: str,
+    db: Session = Depends(get_db),
+    limit: int = 10,
+    exclude_swiped: bool = False
+):
+    """
+    Get matches for a user based on music vector similarity.
+    
+    - **user_id**: User to find matches for
+    - **limit**: Maximum number of matches to return (default 10)
+    - **exclude_swiped**: If True, excludes users already swiped on (default False)
+    """
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
@@ -51,9 +64,18 @@ def get_matches(user_id: str, db:Session = Depends(get_db), limit: int = 10):
     user_artist_names = {artist.name for artist in user.artists if artist.name}
     user_track_titles = {track.title for track in user.tracks if track.title}
 
+    # Get already swiped users if requested
+    already_swiped = set()
+    if exclude_swiped:
+        already_swiped = get_users_already_swiped(user_id, db)
+
     matches = []
 
     for other in other_users:
+        # Skip if already swiped (if requested)
+        if exclude_swiped and other.id in already_swiped:
+            continue
+            
         if not other.music_vector:
             continue
         if len(other.artists) < 3 or len(other.tracks) < 4:
