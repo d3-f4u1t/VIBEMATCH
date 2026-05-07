@@ -28,6 +28,18 @@ def create_swipe(
     
     If user already swiped on this person, the action will be updated
     """
+    if not current_user.music_vector:
+        raise HTTPException(
+            status_code= 400,
+            detail="Complete your music profile before swiping"
+        )
+    
+    if len(current_user.artists) < 3 or len(current_user.tracks) < 4:
+        raise HTTPException(
+            status_code= 400,
+            detail="Complete your music profile before swiping"
+        )
+    
     # Validate that swiped user exists
     swiped_user = db.query(User).filter(User.id == swipe_data.swiped_user_id).first()
     if not swiped_user:
@@ -36,6 +48,18 @@ def create_swipe(
     # Prevent self-swiping
     if swipe_data.swiped_user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot swipe on yourself")
+
+    if not swiped_user.music_vector:
+        raise HTTPException(
+            status_code=400,
+            detail="Target user does not have a complete music profile"
+        )
+    
+    if len(swiped_user.artists) < 3 or len(swiped_user.tracks) < 4:
+        raise HTTPException(
+            status_code=400,
+            detail="Target user does not have a complete music profile"
+        )
     
     # Create or update swipe
     swipe = create_or_update_swipe(
@@ -50,7 +74,9 @@ def create_swipe(
 
 @router.get("/history/{user_id}", response_model=SwipeHistoryResponse)
 def get_history(
+
     user_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     limit: int = 50
 ):
@@ -58,6 +84,9 @@ def get_history(
     Get swipe history for a user
     Returns all swipes they made  with target user infois  sorted by most recent
     """
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="not allowed")
+
     # Validate user exists
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -75,6 +104,7 @@ def get_history(
 @router.get("/next/{user_id}", response_model=NextMatchResponse)
 def get_next(
     user_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -87,6 +117,9 @@ def get_next(
     without music vectors
     with incomplete profiles
     """
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="not allowed")
+
     # Validate user exists
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -120,6 +153,7 @@ def get_next(
 @router.get("/mutual/{user_id}", response_model=dict)
 def get_mutual(
     user_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -128,6 +162,9 @@ def get_mutual(
     A match only happens when both the users like each other 
     super_like is a base booster for likes and it improves visibility for the swiping user
     """
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="not allowed")
+
     # Validate user exists
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
