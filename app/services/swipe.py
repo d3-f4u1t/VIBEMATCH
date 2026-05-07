@@ -111,6 +111,9 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
     
     # Get users already swiped
     already_swiped = get_users_already_swiped(user_id, db)
+
+    current_user_artist_names = {artist.name for artist in current_user.artists if artist.name}
+    current_user_track_titles = {track.title for track in current_user.tracks if track.title}
     
     # Get all eligible candidates
     candidates = []
@@ -131,11 +134,8 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
         
         # Calculate similarity
         similarity = cosine_similarity(current_user.music_vector, other_user.music_vector)
-        
+
         # Get shared data
-        current_user_artist_names = {artist.name for artist in current_user.artists if artist.name}
-        current_user_track_titles = {track.title for track in current_user.tracks if track.title}
-        
         other_user_artist_names = {artist.name for artist in other_user.artists if artist.name}
         other_user_track_titles = {track.title for track in other_user.tracks if track.title}
         
@@ -230,6 +230,8 @@ def get_mutual_likes(user_id: str, db: Session) -> list[dict]:
     mutual_matches = []
     for swipe_received in likes_received:
         swiper = db.query(User).filter(User.id == swipe_received.swiper_id).first()
+        if not swiper:
+            continue
         
         # Check if current user also liked back the swiped user
         if check_mutual_like(user_id, swiper.id, db):

@@ -3,7 +3,13 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.auth import get_current_user
-from app.schemas.swipe import SwipeCreate, SwipeResponse, SwipeHistoryResponse, NextMatchResponse
+from app.schemas.swipe import (
+    SwipeCreate,
+    SwipeResponse,
+    SwipeHistoryResponse,
+    NextMatchResponse,
+    MutualMatchesResponse,
+)
 from app.services.swipe import (
     create_or_update_swipe,
     get_swipe_history,
@@ -150,7 +156,7 @@ def get_next(
     return next_match
 
 
-@router.get("/mutual/{user_id}", response_model=dict)
+@router.get("/mutual/{user_id}", response_model=MutualMatchesResponse)
 def get_mutual(
     user_id: str,
     current_user: User = Depends(get_current_user),

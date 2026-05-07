@@ -50,3 +50,17 @@ class NextMatchResponse(BaseModel):
     shared_artists: list[str]
     shared_tracks: list[str]
     match_reason: str
+
+
+class MutualMatchItem(BaseModel):
+    user_id: str
+    name: str
+    bio: str
+    location_city: str
+    matched_at: datetime
+
+
+class MutualMatchesResponse(BaseModel):
+    user_id: str
+    mutual_match_count: int
+    matches: list[MutualMatchItem]
