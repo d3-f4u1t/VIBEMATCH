@@ -9,7 +9,9 @@ from app.schemas.user import UserCreate, UserResponse
 from app.schemas.artist import ArtistCreate
 from app.schemas.track import TrackCreate
 from app.auth import get_current_user
+from app.services.behavior import build_behavior_summary, build_behavior_vector
 from app.services.vector import build_and_save_vector
+from app.schemas.behavior import BehaviorSummaryResponse, BehaviorVectorResponse
 
 router = APIRouter(tags= ["users"])
 
@@ -255,6 +257,38 @@ def can_complete_music_profile(user_id: str, db: Session = Depends(get_db)):
         "artist_count": artist_count,
         "track_count": track_count,
     }
+
+#to get behavioraly summary
+@router.get("/user/{user_id}/behavior-summary", response_model=BehaviorSummaryResponse)
+def get_behavior_summary(
+    user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="not allowed")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="user not found")
+
+    return build_behavior_summary(user_id, db)
+
+
+@router.get("/user/{user_id}/behavior-vector", response_model=BehaviorVectorResponse)
+def get_behavior_vector(
+    user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="not allowed")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="user not found")
+
+    return build_behavior_vector(user_id, db)
 
 
 '''to remove the artist from the user'''
