@@ -18,8 +18,14 @@ import {
   SpaceGrotesk_500Medium,
   SpaceGrotesk_700Bold,
 } from "@expo-google-fonts/space-grotesk";
+import { loginUser, registerUser } from "../lib/auth";
+import type { TokenResponse } from "../types/auth";
 
-export function AuthScreen() {
+type AuthScreenProps = {
+  onAuthenticated: (result: TokenResponse) => void;
+};
+
+export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(width - 32, 420);
   const topInset =
@@ -28,8 +34,11 @@ export function AuthScreen() {
 
   const [showForm, setShowForm] = useState(false);
   const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [fontsLoaded] = useFonts({
     SpaceGrotesk_400Regular,
@@ -160,6 +169,40 @@ export function AuthScreen() {
         }),
       ]).start();
     });
+  };
+
+  const handleAuthSubmit = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      let result: TokenResponse;
+
+      if (authMode === "signup") {
+        result = await registerUser({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+          bio: "",
+          location_city: "",
+        });
+      } else {
+        result = await loginUser({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+      }
+
+      onAuthenticated(result);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Unexpected error");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!fontsLoaded) {
@@ -363,6 +406,19 @@ export function AuthScreen() {
                 </View>
 
                 <View style={styles.formCard}>
+                  {authMode === "signup" ? (
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Name</Text>
+                      <TextInput
+                        value={name}
+                        onChangeText={setName}
+                        placeholder="Your name"
+                        placeholderTextColor="#98A2B3"
+                        style={styles.input}
+                      />
+                    </View>
+                  ) : null}
+
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Email</Text>
                     <TextInput
@@ -388,14 +444,23 @@ export function AuthScreen() {
                     />
                   </View>
 
+                  {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
                   <Pressable
                     style={({ pressed }) => [
                       styles.primaryButton,
                       pressed && styles.buttonPressed,
+                      loading && styles.buttonDisabled,
                     ]}
+                    onPress={handleAuthSubmit}
+                    disabled={loading}
                   >
                     <Text style={styles.primaryButtonText}>
-                      {authMode === "signup" ? "Create account" : "Continue"}
+                      {loading
+                        ? "Please wait..."
+                        : authMode === "signup"
+                          ? "Create account"
+                          : "Continue"}
                     </Text>
                   </Pressable>
 
@@ -771,6 +836,15 @@ const styles = StyleSheet.create({
     color: "#17181C",
     fontSize: 15,
     fontFamily: "SpaceGrotesk_400Regular",
+  },
+  errorText: {
+    color: "#D92D20",
+    fontSize: 13,
+    marginBottom: 12,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  buttonDisabled: {
+    opacity: 0.65,
   },
   formFootnote: {
     marginTop: 14,
