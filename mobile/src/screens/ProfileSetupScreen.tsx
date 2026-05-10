@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -16,8 +17,9 @@ import {
   SpaceGrotesk_500Medium,
   SpaceGrotesk_700Bold,
 } from "@expo-google-fonts/space-grotesk";
+import { getUserProfile, updateUserProfile } from "../lib/profile";
 
-import type { TokenResponse } from "../types/auth";
+import type { TokenResponse, UserProfileResponse } from "../types/auth";
 
 type ProfileSetupScreenProps = {
   session: TokenResponse;
@@ -50,9 +52,7 @@ type StepConfig = {
   key: ProfileStepKey;
   eyebrow: string;
   title: string;
-  subtitle: string;
   placeholder?: string;
-  helper?: string;
   keyboardType?: "default" | "numeric";
   choices?: Choice[];
 };
@@ -87,47 +87,38 @@ const PROFILE_STEPS: StepConfig[] = [
     key: "name",
     eyebrow: "Core profile",
     title: "What should people call you?",
-    subtitle: "Start with the name that should show up on your profile.",
     placeholder: "Your first name",
-    helper: "You can always fine-tune how this appears later.",
   },
   {
     key: "dob",
     eyebrow: "Core profile",
     title: "When's your birthday?",
-    subtitle: "We use this to calculate your age and keep the app age-aware.",
     placeholder: "DD / MM / YYYY",
     keyboardType: "numeric",
-    helper: "Example: 08 / 10 / 2002",
   },
   {
     key: "gender",
     eyebrow: "Identity",
     title: "How do you identify?",
-    subtitle: "This helps us shape who sees you and how your profile is understood.",
     choices: GENDER_CHOICES,
   },
   {
     key: "sexuality",
     eyebrow: "Identity",
     title: "What describes your sexuality?",
-    subtitle: "This matters for compatibility, visibility, and respectful matching.",
     choices: SEXUALITY_CHOICES,
   },
   {
     key: "pronouns",
     eyebrow: "Identity",
     title: "What pronouns should we show?",
-    subtitle: "Optional socially, but useful for profile clarity and comfort.",
     choices: PRONOUN_CHOICES,
   },
   {
     key: "location",
     eyebrow: "Discovery",
     title: "Where are you dating from?",
-    subtitle: "We'll use your area for distance-based discovery and nearby matches.",
     placeholder: "City or area",
-    helper: "We'll add maps and exact distance handling in the next phase.",
   },
 ];
 
@@ -155,10 +146,68 @@ export function ProfileSetupScreen({
     pronouns: "",
     location: session.user.location_city ?? "",
   });
-
+  const [screenError, setScreenError] = useState("");
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isSavingStep, setIsSavingStep] = useState(false);
   if (!fontsLoaded) {
     return null;
   }
+
+  const formatDobFromApi = (value: string | null) => {
+    if (!value) return "";
+
+    const [year, month, day] = value.split("-");
+    if (!year || !month || !day) return "";
+    return `${day} / ${month} / ${year}`;
+  };
+
+  const formatDobForApi = (value: string) => {
+    const [day, month, year] = value.split(" / ");
+    if (!day || !month || !year || year.length !== 4) return "";
+    return `${year}-${month}-${day}`;
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      try {
+        setIsLoadingProfile(true);
+        setScreenError("");
+
+        const data = await getUserProfile(
+          session.user.id,
+          session.access_token
+        );
+
+        if (!isMounted) return;
+
+        setProfile({
+          name: data.name ?? "",
+          dob: formatDobFromApi(data.date_of_birth),
+          gender: data.gender ?? "",
+          sexuality: data.sexuality ?? "",
+          pronouns: data.pronouns ?? "",
+          location: data.location_city ?? "",
+        });
+      } catch (error) {
+        if (!isMounted) return;
+        setScreenError(
+          error instanceof Error ? error.message : "Could not load your profile."
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoadingProfile(false);
+        }
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session.access_token, session.user.id]);
 
   const currentStep = PROFILE_STEPS[stepIndex];
   const progress = (stepIndex + 1) / PROFILE_STEPS.length;
@@ -304,10 +353,63 @@ export function ProfileSetupScreen({
       ? currentValue.trim().length > 0 && !currentStepError
       : false;
 
-  const handleNext = () => {
+  const buildProfilePayloadForCurrentStep = () => {
+    switch (currentStep.key) {
+      case "name":
+        return { name: profile.name.trim() };
+      case "dob":
+        return { date_of_birth: formatDobForApi(profile.dob) };
+      case "gender":
+        return { gender: profile.gender };
+      case "sexuality":
+        return { sexuality: profile.sexuality };
+      case "pronouns":
+        return { pronouns: profile.pronouns };
+      case "location":
+        return { location_city: profile.location.trim() };
+      default:
+        return {};
+    }
+  };
+
+  const hydrateProfileFromResponse = (data: UserProfileResponse) => {
+    setProfile((current) => ({
+      ...current,
+      name: data.name ?? current.name,
+      dob: data.date_of_birth ? formatDobFromApi(data.date_of_birth) : current.dob,
+      gender: data.gender ?? current.gender,
+      sexuality: data.sexuality ?? current.sexuality,
+      pronouns: data.pronouns ?? current.pronouns,
+      location: data.location_city ?? current.location,
+    }));
+  };
+
+  const handleNext = async () => {
     if (!isStepValid) return;
-    if (!isLastStep) {
-      setStepIndex((current) => current + 1);
+
+    try {
+      setIsSavingStep(true);
+      setScreenError("");
+
+      const updatedProfile = await updateUserProfile(
+        session.user.id,
+        session.access_token,
+        buildProfilePayloadForCurrentStep()
+      );
+
+      hydrateProfileFromResponse(updatedProfile);
+
+      if (!isLastStep) {
+        setStepIndex((current) => current + 1);
+      }
+    } catch (error) {
+      setScreenError(
+        error instanceof Error
+          ? error.message
+          : "Could not save this step right now."
+      );
+    } finally {
+      setIsSavingStep(false);
     }
   };
 
@@ -355,10 +457,16 @@ export function ProfileSetupScreen({
         bounces={false}
       >
         <View style={[styles.content, { width: contentWidth }]}>
+          {isLoadingProfile ? (
+            <View style={styles.loadingState}>
+              <ActivityIndicator size="small" color="#6EA0F8" />
+              <Text style={styles.loadingText}>Loading your profile...</Text>
+            </View>
+          ) : null}
+
           <View style={styles.heroBlock}>
             <Text style={styles.kicker}>{currentStep.eyebrow}</Text>
             <Text style={styles.title}>{currentStep.title}</Text>
-            <Text style={styles.subtitle}>{currentStep.subtitle}</Text>
           </View>
 
           <View style={styles.stepCard}>
@@ -391,9 +499,6 @@ export function ProfileSetupScreen({
               </View>
             ) : (
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>
-                  {currentStep.key === "dob" ? "Date of birth" : "Your answer"}
-                </Text>
                 <TextInput
                   value={currentValue}
                   onChangeText={updateField}
@@ -413,20 +518,13 @@ export function ProfileSetupScreen({
             {currentStepError ? (
               <Text style={styles.errorText}>{currentStepError}</Text>
             ) : null}
-
-            {currentStep.helper ? (
-              <Text style={styles.helperText}>{currentStep.helper}</Text>
-            ) : null}
           </View>
 
-          <View style={styles.previewCard}>
-            <Text style={styles.previewEyebrow}>Why this matters</Text>
-            <Text style={styles.previewBody}>
-              These fields are the first layer of your dating profile. They help
-              with safety, relevance, and matching quality before we even get to
-              photos, bio, and music taste.
-            </Text>
-          </View>
+          {screenError ? (
+            <View style={styles.bannerError}>
+              <Text style={styles.bannerErrorText}>{screenError}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.footerActions}>
             <Pressable
@@ -444,14 +542,23 @@ export function ProfileSetupScreen({
             <Pressable
               style={({ pressed }) => [
                 styles.primaryButton,
-                !isStepValid && styles.primaryButtonDisabled,
-                pressed && isStepValid && styles.primaryButtonPressed,
+                (!isStepValid || isSavingStep || isLoadingProfile) &&
+                  styles.primaryButtonDisabled,
+                pressed &&
+                  isStepValid &&
+                  !isSavingStep &&
+                  !isLoadingProfile &&
+                  styles.primaryButtonPressed,
               ]}
               onPress={handleNext}
-              disabled={!isStepValid}
+              disabled={!isStepValid || isSavingStep || isLoadingProfile}
             >
               <Text style={styles.primaryButtonText}>
-                {isLastStep ? "Save and continue" : "Continue"}
+                {isSavingStep
+                  ? "Saving..."
+                  : isLastStep
+                    ? "Save and continue"
+                    : "Continue"}
               </Text>
             </Pressable>
           </View>
@@ -528,6 +635,18 @@ const styles = StyleSheet.create({
   content: {
     minHeight: "100%",
   },
+  loadingState: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingVertical: 10,
+  },
+  loadingText: {
+    marginLeft: 10,
+    color: "#667085",
+    fontSize: 14,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
   heroBlock: {
     marginBottom: 28,
   },
@@ -544,15 +663,7 @@ const styles = StyleSheet.create({
     color: "#17181C",
     fontFamily: "SpaceGrotesk_700Bold",
     letterSpacing: -0.8,
-    marginBottom: 12,
     maxWidth: 340,
-  },
-  subtitle: {
-    fontSize: 17,
-    lineHeight: 27,
-    color: "#667085",
-    fontFamily: "SpaceGrotesk_400Regular",
-    maxWidth: 360,
   },
   stepCard: {
     borderRadius: 28,
@@ -560,16 +671,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E4E6EB",
     padding: 18,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   inputGroup: {
-    marginBottom: 6,
-  },
-  inputLabel: {
-    color: "#344054",
-    fontSize: 14,
-    marginBottom: 8,
-    fontFamily: "SpaceGrotesk_500Medium",
+    marginBottom: 0,
   },
   input: {
     height: 54,
@@ -582,18 +687,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "SpaceGrotesk_400Regular",
   },
-  helperText: {
-    marginTop: 8,
-    color: "#98A2B3",
-    fontSize: 13,
-    lineHeight: 20,
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
   errorText: {
-    marginTop: 8,
+    marginTop: 12,
     color: "#D92D20",
     fontSize: 13,
     lineHeight: 20,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  bannerError: {
+    borderRadius: 18,
+    backgroundColor: "#FFF1F1",
+    borderWidth: 1,
+    borderColor: "#F4C7C7",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 18,
+  },
+  bannerErrorText: {
+    color: "#B42318",
+    fontSize: 14,
+    lineHeight: 21,
     fontFamily: "SpaceGrotesk_500Medium",
   },
   choiceGrid: {
@@ -626,26 +739,6 @@ const styles = StyleSheet.create({
   },
   choiceChipTextActive: {
     color: "#FFFFFF",
-  },
-  previewCard: {
-    borderRadius: 24,
-    backgroundColor: "#11131A",
-    padding: 20,
-    marginBottom: 22,
-    overflow: "hidden",
-  },
-  previewEyebrow: {
-    color: "#8FB3FF",
-    fontSize: 12,
-    textTransform: "uppercase",
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 10,
-  },
-  previewBody: {
-    color: "#E5E7EB",
-    fontSize: 15,
-    lineHeight: 24,
-    fontFamily: "SpaceGrotesk_400Regular",
   },
   footerActions: {
     flexDirection: "row",

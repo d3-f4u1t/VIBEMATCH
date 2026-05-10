@@ -22,6 +22,23 @@ export type UserResponse = {
   created_at: string;
 };
 
+export type UserProfileResponse = UserResponse & {
+  date_of_birth: string | null;
+  pronouns: string | null;
+  gender: string | null;
+  sexuality: string | null;
+};
+
+export type UserProfileUpdatePayload = {
+  name?: string;
+  bio?: string;
+  location_city?: string;
+  date_of_birth?: string;
+  pronouns?: string;
+  gender?: string;
+  sexuality?: string;
+};
+
 export type TokenResponse = {
   access_token: string;
   token_type: string;

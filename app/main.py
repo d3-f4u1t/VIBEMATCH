@@ -17,7 +17,10 @@ app.include_router(swipe.router)
 def home():
     return {"message": "running"}
 '''
+FOR LOCAL
 uvicorn app.main:app --reload
+FOR HOSTING
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 use this command for dev mode
 and /docs for API documentation
 '''
