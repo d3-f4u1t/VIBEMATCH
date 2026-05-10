@@ -1,4 +1,7 @@
+import { useState } from "react";
 import {
+  Animated,
+  Easing,
   Platform,
   Pressable,
   ScrollView,
@@ -9,7 +12,6 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { useState } from "react";
 import { useFonts } from "expo-font";
 import {
   SpaceGrotesk_400Regular,
@@ -20,17 +22,145 @@ import {
 export function AuthScreen() {
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(width - 32, 420);
-  const topInset = Platform.OS === "android" ? (NativeStatusBar.currentHeight ?? 0) + 18 : 18;
+  const topInset =
+    Platform.OS === "android" ? (NativeStatusBar.currentHeight ?? 0) + 18 : 18;
   const panelHeight = 64;
+
   const [showForm, setShowForm] = useState(false);
   const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [fontsLoaded] = useFonts({
     SpaceGrotesk_400Regular,
     SpaceGrotesk_500Medium,
     SpaceGrotesk_700Bold,
   });
+
+  const landingOpacity = useState(new Animated.Value(1))[0];
+  const landingTranslate = useState(new Animated.Value(0))[0];
+  const formOpacity = useState(new Animated.Value(0))[0];
+  const formTranslate = useState(new Animated.Value(26))[0];
+  const formContentOpacity = useState(new Animated.Value(1))[0];
+  const formContentTranslate = useState(new Animated.Value(0))[0];
+
+  const animateToForm = () => {
+    Animated.parallel([
+      Animated.timing(landingOpacity, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(landingTranslate, {
+        toValue: -18,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowForm(true);
+      formOpacity.setValue(0);
+      formTranslate.setValue(24);
+      formContentOpacity.setValue(1);
+      formContentTranslate.setValue(0);
+
+      Animated.parallel([
+        Animated.timing(formOpacity, {
+          toValue: 1,
+          duration: 220,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.spring(formTranslate, {
+          toValue: 0,
+          damping: 18,
+          stiffness: 190,
+          mass: 0.9,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  const animateToLanding = () => {
+    Animated.parallel([
+      Animated.timing(formOpacity, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(formTranslate, {
+        toValue: 18,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowForm(false);
+      landingOpacity.setValue(0);
+      landingTranslate.setValue(-18);
+
+      Animated.parallel([
+        Animated.timing(landingOpacity, {
+          toValue: 1,
+          duration: 220,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.spring(landingTranslate, {
+          toValue: 0,
+          damping: 18,
+          stiffness: 190,
+          mass: 0.9,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  const animateAuthModeChange = (nextMode: "signup" | "login") => {
+    if (nextMode === authMode) return;
+
+    const exitDirection = nextMode === "signup" ? 12 : -12;
+    const enterDirection = nextMode === "signup" ? -12 : 12;
+
+    Animated.parallel([
+      Animated.timing(formContentOpacity, {
+        toValue: 0,
+        duration: 140,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(formContentTranslate, {
+        toValue: exitDirection,
+        duration: 160,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setAuthMode(nextMode);
+      formContentOpacity.setValue(0);
+      formContentTranslate.setValue(enterDirection);
+
+      Animated.parallel([
+        Animated.timing(formContentOpacity, {
+          toValue: 1,
+          duration: 180,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.spring(formContentTranslate, {
+          toValue: 0,
+          damping: 18,
+          stiffness: 200,
+          mass: 0.9,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
 
   if (!fontsLoaded) {
     return null;
@@ -72,7 +202,15 @@ export function AuthScreen() {
       >
         <View style={[styles.content, { width: contentWidth }]}>
           {!showForm ? (
-            <>
+            <Animated.View
+              style={[
+                styles.animatedSection,
+                {
+                  opacity: landingOpacity,
+                  transform: [{ translateX: landingTranslate }],
+                },
+              ]}
+            >
               <View style={styles.heroBlock}>
                 <Text style={styles.kicker}>Music-led dating</Text>
                 <Text style={styles.title}>
@@ -90,7 +228,9 @@ export function AuthScreen() {
                 <View style={styles.mockCluster}>
                   <View style={[styles.mockCard, styles.mockCardLeft]} />
                   <View style={[styles.mockCard, styles.mockCardCenter]}>
-                    <Text style={styles.mockCardLabel}>profile{"\n"}music card</Text>
+                    <Text style={styles.mockCardLabel}>
+                      profile{"\n"}music card
+                    </Text>
                   </View>
                   <View style={[styles.mockCard, styles.mockCardRight]} />
                 </View>
@@ -110,29 +250,60 @@ export function AuthScreen() {
               </View>
 
               <View style={styles.actions}>
-                <Pressable style={styles.primaryButton} onPress={() => setShowForm(true)}>
-                  <Text style={styles.primaryButtonText}>Continue with email</Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    pressed && styles.buttonPressed,
+                  ]}
+                  onPress={animateToForm}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    Continue with email
+                  </Text>
                 </Pressable>
 
-                <Pressable style={styles.secondaryButton}>
-                  <Text style={styles.secondaryButtonText}>Use phone number</Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.secondaryButton,
+                    pressed && styles.secondaryButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.secondaryButtonText}>
+                    Use phone number
+                  </Text>
                 </Pressable>
               </View>
-            </>
+            </Animated.View>
           ) : (
-            <View style={styles.formScreen}>
+            <Animated.View
+              style={[
+                styles.formScreen,
+                styles.animatedSection,
+                {
+                  opacity: formOpacity,
+                  transform: [{ translateX: formTranslate }],
+                },
+              ]}
+            >
               <View style={styles.formTopRow}>
-                <Pressable style={styles.backButton} onPress={() => setShowForm(false)}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.backButton,
+                    pressed && styles.backButtonPressed,
+                  ]}
+                  onPress={animateToLanding}
+                >
                   <Text style={styles.backButtonText}>Back</Text>
                 </Pressable>
 
                 <View style={styles.modeSwitch}>
                   <Pressable
-                    style={[
+                    style={({ pressed }) => [
                       styles.modePill,
                       authMode === "signup" && styles.modePillActive,
+                      pressed && styles.modePillPressed,
                     ]}
-                    onPress={() => setAuthMode("signup")}
+                    onPress={() => animateAuthModeChange("signup")}
                   >
                     <Text
                       style={[
@@ -145,11 +316,12 @@ export function AuthScreen() {
                   </Pressable>
 
                   <Pressable
-                    style={[
+                    style={({ pressed }) => [
                       styles.modePill,
                       authMode === "login" && styles.modePillActive,
+                      pressed && styles.modePillPressed,
                     ]}
-                    onPress={() => setAuthMode("login")}
+                    onPress={() => animateAuthModeChange("login")}
                   >
                     <Text
                       style={[
@@ -163,59 +335,76 @@ export function AuthScreen() {
                 </View>
               </View>
 
-              <View style={styles.formHero}>
-                <Text style={styles.kicker}>
-                  {authMode === "signup" ? "Create your account" : "Welcome back"}
-                </Text>
-                <Text style={styles.formTitle}>
-                  {authMode === "signup"
-                    ? "Let’s start with your email."
-                    : "Pick up where your vibe left off."}
-                </Text>
-                <Text style={styles.formSubtitle}>
-                  {authMode === "signup"
-                    ? "We’ll use this to build your profile, connect your music taste, and get you into the app."
-                    : "Log in to keep building your profile and continue matching through music."}
-                </Text>
-              </View>
-
-              <View style={styles.formCard}>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Email</Text>
-                  <TextInput
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="you@example.com"
-                    placeholderTextColor="#98A2B3"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={styles.input}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Password</Text>
-                  <TextInput
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Enter your password"
-                    placeholderTextColor="#98A2B3"
-                    secureTextEntry
-                    style={styles.input}
-                  />
-                </View>
-
-                <Pressable style={styles.primaryButton}>
-                  <Text style={styles.primaryButtonText}>
-                    {authMode === "signup" ? "Create account" : "Continue"}
+              <Animated.View
+                style={[
+                  styles.formContentWrap,
+                  {
+                    opacity: formContentOpacity,
+                    transform: [{ translateX: formContentTranslate }],
+                  },
+                ]}
+              >
+                <View style={styles.formHero}>
+                  <Text style={styles.kicker}>
+                    {authMode === "signup"
+                      ? "Create your account"
+                      : "Welcome back"}
                   </Text>
-                </Pressable>
+                  <Text style={styles.formTitle}>
+                    {authMode === "signup"
+                      ? "Let's start with your email."
+                      : "Pick up where your vibe left off."}
+                  </Text>
+                  <Text style={styles.formSubtitle}>
+                    {authMode === "signup"
+                      ? "We'll use this to build your profile, connect your music taste, and get you into the app."
+                      : "Log in to keep building your profile and continue matching through music."}
+                  </Text>
+                </View>
 
-                <Text style={styles.formFootnote}>
-                  By continuing, you agree to our terms and privacy policy.
-                </Text>
-              </View>
-            </View>
+                <View style={styles.formCard}>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Email</Text>
+                    <TextInput
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="you@example.com"
+                      placeholderTextColor="#98A2B3"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      style={styles.input}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Password</Text>
+                    <TextInput
+                      value={password}
+                      onChangeText={setPassword}
+                      placeholder="Enter your password"
+                      placeholderTextColor="#98A2B3"
+                      secureTextEntry
+                      style={styles.input}
+                    />
+                  </View>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.primaryButton,
+                      pressed && styles.buttonPressed,
+                    ]}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {authMode === "signup" ? "Create account" : "Continue"}
+                    </Text>
+                  </Pressable>
+
+                  <Text style={styles.formFootnote}>
+                    By continuing, you agree to our terms and privacy policy.
+                  </Text>
+                </View>
+              </Animated.View>
+            </Animated.View>
           )}
 
           <View style={styles.altSection}>
@@ -322,8 +511,14 @@ const styles = StyleSheet.create({
   heroBlock: {
     marginBottom: 28,
   },
+  animatedSection: {
+    marginBottom: 28,
+  },
   formScreen: {
     marginBottom: 28,
+  },
+  formContentWrap: {
+    flex: 1,
   },
   kicker: {
     fontSize: 14,
@@ -459,6 +654,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  buttonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.985 }],
+  },
   primaryButtonText: {
     color: "#FFFFFF",
     fontSize: 15,
@@ -472,6 +671,10 @@ const styles = StyleSheet.create({
     borderColor: "#E4E6EB",
     justifyContent: "center",
     alignItems: "center",
+  },
+  secondaryButtonPressed: {
+    opacity: 0.85,
+    backgroundColor: "#F8F9FB",
   },
   secondaryButtonText: {
     color: "#17181C",
@@ -487,6 +690,9 @@ const styles = StyleSheet.create({
   backButton: {
     paddingVertical: 8,
     paddingHorizontal: 2,
+  },
+  backButtonPressed: {
+    opacity: 0.7,
   },
   backButtonText: {
     color: "#667085",
@@ -508,6 +714,9 @@ const styles = StyleSheet.create({
   },
   modePillActive: {
     backgroundColor: "#17181C",
+  },
+  modePillPressed: {
+    opacity: 0.88,
   },
   modePillText: {
     color: "#667085",
