@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, DateTime, JSON, String
+from sqlalchemy import Column, Date, DateTime, JSON, String
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.models.artist import user_artist
@@ -15,6 +15,10 @@ class User(Base):
     password_hash = Column(String, nullable = False)
     bio = Column(String, nullable= True)
     location_city = Column(String, nullable = True)
+    date_of_birth = Column(Date, nullable=True)
+    pronouns = Column(String, nullable=True)
+    gender = Column(String, nullable=True)
+    sexuality = Column(String, nullable=True)
     music_vector = Column(JSON, nullable = True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     #relationship vector base

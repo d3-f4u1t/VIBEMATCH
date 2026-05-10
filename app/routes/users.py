@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.artist import Artist
 from app.models.track import Track
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserProfileResponse, UserProfileUpdate, UserResponse
 from app.schemas.artist import ArtistCreate
 from app.schemas.track import TrackCreate
 from app.auth import get_current_user
@@ -42,6 +42,46 @@ def get_user(user_id: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code= 404, detail= "User not found") #404 for not found
+    return user
+
+
+@router.get("/user/{user_id}/profile", response_model=UserProfileResponse)
+def get_user_profile(
+    user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="not allowed")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="user not found")
+
+    return user
+
+
+@router.patch("/user/{user_id}/profile", response_model=UserProfileResponse)
+def update_user_profile(
+    user_id: str,
+    data: UserProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="not allowed")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="user not found")
+
+    updates = data.model_dump(exclude_unset=True)
+
+    for field_name, value in updates.items():
+        setattr(user, field_name, value)
+
+    db.commit()
+    db.refresh(user)
     return user
 
 @router.post("/user/{user_id}/add_artist", status_code=201)
