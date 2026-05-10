@@ -1,103 +1,422 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StatusBar as NativeStatusBar,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { useFonts } from "expo-font";
+import {
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_700Bold,
+} from "@expo-google-fonts/space-grotesk";
 
 export function AuthScreen() {
+  const { width } = useWindowDimensions();
+  const contentWidth = Math.min(width - 32, 420);
+  const topInset = Platform.OS === "android" ? (NativeStatusBar.currentHeight ?? 0) + 18 : 18;
+  const panelHeight = 64;
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.eyebrow}>VibeMatch</Text>
-        <Text style={styles.title}>Music first. Everything else follows.</Text>
-        <Text style={styles.subtitle}>
-          Start with your account, then we build the rest of the app.
-        </Text>
+    <View style={styles.screen}>
+      <View
+        style={[
+          styles.fixedTopPanelWrap,
+          {
+            paddingTop: topInset,
+          },
+        ]}
+      >
+        <View style={[styles.topPanel, { width: contentWidth }]}>
+          <View style={styles.brandHeader}>
+            <View style={styles.brandIcon}>
+              <Text style={styles.brandIconText}>V</Text>
+            </View>
+            <Text style={styles.brandName}>VibeMatch</Text>
+          </View>
+          <View style={styles.panelUtilityButton}>
+            <View style={styles.panelUtilityDot} />
+          </View>
+        </View>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Log in</Text>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: topInset + panelHeight + 24,
+            paddingBottom: 28,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={[styles.content, { width: contentWidth }]}>
+          <View style={styles.heroBlock}>
+            <Text style={styles.kicker}>Music-led dating</Text>
+            <Text style={styles.title}>
+              Your music taste says more than your bio ever could.
+            </Text>
+            <Text style={styles.subtitle}>
+              Find connections through energy, personality, and sound.
+            </Text>
+          </View>
 
-        <TextInput
-          placeholder="Email"
-          placeholderTextColor="#6a5143"
-          style={styles.input}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
+          <View style={styles.visualCard}>
+            <View style={styles.visualGlowBlue} />
+            <View style={styles.visualGlowPeach} />
 
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#6a5143"
-          style={styles.input}
-          secureTextEntry
-        />
+            <View style={styles.mockCluster}>
+              <View style={[styles.mockCard, styles.mockCardLeft]} />
+              <View style={[styles.mockCard, styles.mockCardCenter]}>
+                <Text style={styles.mockCardLabel}>profile{"\n"}music card</Text>
+              </View>
+              <View style={[styles.mockCard, styles.mockCardRight]} />
+            </View>
 
-        <Pressable style={styles.button}>
-          <Text style={styles.buttonText}>Continue</Text>
-        </Pressable>
-      </View>
+            <View style={styles.visualCopy}>
+              <Text style={styles.visualTitle}>Music-led matches</Text>
+              <Text style={styles.visualText}>
+                Built for people who care about vibes, not just looks.
+              </Text>
+            </View>
+
+            <View style={styles.progressRow}>
+              <View style={[styles.progressDot, styles.progressDotActive]} />
+              <View style={styles.progressDot} />
+              <View style={styles.progressDot} />
+            </View>
+          </View>
+
+          <View style={styles.actions}>
+            <Pressable style={styles.primaryButton}>
+              <Text style={styles.primaryButtonText}>Continue with email</Text>
+            </Pressable>
+
+            <Pressable style={styles.secondaryButton}>
+              <Text style={styles.secondaryButtonText}>Use phone number</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.altSection}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.altText}>or sign up with</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.socialRow}>
+            <Pressable style={styles.socialButton}>
+              <Text style={styles.socialButtonText}>f</Text>
+            </Pressable>
+            <Pressable style={styles.socialButton}>
+              <Text style={styles.socialButtonText}>G</Text>
+            </Pressable>
+            <Pressable style={styles.socialButton}>
+              <Text style={styles.socialButtonText}>A</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Terms of use</Text>
+            <Text style={styles.footerDivider}>/</Text>
+            <Text style={styles.footerText}>Privacy Policy</Text>
+          </View>
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    padding: 20,
-    justifyContent: "center",
+    backgroundColor: "#F7F6F4",
   },
-  header: {
-    marginBottom: 28,
-    gap: 8,
+  fixedTopPanelWrap: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    alignItems: "center",
+    backgroundColor: "#F7F6F4",
   },
-  eyebrow: {
-    color: "#a85d3f",
-    fontSize: 14,
-    fontWeight: "700",
-    textTransform: "uppercase",
+  scrollContent: {
+    alignItems: "center",
+    paddingHorizontal: 16,
   },
-  title: {
-    color: "#1e1916",
-    fontSize: 34,
-    lineHeight: 40,
-    fontWeight: "800",
+  content: {
+    minHeight: "100%",
   },
-  subtitle: {
-    color: "#5d4639",
-    fontSize: 16,
-    lineHeight: 24,
+  topPanel: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 64,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ECEEF2",
   },
-  card: {
-    backgroundColor: "#fff9f3",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#d4c4af",
-    padding: 20,
-    gap: 14,
-  },
-  sectionTitle: {
-    color: "#201915",
-    fontSize: 22,
-    fontWeight: "800",
-    marginBottom: 4,
-  },
-  input: {
-    backgroundColor: "#f7efe4",
-    borderWidth: 1,
-    borderColor: "#d4c4af",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: "#201915",
-    fontSize: 15,
-  },
-  button: {
-    marginTop: 8,
-    backgroundColor: "#201915",
-    borderRadius: 8,
-    paddingVertical: 14,
+  brandHeader: {
+    flexDirection: "row",
     alignItems: "center",
   },
-  buttonText: {
-    color: "#fff8f1",
+  brandIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#17181C",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  brandIconText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  brandName: {
+    fontSize: 21,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: "#17181C",
+    letterSpacing: -0.3,
+  },
+  panelUtilityButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E4E6EB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  panelUtilityDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 999,
+    backgroundColor: "#6EA0F8",
+  },
+  heroBlock: {
+    marginBottom: 28,
+  },
+  kicker: {
+    fontSize: 14,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: "#6EA0F8",
+    textTransform: "uppercase",
+    marginBottom: 14,
+  },
+  title: {
+    fontSize: 34,
+    lineHeight: 40,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: "#17181C",
+    letterSpacing: -0.8,
+    marginBottom: 14,
+    maxWidth: 340,
+  },
+  subtitle: {
+    fontSize: 17,
+    lineHeight: 27,
+    color: "#667085",
+    maxWidth: 360,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  visualCard: {
+    borderRadius: 34,
+    backgroundColor: "#FBF9F5",
+    borderWidth: 1,
+    borderColor: "#E4E6EB",
+    paddingHorizontal: 22,
+    paddingTop: 24,
+    paddingBottom: 22,
+    marginBottom: 28,
+    overflow: "hidden",
+  },
+  visualGlowBlue: {
+    position: "absolute",
+    top: 88,
+    left: -36,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(110,160,248,0.14)",
+  },
+  visualGlowPeach: {
+    position: "absolute",
+    right: -24,
+    bottom: 70,
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+    backgroundColor: "rgba(255,164,142,0.16)",
+  },
+  mockCluster: {
+    height: 160,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  mockCard: {
+    position: "absolute",
+    width: 74,
+    height: 118,
+    borderRadius: 18,
+  },
+  mockCardLeft: {
+    left: "22%",
+    backgroundColor: "#F5D2E4",
+  },
+  mockCardCenter: {
+    width: 106,
+    height: 136,
+    borderRadius: 24,
+    backgroundColor: "#E9EEFF",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2,
+  },
+  mockCardRight: {
+    right: "22%",
+    backgroundColor: "#EEDFCB",
+  },
+  mockCardLabel: {
+    textAlign: "center",
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: "SpaceGrotesk_500Medium",
+    color: "#475467",
+  },
+  visualCopy: {
+    marginBottom: 18,
+  },
+  visualTitle: {
+    fontSize: 31,
+    lineHeight: 35,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: "#17181C",
+    letterSpacing: -0.6,
+    marginBottom: 10,
+    maxWidth: 260,
+  },
+  visualText: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: "#667085",
+    maxWidth: 300,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  progressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  progressDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#D0D5DD",
+    marginHorizontal: 4,
+  },
+  progressDotActive: {
+    backgroundColor: "#6EA0F8",
+    width: 22,
+  },
+  actions: {
+    gap: 12,
+    marginBottom: 22,
+  },
+  primaryButton: {
+    height: 52,
+    borderRadius: 18,
+    backgroundColor: "#17181C",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  primaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  secondaryButton: {
+    height: 50,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E4E6EB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    color: "#17181C",
+    fontSize: 15,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  altSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E4E6EB",
+  },
+  altText: {
+    marginHorizontal: 12,
+    fontSize: 13,
+    color: "#98A2B3",
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  socialRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 26,
+  },
+  socialButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E4E6EB",
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 6,
+  },
+  socialButtonText: {
     fontSize: 16,
-    fontWeight: "800",
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: "#17181C",
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 8,
+  },
+  footerText: {
+    fontSize: 12,
+    color: "#98A2B3",
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  footerDivider: {
+    marginHorizontal: 8,
+    color: "#98A2B3",
+    fontFamily: "SpaceGrotesk_400Regular",
   },
 });

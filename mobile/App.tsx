@@ -1,5 +1,5 @@
-// main app file
-//  & "C:\Program Files\nodejs\npm.cmd" run start
+//& "C:\Program Files\nodejs\npm.cmd" run start
+
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView, StyleSheet } from "react-native";
 
@@ -9,7 +9,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.screen}>
       <AuthScreen />
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
     </SafeAreaView>
   );
 }
@@ -17,6 +17,6 @@ export default function App() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f7e7cf",
+    backgroundColor: "#F7F6F4",
   },
 });
