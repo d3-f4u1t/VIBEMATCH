@@ -5,9 +5,11 @@ import {
   StatusBar as NativeStatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
+import { useState } from "react";
 import { useFonts } from "expo-font";
 import {
   SpaceGrotesk_400Regular,
@@ -20,6 +22,10 @@ export function AuthScreen() {
   const contentWidth = Math.min(width - 32, 420);
   const topInset = Platform.OS === "android" ? (NativeStatusBar.currentHeight ?? 0) + 18 : 18;
   const panelHeight = 64;
+  const [showForm, setShowForm] = useState(false);
+  const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [fontsLoaded] = useFonts({
     SpaceGrotesk_400Regular,
     SpaceGrotesk_500Medium,
@@ -65,55 +71,158 @@ export function AuthScreen() {
         bounces={false}
       >
         <View style={[styles.content, { width: contentWidth }]}>
-          <View style={styles.heroBlock}>
-            <Text style={styles.kicker}>Music-led dating</Text>
-            <Text style={styles.title}>
-              Your music taste says more than your bio ever could.
-            </Text>
-            <Text style={styles.subtitle}>
-              Find connections through energy, personality, and sound.
-            </Text>
-          </View>
-
-          <View style={styles.visualCard}>
-            <View style={styles.visualGlowBlue} />
-            <View style={styles.visualGlowPeach} />
-
-            <View style={styles.mockCluster}>
-              <View style={[styles.mockCard, styles.mockCardLeft]} />
-              <View style={[styles.mockCard, styles.mockCardCenter]}>
-                <Text style={styles.mockCardLabel}>profile{"\n"}music card</Text>
+          {!showForm ? (
+            <>
+              <View style={styles.heroBlock}>
+                <Text style={styles.kicker}>Music-led dating</Text>
+                <Text style={styles.title}>
+                  Your music taste says more than your bio ever could.
+                </Text>
+                <Text style={styles.subtitle}>
+                  Find connections through energy, personality, and sound.
+                </Text>
               </View>
-              <View style={[styles.mockCard, styles.mockCardRight]} />
+
+              <View style={styles.visualCard}>
+                <View style={styles.visualGlowBlue} />
+                <View style={styles.visualGlowPeach} />
+
+                <View style={styles.mockCluster}>
+                  <View style={[styles.mockCard, styles.mockCardLeft]} />
+                  <View style={[styles.mockCard, styles.mockCardCenter]}>
+                    <Text style={styles.mockCardLabel}>profile{"\n"}music card</Text>
+                  </View>
+                  <View style={[styles.mockCard, styles.mockCardRight]} />
+                </View>
+
+                <View style={styles.visualCopy}>
+                  <Text style={styles.visualTitle}>Music-led matches</Text>
+                  <Text style={styles.visualText}>
+                    Built for people who care about vibes, not just looks.
+                  </Text>
+                </View>
+
+                <View style={styles.progressRow}>
+                  <View style={[styles.progressDot, styles.progressDotActive]} />
+                  <View style={styles.progressDot} />
+                  <View style={styles.progressDot} />
+                </View>
+              </View>
+
+              <View style={styles.actions}>
+                <Pressable style={styles.primaryButton} onPress={() => setShowForm(true)}>
+                  <Text style={styles.primaryButtonText}>Continue with email</Text>
+                </Pressable>
+
+                <Pressable style={styles.secondaryButton}>
+                  <Text style={styles.secondaryButtonText}>Use phone number</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <View style={styles.formScreen}>
+              <View style={styles.formTopRow}>
+                <Pressable style={styles.backButton} onPress={() => setShowForm(false)}>
+                  <Text style={styles.backButtonText}>Back</Text>
+                </Pressable>
+
+                <View style={styles.modeSwitch}>
+                  <Pressable
+                    style={[
+                      styles.modePill,
+                      authMode === "signup" && styles.modePillActive,
+                    ]}
+                    onPress={() => setAuthMode("signup")}
+                  >
+                    <Text
+                      style={[
+                        styles.modePillText,
+                        authMode === "signup" && styles.modePillTextActive,
+                      ]}
+                    >
+                      Sign up
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.modePill,
+                      authMode === "login" && styles.modePillActive,
+                    ]}
+                    onPress={() => setAuthMode("login")}
+                  >
+                    <Text
+                      style={[
+                        styles.modePillText,
+                        authMode === "login" && styles.modePillTextActive,
+                      ]}
+                    >
+                      Log in
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={styles.formHero}>
+                <Text style={styles.kicker}>
+                  {authMode === "signup" ? "Create your account" : "Welcome back"}
+                </Text>
+                <Text style={styles.formTitle}>
+                  {authMode === "signup"
+                    ? "Let’s start with your email."
+                    : "Pick up where your vibe left off."}
+                </Text>
+                <Text style={styles.formSubtitle}>
+                  {authMode === "signup"
+                    ? "We’ll use this to build your profile, connect your music taste, and get you into the app."
+                    : "Log in to keep building your profile and continue matching through music."}
+                </Text>
+              </View>
+
+              <View style={styles.formCard}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Email</Text>
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="you@example.com"
+                    placeholderTextColor="#98A2B3"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    style={styles.input}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Password</Text>
+                  <TextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#98A2B3"
+                    secureTextEntry
+                    style={styles.input}
+                  />
+                </View>
+
+                <Pressable style={styles.primaryButton}>
+                  <Text style={styles.primaryButtonText}>
+                    {authMode === "signup" ? "Create account" : "Continue"}
+                  </Text>
+                </Pressable>
+
+                <Text style={styles.formFootnote}>
+                  By continuing, you agree to our terms and privacy policy.
+                </Text>
+              </View>
             </View>
-
-            <View style={styles.visualCopy}>
-              <Text style={styles.visualTitle}>Music-led matches</Text>
-              <Text style={styles.visualText}>
-                Built for people who care about vibes, not just looks.
-              </Text>
-            </View>
-
-            <View style={styles.progressRow}>
-              <View style={[styles.progressDot, styles.progressDotActive]} />
-              <View style={styles.progressDot} />
-              <View style={styles.progressDot} />
-            </View>
-          </View>
-
-          <View style={styles.actions}>
-            <Pressable style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>Continue with email</Text>
-            </Pressable>
-
-            <Pressable style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>Use phone number</Text>
-            </Pressable>
-          </View>
+          )}
 
           <View style={styles.altSection}>
             <View style={styles.dividerLine} />
-            <Text style={styles.altText}>or sign up with</Text>
+            <Text style={styles.altText}>
+              {showForm ? "or keep going with" : "or sign up with"}
+            </Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -211,6 +320,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#6EA0F8",
   },
   heroBlock: {
+    marginBottom: 28,
+  },
+  formScreen: {
     marginBottom: 28,
   },
   kicker: {
@@ -365,6 +477,99 @@ const styles = StyleSheet.create({
     color: "#17181C",
     fontSize: 15,
     fontFamily: "SpaceGrotesk_500Medium",
+  },
+  formTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 24,
+  },
+  backButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+  },
+  backButtonText: {
+    color: "#667085",
+    fontSize: 14,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  modeSwitch: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E4E6EB",
+    borderRadius: 999,
+    padding: 4,
+  },
+  modePill: {
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  modePillActive: {
+    backgroundColor: "#17181C",
+  },
+  modePillText: {
+    color: "#667085",
+    fontSize: 13,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  modePillTextActive: {
+    color: "#FFFFFF",
+  },
+  formHero: {
+    marginBottom: 22,
+  },
+  formTitle: {
+    fontSize: 30,
+    lineHeight: 36,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: "#17181C",
+    letterSpacing: -0.6,
+    marginBottom: 12,
+    maxWidth: 320,
+  },
+  formSubtitle: {
+    fontSize: 16,
+    lineHeight: 25,
+    color: "#667085",
+    maxWidth: 360,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  formCard: {
+    borderRadius: 28,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E4E6EB",
+    padding: 18,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    color: "#344054",
+    fontSize: 14,
+    marginBottom: 8,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  input: {
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E4E6EB",
+    backgroundColor: "#FCFCFD",
+    paddingHorizontal: 16,
+    color: "#17181C",
+    fontSize: 15,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  formFootnote: {
+    marginTop: 14,
+    color: "#98A2B3",
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "center",
+    fontFamily: "SpaceGrotesk_400Regular",
   },
   altSection: {
     flexDirection: "row",
