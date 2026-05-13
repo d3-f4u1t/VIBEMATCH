@@ -1,3 +1,9 @@
+//for strating the app use this
+//for npm:
+// & "C:\Program Files\nodejs\npm.cmd" run start
+
+
+
 import { startTransition, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView, StyleSheet } from "react-native";

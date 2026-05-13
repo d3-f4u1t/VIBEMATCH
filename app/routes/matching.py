@@ -12,6 +12,7 @@ router = APIRouter(tags=["matching"])
 def build_match_reason(shared_artists: list[str], shared_tracks: list[str], similarity: float) -> str:
     if shared_tracks:
         return f"You both connect with songs like {', '.join(shared_tracks[:2])}"
+        
     if shared_artists:
         return f"Strong overlap in artists like {', '.join(shared_artists[:2])}"
     
@@ -38,6 +39,7 @@ def get_matches(
     - **limit**: Maximum number of matches to return (default 10)
     - **exclude_swiped**: If True, excludes users already swiped on (default False)
     """
+
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
@@ -106,3 +108,4 @@ def get_matches(
         "match_count": len(matches[:limit]),
         "matches": matches[:limit],
     }
+

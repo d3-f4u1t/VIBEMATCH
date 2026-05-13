@@ -3,7 +3,9 @@ import type {
   UserProfileUpdatePayload,
 } from "../types/auth";
 
-const API_BASE_URL = "http://192.168.1.26:8000";
+const API_BASE_URL = "http://192.168.43.214:8000";
+//just use this url for this
+// http://192.168.43.214:8000
 
 async function parseJson<T>(response: Response): Promise<T> {
   const data = await response.json();
