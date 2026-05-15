@@ -10,13 +10,6 @@
 - **Semantic Embeddings**: Transforms music preferences into 384 dimensional vectors using SentenceTransformer (all-MiniLM-L6-v2) for deep semantic understanding
 - **Cosine Similarity Engine**: Advanced mathematical matching that goes beyond simple playlist overlaps to find true compatibility
 - **Multi-Modal Architecture**: Designed for personality, behavior, and face embeddings, creating holistic user profiles
-- **Intelligent Match Explanations**: Provides human-readable reasons for matches (shared artists, genres, musical eras)
-
-### Smart Music Intelligence
-- **MusicBrainz Integration**: Leverages the world's largest music database for rich, accurate metadata
-- **Context-Aware Search**: Artist and track searches prioritize user's existing preferences for personalized results
-- **Intelligent Ranking Algorithm**: Multi-factor scoring system that considers artist popularity, genre relevance, and user context
-- **Content Intelligence**: Automatic filtering of inappropriate content with sophisticated duplicate detection
 
 ### Advanced Discovery Engine
 - **Fallback Search Strategies**: Robust multi-stage search that adapts to query complexity and API limitations
@@ -52,14 +45,6 @@
 ### Quality Assurance
 - **Monitoring & Logging**: Structured logging and performance monitoring
 - **API Documentation**: Enhanced OpenAPI specs with examples
-
-### Development Guidelines
-
-#### Code Style
-- Follow PEP 8 Python style guidelines
-- Use type hints for all function parameters and return values
-- Write descriptive commit messages
-- Keep functions small and focused on single responsibilities
 
 #### Project Structure
 ```
