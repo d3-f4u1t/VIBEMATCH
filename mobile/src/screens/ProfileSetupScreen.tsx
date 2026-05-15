@@ -24,6 +24,7 @@ import type { TokenResponse, UserProfileResponse } from "../types/auth";
 type ProfileSetupScreenProps = {
   session: TokenResponse;
   onSignOut: () => void;
+  onComplete: () => void;
 };
 
 type ProfileStepKey =
@@ -125,6 +126,7 @@ const PROFILE_STEPS: StepConfig[] = [
 export function ProfileSetupScreen({
   session,
   onSignOut,
+  onComplete,
 }: ProfileSetupScreenProps) {
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(width - 32, 430);
@@ -401,6 +403,8 @@ export function ProfileSetupScreen({
 
       if (!isLastStep) {
         setStepIndex((current) => current + 1);
+      } else {
+        onComplete();
       }
     } catch (error) {
       setScreenError(
