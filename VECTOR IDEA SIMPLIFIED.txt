@@ -160,3 +160,5 @@ Enable continuous improvement through behavioral feedback
 10. Conclusion
 
 VibeMatch is designed as a multi-vector matchmaking system that evolves from a music-based cold start into a behavior-driven recommendation engine. By separating identity, preference, and behavioral signals, the system aims to produce more accurate and meaningful matches over time.
+
+Vector simis goin to be based on somethings which are known as the vector embeding in the base fdata that is going to be taken form the user such as the base info such data and use the vactor embending to turn that data into a vector of 
