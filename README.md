@@ -2,49 +2,138 @@
 
 <p align="center"><img src="https://socialify.git.ci/d3-f4u1t/VIBEMATCH/image?custom_language=FastAPI&amp;font=Inter&amp;language=1&amp;name=1&amp;owner=1&amp;pattern=Solid&amp;stargazers=1&amp;theme=Dark" alt="project-image"></p>
 
-<p id="description">VibeMatch is a hierarchical matchmaking system that combines vector-based user representation behavioral clustering and game-theoretic optimization with stable matching algorithms.</p>
+### VibeMatch is a music-first matchmaking app built around the idea that taste, energy, and compatibility can be modeled more meaningfully than traditional profile-only matching.
 
-  ## Features
+The current system focuses on:
+- user auth
+- profile onboarding
+- music-based user setup
+- vector-building from selected artists and tracks
+- swipe/match infrastructure
+- mobile frontend + FastAPI backend integration
 
-### AI-Powered Vector Matching
-- **Semantic Embeddings**: Transforms music preferences into 384 dimensional vectors using SentenceTransformer (all-MiniLM-L6-v2) for deep semantic understanding
-- **Cosine Similarity Engine**: Advanced mathematical matching that goes beyond simple playlist overlaps to find true compatibility
-- **Multi-Modal Architecture**: Designed for personality, behavior, and face embeddings, creating holistic user profiles
+The broader long-term vision is a multi-layer matching system that combines music, identity, behavioral patterns, and explicit preferences into a more intelligent compatibility engine.
 
-### Advanced Discovery Engine
-- **Fallback Search Strategies**: Robust multi-stage search that adapts to query complexity and API limitations
-- **Metadata Enrichment**: Pulls comprehensive artist data including country origins, musical tags, and historical context
-- **Rate-Limited API Management**: Smart throttling to maximize MusicBrainz API usage while staying compliant
-- **Semantic Track Matching**: Finds recordings across different releases and artist variations
+---
 
-### Scalable Matching Architecture
-- **Extensible Vector System**: Framework ready for personality questionnaires, behavioral data, and facial recognition
-- **Real-Time Vector Computation**: Automatic embedding generation as users build their music profiles
-- **Profile Completion Intelligence**: Smart validation ensuring minimum data requirements for meaningful matches
-- **Future-Proof Design**: Built for advanced algorithms like Gale-Shapley stable matching and density-based clustering
+## Current Status
 
-## Roadmap
+This project is actively under development.
 
-### Current Development Focus
-- **Personality Vectors**: Adding bio and personality questionnaire data with semantic embeddings
-- **Behavior Tracking**: Implementing user interaction patterns (swipes, likes, passes) for behavior vectors
-- **Weighted Similarity**: Multi-factor compatibility scoring combining music, personality, and behavior
+### What is implemented right now
+- FastAPI backend with auth and user profile routes
+- mobile app built with Expo / React Native
+- step-based profile onboarding flow
+- music profile setup foundation
+- artist and track selection pipeline
+- music vector generation
+- swipe system foundation
+- behavioral summary/vector groundwork
 
-### Upcoming Features
-- **Face Embeddings**: AI-powered facial recognition for visual compatibility matching
-- **Stable Matching Algorithm**: Implementing Gale-Shapley for reciprocal, stable pair matching
-- **Behavioral Clustering**: Density-based clustering to group users by attraction patterns
-- **Preference Vectors**: Learning what users are attracted to from their interaction history
+### What is planned next
+- fully wired music onboarding in the mobile app
+- cleaner match candidate flow
+- stronger backend contracts for music search and selection
+- improved testing and deployment setup
+- progressive matching logic improvements
 
-### Production Readiness
-- **Database Migration**: Transitioning from SQLite to PostgreSQL for scalability
-- **API Optimization**: Caching strategies and performance improvements
-- **Security Hardening**: Environment-based configuration, CORS, and rate limiting
-- **Containerization**: Docker setup for easy deployment
+---
 
-### Quality Assurance
-- **Monitoring & Logging**: Structured logging and performance monitoring
-- **API Documentation**: Enhanced OpenAPI specs with examples
+## Core Idea
+
+Most matching systems rely heavily on simple profile fields or shallow preference filters.
+
+VibeMatch is based on a different assumption:
+
+> music taste, behavioral patterns, identity context, and explicit preferences can together create a richer compatibility model than surface-level profile matching alone.
+
+The long-term architecture is designed around four layers:
+
+1. Music / taste
+2. Identity / demographics
+3. Behavioral / personality signals
+4. Preference / relationship goals
+
+These layers are intended to evolve into a multi-dimensional matching system over time.
+
+---
+
+## Current Product Direction
+
+Right now, VibeMatch should be understood as:
+
+- a music-based compatibility project
+- a full-stack learning and product-building effort
+- an MVP moving toward smarter matching
+
+It is **not yet** the full advanced matching system described in the long-term architecture documents.
+
+That larger system is the direction, not the current state.
+
+---
+
+## Tech Stack
+
+### Backend
+- Python
+- FastAPI
+- SQLAlchemy
+- SQLite (current development database)
+
+### Mobile
+- React Native
+- Expo
+- TypeScript
+
+### Data / Matching
+- MusicBrainz API
+- vector generation pipeline
+- swipe and behavioral foundations
+
+---
+
+## Development Roadmap
+
+### Phase 1
+- auth
+- profile setup
+- music onboarding
+- vector generation
+- swipe flow
+
+### Phase 2
+- improved candidate generation
+- stronger ranking and filtering
+- profile completeness logic
+- better API contracts and tests
+
+### Phase 3
+- behavioral learning
+- more intelligent scoring
+- multi-layer matching refinement
+
+### Phase 4
+- advanced clustering, ranking, and feedback systems
+
+---
+
+## Why This Project Exists
+
+VibeMatch is both:
+- a product exploration into music-first compatibility
+- and a serious engineering project spanning backend systems, mobile development, data modeling, and matching logic
+
+The goal is to turn a strong concept into a working end-to-end product, one layer at a time.
+
+---
+
+## Note
+
+This repository contains both:
+- implemented product code
+- and architectural ideas that guide future development
+
+The implementation is intentionally being built in stages, and the long-term design should be read as direction rather than a claim that every advanced system is already complete.
 
 #### Project Structure
 ```
