@@ -157,7 +157,7 @@ VIBEMATCH/
 ### Setup Steps
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone <https://github.com/d3-f4u1t/VIBEMATCH>
    cd VIBEMATCH
    ```
 
