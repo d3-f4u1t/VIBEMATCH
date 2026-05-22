@@ -1,5 +1,5 @@
 === VIBEMATCH: CORE SYSTEM DESIGN ===
-(Conceptual Architecture - Weights Dynamically Adjustable)
+(Conceptual Architecture Document)
 
 ---
 
