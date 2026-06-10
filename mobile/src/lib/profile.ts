@@ -3,7 +3,7 @@ import type {
   UserProfileUpdatePayload,
 } from "../types/auth";
 
-const API_BASE_URL = "http://192.168.43.214:8000";
+const API_BASE_URL = "http://192.168.1.37:8000";
 //just use this url for this
 // http://192.168.43.214:8000
 

@@ -36,6 +36,7 @@ import type { TokenResponse } from "../types/auth";
 type MusicSetupScreenProps = {
   session: TokenResponse;
   onSignOut: () => void;
+  onComplete: () => void;
 };
 
 type Artist = ArtistSearchResult;
@@ -76,6 +77,7 @@ const SUGGESTED_ARTISTS: Artist[] = [
 export function MusicSetupScreen({
   session,
   onSignOut: _onSignOut,
+  onComplete,
 }: MusicSetupScreenProps) {
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(width - 32, 430);
@@ -703,6 +705,11 @@ export function MusicSetupScreen({
               onPress={() => {
                 if (step === "artists" && canMoveToTracks) {
                   setStep("tracks");
+                  return;
+                }
+
+                if (step === "tracks" && canFinishMusic) {
+                  onComplete();
                 }
               }}
               disabled={

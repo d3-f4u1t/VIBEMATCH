@@ -13,6 +13,7 @@ class User(Base):
     name = Column(String,nullable = False)
     email = Column(String, unique = True, index = True,nullable = False)
     password_hash = Column(String, nullable = False)
+    #profile fields
     bio = Column(String, nullable= True)
     location_city = Column(String, nullable = True)
     date_of_birth = Column(Date, nullable=True)
@@ -21,6 +22,17 @@ class User(Base):
     sexuality = Column(String, nullable=True)
     music_vector = Column(JSON, nullable = True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    ethnicity = Column(String, nullable= True)
+    height = Column(String, nullable= True)
+    z_sign= Column(String, nullable = True)
+    f_plan = Column(String, nullable= True)
+    pets = Column(String, nullable= True)
+    religion = Column(String, nullable= True)
+    ethnicity = Column(String, nullable= True)
+    #json cuz we are using a sub type fields in habits
+    habit = Column(JSON, nullable= True)
+
+
     #relationship vector base
     artists = relationship("Artist", secondary= user_artist, back_populates="users")
     tracks = relationship("Track", secondary=user_track, back_populates="users")

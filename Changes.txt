@@ -1,0 +1,12 @@
+API ENDPOINT CHANGES:
+APP/SCHEMAS: USER
+FOR USER PROFILE UPDATE:
+PETS, ETHNICITY
+HIEGHT, WEIGHT
+Z_SIGN F_PLAN
+RELIGION,
+HABITS: SUB_FIELDS: SMOKING, DRINKING, WEED
+
+Updating the user  database so have to also perofrm a database migration updating the columns with those new fields.
+
+

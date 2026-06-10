@@ -17,8 +17,8 @@ import {
   SpaceGrotesk_500Medium,
   SpaceGrotesk_700Bold,
 } from "@expo-google-fonts/space-grotesk";
-import { getUserProfile, updateUserProfile } from "../lib/profile";
 
+import { getUserProfile, updateUserProfile } from "../lib/profile";
 import type { TokenResponse, UserProfileResponse } from "../types/auth";
 
 type ProfileSetupScreenProps = {
@@ -151,21 +151,26 @@ export function ProfileSetupScreen({
   const [screenError, setScreenError] = useState("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSavingStep, setIsSavingStep] = useState(false);
-  if (!fontsLoaded) {
-    return null;
-  }
 
   const formatDobFromApi = (value: string | null) => {
-    if (!value) return "";
+    if (!value) {
+      return "";
+    }
 
     const [year, month, day] = value.split("-");
-    if (!year || !month || !day) return "";
+    if (!year || !month || !day) {
+      return "";
+    }
+
     return `${day} / ${month} / ${year}`;
   };
 
   const formatDobForApi = (value: string) => {
     const [day, month, year] = value.split(" / ");
-    if (!day || !month || !year || year.length !== 4) return "";
+    if (!day || !month || !year || year.length !== 4) {
+      return "";
+    }
+
     return `${year}-${month}-${day}`;
   };
 
@@ -177,12 +182,11 @@ export function ProfileSetupScreen({
         setIsLoadingProfile(true);
         setScreenError("");
 
-        const data = await getUserProfile(
-          session.user.id,
-          session.access_token
-        );
+        const data = await getUserProfile(session.user.id, session.access_token);
 
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
 
         setProfile({
           name: data.name ?? "",
@@ -193,7 +197,10 @@ export function ProfileSetupScreen({
           location: data.location_city ?? "",
         });
       } catch (error) {
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
+
         setScreenError(
           error instanceof Error ? error.message : "Could not load your profile."
         );
@@ -211,8 +218,13 @@ export function ProfileSetupScreen({
     };
   }, [session.access_token, session.user.id]);
 
+  if (!fontsLoaded) {
+    return null;
+  }
+
   const currentStep = PROFILE_STEPS[stepIndex];
   const progress = (stepIndex + 1) / PROFILE_STEPS.length;
+  const progressPercent = Math.round(progress * 100);
   const isLastStep = stepIndex === PROFILE_STEPS.length - 1;
 
   const formatDobInput = (value: string) => {
@@ -387,7 +399,9 @@ export function ProfileSetupScreen({
   };
 
   const handleNext = async () => {
-    if (!isStepValid) return;
+    if (!isStepValid) {
+      return;
+    }
 
     try {
       setIsSavingStep(true);
@@ -418,7 +432,10 @@ export function ProfileSetupScreen({
   };
 
   const handleBack = () => {
-    if (stepIndex === 0) return;
+    if (stepIndex === 0) {
+      return;
+    }
+
     setStepIndex((current) => current - 1);
   };
 
@@ -426,26 +443,22 @@ export function ProfileSetupScreen({
     <View style={styles.screen}>
       <View style={[styles.fixedTopPanelWrap, { paddingTop: topInset }]}>
         <View style={[styles.topPanel, { width: contentWidth }]}>
-          <View>
-            <Text style={styles.topPanelEyebrow}>Profile setup</Text>
-            <Text style={styles.topPanelTitle}>
-              {`Step ${stepIndex + 1} of ${PROFILE_STEPS.length}`}
+          <View style={styles.titleWrap}>
+            <Text style={styles.topPanelTitle}>Profile setup</Text>
+            <Text style={styles.topPanelSubcopy}>
+              {`step ${stepIndex + 1} of ${PROFILE_STEPS.length}`}
             </Text>
           </View>
 
           <Pressable
             style={({ pressed }) => [
-              styles.signOutGhost,
-              pressed && styles.ghostPressed,
+              styles.iconGhost,
+              pressed && styles.iconGhostPressed,
             ]}
             onPress={onSignOut}
           >
-            <Text style={styles.signOutGhostText}>Sign out</Text>
+            <Text style={styles.iconGhostText}>x</Text>
           </Pressable>
-        </View>
-
-        <View style={[styles.progressTrack, { width: contentWidth }]}>
-          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
         </View>
       </View>
 
@@ -453,119 +466,129 @@ export function ProfileSetupScreen({
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: topInset + 110,
+            paddingTop: topInset + 94,
             paddingBottom: 28,
           },
         ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={[styles.content, { width: contentWidth }]}>
+          <View style={styles.progressBlock}>
+            <View style={styles.progressTop}>
+              <Text style={styles.progressLabel}>{currentStep.eyebrow}</Text>
+              <Text style={styles.progressValue}>{`${progressPercent}%`}</Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View
+                style={[styles.progressFill, { width: `${progress * 100}%` }]}
+              />
+            </View>
+          </View>
+
           {isLoadingProfile ? (
-            <View style={styles.loadingState}>
-              <ActivityIndicator size="small" color="#6EA0F8" />
+            <View style={styles.loadingCard}>
+              <ActivityIndicator size="small" color="#82F7A6" />
               <Text style={styles.loadingText}>Loading your profile...</Text>
             </View>
-          ) : null}
+          ) : (
+            <View style={styles.questionCard}>
+              <Text style={styles.kicker}>Matching signal</Text>
+              <Text style={styles.title}>{currentStep.title}</Text>
 
-          <View style={styles.heroBlock}>
-            <Text style={styles.kicker}>{currentStep.eyebrow}</Text>
-            <Text style={styles.title}>{currentStep.title}</Text>
-          </View>
+              {currentStep.choices ? (
+                <View style={styles.choiceGrid}>
+                  {currentStep.choices.map((choice) => {
+                    const isActive = currentValue === choice.value;
 
-          <View style={styles.stepCard}>
-            {currentStep.choices ? (
-              <View style={styles.choiceGrid}>
-                {currentStep.choices.map((choice) => {
-                  const isActive = currentValue === choice.value;
-
-                  return (
-                    <Pressable
-                      key={choice.value}
-                      style={({ pressed }) => [
-                        styles.choiceChip,
-                        isActive && styles.choiceChipActive,
-                        pressed && styles.choiceChipPressed,
-                      ]}
-                      onPress={() => updateField(choice.value)}
-                    >
-                      <Text
-                        style={[
-                          styles.choiceChipText,
-                          isActive && styles.choiceChipTextActive,
+                    return (
+                      <Pressable
+                        key={choice.value}
+                        style={({ pressed }) => [
+                          styles.choiceTile,
+                          isActive && styles.choiceTileActive,
+                          pressed && styles.choiceTilePressed,
                         ]}
+                        onPress={() => updateField(choice.value)}
                       >
-                        {choice.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : (
-              <View style={styles.inputGroup}>
-                <TextInput
-                  value={currentValue}
-                  onChangeText={updateField}
-                  placeholder={currentStep.placeholder}
-                  placeholderTextColor="#98A2B3"
-                  keyboardType={currentStep.keyboardType ?? "default"}
-                  autoCapitalize={
-                    currentStep.key === "location" || currentStep.key === "name"
-                      ? "words"
-                      : "none"
-                  }
-                  style={styles.input}
-                />
-              </View>
-            )}
+                        <Text
+                          style={[
+                            styles.choiceTileText,
+                            isActive && styles.choiceTileTextActive,
+                          ]}
+                        >
+                          {choice.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={styles.inputBlock}>
+                  <TextInput
+                    value={currentValue}
+                    onChangeText={updateField}
+                    placeholder={currentStep.placeholder}
+                    placeholderTextColor="#9D97A5"
+                    keyboardType={currentStep.keyboardType ?? "default"}
+                    autoCapitalize={
+                      currentStep.key === "location" || currentStep.key === "name"
+                        ? "words"
+                        : "none"
+                    }
+                    autoCorrect={false}
+                    style={styles.input}
+                  />
+                </View>
+              )}
 
-            {currentStepError ? (
-              <Text style={styles.errorText}>{currentStepError}</Text>
-            ) : null}
-          </View>
+              {currentStepError ? (
+                <Text style={styles.errorText}>{currentStepError}</Text>
+              ) : null}
+
+              <View style={styles.footerRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.secondaryButton,
+                    stepIndex === 0 && styles.secondaryButtonDisabled,
+                    pressed && stepIndex !== 0 && styles.secondaryButtonPressed,
+                  ]}
+                  onPress={handleBack}
+                  disabled={stepIndex === 0}
+                >
+                  <Text style={styles.secondaryButtonText}>Back</Text>
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    (!isStepValid || isSavingStep) && styles.primaryButtonDisabled,
+                    pressed &&
+                      isStepValid &&
+                      !isSavingStep &&
+                      styles.primaryButtonPressed,
+                  ]}
+                  onPress={handleNext}
+                  disabled={!isStepValid || isSavingStep}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    {isSavingStep
+                      ? "Saving..."
+                      : isLastStep
+                        ? "Save and continue"
+                        : "Continue"}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
 
           {screenError ? (
             <View style={styles.bannerError}>
               <Text style={styles.bannerErrorText}>{screenError}</Text>
             </View>
           ) : null}
-
-          <View style={styles.footerActions}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.secondaryButton,
-                stepIndex === 0 && styles.secondaryButtonDisabled,
-                pressed && stepIndex !== 0 && styles.secondaryButtonPressed,
-              ]}
-              onPress={handleBack}
-              disabled={stepIndex === 0}
-            >
-              <Text style={styles.secondaryButtonText}>Back</Text>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.primaryButton,
-                (!isStepValid || isSavingStep || isLoadingProfile) &&
-                  styles.primaryButtonDisabled,
-                pressed &&
-                  isStepValid &&
-                  !isSavingStep &&
-                  !isLoadingProfile &&
-                  styles.primaryButtonPressed,
-              ]}
-              onPress={handleNext}
-              disabled={!isStepValid || isSavingStep || isLoadingProfile}
-            >
-              <Text style={styles.primaryButtonText}>
-                {isSavingStep
-                  ? "Saving..."
-                  : isLastStep
-                    ? "Save and continue"
-                    : "Continue"}
-              </Text>
-            </Pressable>
-          </View>
         </View>
       </ScrollView>
     </View>
@@ -575,7 +598,7 @@ export function ProfileSetupScreen({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F7F6F4",
+    backgroundColor: "transparent",
   },
   fixedTopPanelWrap: {
     position: "absolute",
@@ -584,53 +607,47 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 10,
     alignItems: "center",
-    backgroundColor: "#F7F6F4",
+    backgroundColor: "rgba(13,10,17,0.12)",
   },
   topPanel: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    paddingBottom: 16,
+    paddingBottom: 14,
   },
-  topPanelEyebrow: {
-    color: "#6EA0F8",
-    fontSize: 12,
-    textTransform: "uppercase",
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 4,
+  titleWrap: {
+    gap: 4,
   },
   topPanelTitle: {
-    color: "#17181C",
-    fontSize: 21,
+    color: "#FFFFFF",
+    fontSize: 20,
     fontFamily: "SpaceGrotesk_700Bold",
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
-  signOutGhost: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E4E6EB",
-  },
-  signOutGhostText: {
-    color: "#344054",
-    fontSize: 13,
+  topPanelSubcopy: {
+    color: "rgba(255,248,251,0.56)",
+    fontSize: 12,
+    textTransform: "lowercase",
     fontFamily: "SpaceGrotesk_500Medium",
   },
-  ghostPressed: {
+  iconGhost: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconGhostPressed: {
     opacity: 0.8,
   },
-  progressTrack: {
-    height: 6,
-    backgroundColor: "#E8ECF2",
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#6EA0F8",
-    borderRadius: 999,
+  iconGhostText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    lineHeight: 18,
+    fontFamily: "SpaceGrotesk_700Bold",
   },
   scrollContent: {
     alignItems: "center",
@@ -639,155 +656,193 @@ const styles = StyleSheet.create({
   content: {
     minHeight: "100%",
   },
-  loadingState: {
-    flexDirection: "row",
-    alignItems: "center",
+  progressBlock: {
     marginBottom: 16,
-    paddingVertical: 10,
+  },
+  progressTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  progressLabel: {
+    color: "rgba(255,248,251,0.76)",
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  progressValue: {
+    color: "rgba(255,248,251,0.76)",
+    fontSize: 12,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  progressTrack: {
+    height: 6,
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#F26A8D",
+    borderRadius: 999,
+  },
+  loadingCard: {
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    paddingVertical: 26,
+    paddingHorizontal: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
   },
   loadingText: {
-    marginLeft: 10,
-    color: "#667085",
+    marginTop: 12,
+    color: "rgba(255,248,251,0.72)",
     fontSize: 14,
     fontFamily: "SpaceGrotesk_500Medium",
   },
-  heroBlock: {
-    marginBottom: 28,
-  },
-  kicker: {
-    fontSize: 14,
-    color: "#6EA0F8",
-    textTransform: "uppercase",
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 33,
-    lineHeight: 40,
-    color: "#17181C",
-    fontFamily: "SpaceGrotesk_700Bold",
-    letterSpacing: -0.8,
-    maxWidth: 340,
-  },
-  stepCard: {
+  questionCard: {
     borderRadius: 28,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
-    borderColor: "#E4E6EB",
+    borderColor: "rgba(255,255,255,0.10)",
     padding: 18,
     marginBottom: 16,
   },
-  inputGroup: {
-    marginBottom: 0,
+  kicker: {
+    fontSize: 11,
+    color: "rgba(255,248,251,0.72)",
+    textTransform: "uppercase",
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 10,
+    letterSpacing: 1.6,
+  },
+  title: {
+    fontSize: 30,
+    lineHeight: 31,
+    color: "#FFFFFF",
+    fontFamily: "SpaceGrotesk_700Bold",
+    letterSpacing: -1.2,
+    maxWidth: 300,
+  },
+  inputBlock: {
+    marginTop: 18,
   },
   input: {
     height: 54,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E4E6EB",
-    backgroundColor: "#FCFCFD",
+    borderColor: "rgba(255,255,255,0.09)",
+    backgroundColor: "rgba(255,255,255,0.05)",
     paddingHorizontal: 16,
-    color: "#17181C",
-    fontSize: 15,
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  errorText: {
-    marginTop: 12,
-    color: "#D92D20",
-    fontSize: 13,
-    lineHeight: 20,
-    fontFamily: "SpaceGrotesk_500Medium",
-  },
-  bannerError: {
-    borderRadius: 18,
-    backgroundColor: "#FFF1F1",
-    borderWidth: 1,
-    borderColor: "#F4C7C7",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 18,
-  },
-  bannerErrorText: {
-    color: "#B42318",
+    color: "#FFFFFF",
     fontSize: 14,
-    lineHeight: 21,
-    fontFamily: "SpaceGrotesk_500Medium",
+    fontFamily: "SpaceGrotesk_400Regular",
   },
   choiceGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 16,
   },
-  choiceChip: {
-    minHeight: 46,
-    borderRadius: 18,
+  choiceTile: {
+    width: "48.5%",
+    minHeight: 72,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#E4E6EB",
-    backgroundColor: "#FCFCFD",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginRight: 10,
+    borderColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    justifyContent: "flex-end",
     marginBottom: 10,
   },
-  choiceChipActive: {
-    backgroundColor: "#17181C",
-    borderColor: "#17181C",
+  choiceTileActive: {
+    backgroundColor: "rgba(255,105,122,0.20)",
+    borderColor: "rgba(255,122,89,0.34)",
   },
-  choiceChipPressed: {
-    opacity: 0.85,
+  choiceTilePressed: {
+    opacity: 0.88,
   },
-  choiceChipText: {
-    color: "#344054",
+  choiceTileText: {
+    color: "#FFFFFF",
     fontSize: 14,
+    lineHeight: 18,
     fontFamily: "SpaceGrotesk_500Medium",
   },
-  choiceChipTextActive: {
+  choiceTileTextActive: {
     color: "#FFFFFF",
   },
-  footerActions: {
+  errorText: {
+    marginTop: 12,
+    color: "#FFB4B6",
+    fontSize: 13,
+    lineHeight: 20,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  footerRow: {
     flexDirection: "row",
     gap: 12,
-    paddingBottom: 8,
+    marginTop: 16,
   },
   secondaryButton: {
     flex: 1,
     height: 52,
-    borderRadius: 18,
-    backgroundColor: "#FFFFFF",
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.05)",
     borderWidth: 1,
-    borderColor: "#E4E6EB",
+    borderColor: "rgba(255,255,255,0.12)",
     justifyContent: "center",
     alignItems: "center",
   },
   secondaryButtonPressed: {
     opacity: 0.85,
-    backgroundColor: "#F8F9FB",
+    backgroundColor: "rgba(255,255,255,0.08)",
   },
   secondaryButtonDisabled: {
     opacity: 0.5,
   },
   secondaryButtonText: {
-    color: "#17181C",
-    fontSize: 15,
+    color: "#FFFFFF",
+    fontSize: 14,
     fontFamily: "SpaceGrotesk_500Medium",
   },
   primaryButton: {
-    flex: 1.35,
+    flex: 1.3,
     height: 52,
-    borderRadius: 18,
-    backgroundColor: "#6EA0F8",
+    borderRadius: 17,
+    backgroundColor: "#F26A8D",
     justifyContent: "center",
     alignItems: "center",
   },
   primaryButtonPressed: {
-    opacity: 0.9,
+    opacity: 0.92,
   },
   primaryButtonDisabled: {
     opacity: 0.55,
   },
   primaryButtonText: {
     color: "#FFFFFF",
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "SpaceGrotesk_700Bold",
+  },
+  bannerError: {
+    borderRadius: 18,
+    backgroundColor: "rgba(180,35,24,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(244,199,199,0.18)",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 18,
+  },
+  bannerErrorText: {
+    color: "#FFCCCF",
+    fontSize: 14,
+    lineHeight: 21,
+    fontFamily: "SpaceGrotesk_500Medium",
   },
 });

@@ -1,17 +1,22 @@
+
+
 import { startTransition, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaView, StyleSheet } from "react-native";
+import { SafeAreaView, StyleSheet, View } from "react-native";
 
+import { FluidBackground } from "./src/components/FluidBackground";
 import { AuthScreen } from "./src/screens/AuthScreen";
-import { MusicSetupScreen } from "./src/screens/MusicSetupScreen";
+import { DiscoverScreen } from "./src/screens/DiscoverScreen";
+import { MusicSetupScreen } from "./src/screens/MusicFlowScreen";
 import { ProfileSetupScreen } from "./src/screens/ProfileSetupScreen";
 import type { TokenResponse } from "./src/types/auth";
 
-type AppStage = "auth" | "profile" | "music";
+type AppStage = "auth" | "profile" | "music" | "discover";
 
 export default function App() {
   const [session, setSession] = useState<TokenResponse | null>(null);
   const [stage, setStage] = useState<AppStage>("auth");
+  const isAuthStage = !session || stage === "auth";
 
   const handleAuthenticated = (result: TokenResponse) => {
     startTransition(() => {
@@ -29,20 +34,33 @@ export default function App() {
     setStage("auth");
   };
 
+  const handleMusicComplete = () => {
+    setStage("discover");
+  };
+
   return (
     <SafeAreaView style={styles.screen}>
-      {!session || stage === "auth" ? (
-        <AuthScreen onAuthenticated={handleAuthenticated} />
-      ) : stage === "profile" ? (
-        <ProfileSetupScreen
-          session={session}
-          onSignOut={handleSignOut}
-          onComplete={handleProfileComplete}
-        />
-      ) : (
-        <MusicSetupScreen session={session} onSignOut={handleSignOut} />
-      )}
-      <StatusBar style="dark" />
+      {!isAuthStage ? <FluidBackground /> : null}
+      <View style={styles.content}>
+        {isAuthStage ? (
+          <AuthScreen onAuthenticated={handleAuthenticated} />
+        ) : stage === "profile" ? (
+          <ProfileSetupScreen
+            session={session}
+            onSignOut={handleSignOut}
+            onComplete={handleProfileComplete}
+          />
+        ) : stage === "music" ? (
+          <MusicSetupScreen
+            session={session}
+            onSignOut={handleSignOut}
+            onComplete={handleMusicComplete}
+          />
+        ) : (
+          <DiscoverScreen session={session} onSignOut={handleSignOut} />
+        )}
+      </View>
+      <StatusBar style="light" />
     </SafeAreaView>
   );
 }
@@ -50,6 +68,9 @@ export default function App() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F7F6F4",
+    backgroundColor: "#0E0A11",
+  },
+  content: {
+    flex: 1,
   },
 });

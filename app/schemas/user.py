@@ -25,11 +25,25 @@ class UserResponse(BaseModel):
     created_at : datetime
 
 
+class Habits(BaseModel):
+    smoking: str | None = None
+    drinking: str | None = None
+    weed: str | None = None
+
+
 class UserProfileResponse(UserResponse):
     date_of_birth: date | None
     pronouns: str | None
     gender: str | None
     sexuality: str | None
+    ethnicity: str | None = None
+    height: str | None = None
+    z_sign: str | None = None
+    f_plan: str | None = None
+    pets: str | None = None
+    religion: str | None = None
+    habit: Habits | None = None
+     
 
 
 class UserProfileUpdate(BaseModel):
@@ -45,6 +59,15 @@ class UserProfileUpdate(BaseModel):
     pronouns: str | None = None
     gender: str | None = None
     sexuality: str | None = None
+    height: str  | None = None
+    ethnicity : str | None = None
+    z_sign:  str | None =  None
+    f_plan: str | None = None
+    pets : str | None = None
+    religion: str | None = None
+    habit: Habits | None = None #used as a sub field 
+
+
 
     @field_validator("date_of_birth")
     @classmethod

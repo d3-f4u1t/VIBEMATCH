@@ -13,11 +13,21 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useFonts } from "expo-font";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   SpaceGrotesk_400Regular,
   SpaceGrotesk_500Medium,
   SpaceGrotesk_700Bold,
 } from "@expo-google-fonts/space-grotesk";
+import Svg, {
+  Defs,
+  Ellipse,
+  LinearGradient as SvgLinearGradient,
+  RadialGradient,
+  Rect,
+  Stop,
+} from "react-native-svg";
+
 import { loginUser, registerUser } from "../lib/auth";
 import type { TokenResponse } from "../types/auth";
 
@@ -25,12 +35,104 @@ type AuthScreenProps = {
   onAuthenticated: (result: TokenResponse) => void;
 };
 
+type AuthBackdropProps = {
+  width: number;
+  height: number;
+};
+
+function AuthBackdrop({ width, height }: AuthBackdropProps) {
+  return (
+    <Svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      style={styles.svgBackdrop}
+    >
+      <Defs>
+        <SvgLinearGradient id="authBase" x1="0%" y1="0%" x2="0%" y2="100%">
+          <Stop offset="0%" stopColor="#24111F" />
+          <Stop offset="48%" stopColor="#130B15" />
+          <Stop offset="100%" stopColor="#09070D" />
+        </SvgLinearGradient>
+
+        <RadialGradient id="pinkGlow" cx="50%" cy="50%" r="50%">
+          <Stop offset="0%" stopColor="#FF4D94" stopOpacity="0.72" />
+          <Stop offset="52%" stopColor="#FF4D94" stopOpacity="0.34" />
+          <Stop offset="100%" stopColor="#FF4F88" stopOpacity="0" />
+        </RadialGradient>
+
+        <RadialGradient id="coralGlow" cx="50%" cy="50%" r="50%">
+          <Stop offset="0%" stopColor="#FF7B4F" stopOpacity="0.5" />
+          <Stop offset="58%" stopColor="#FF7B4F" stopOpacity="0.22" />
+          <Stop offset="100%" stopColor="#FF7A59" stopOpacity="0" />
+        </RadialGradient>
+
+        <RadialGradient id="plumGlow" cx="50%" cy="50%" r="50%">
+          <Stop offset="0%" stopColor="#FF4D94" stopOpacity="0.3" />
+          <Stop offset="60%" stopColor="#FF4D94" stopOpacity="0.12" />
+          <Stop offset="100%" stopColor="#FF4F88" stopOpacity="0" />
+        </RadialGradient>
+
+        <RadialGradient id="whiteHaze" cx="50%" cy="50%" r="50%">
+          <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.028" />
+          <Stop offset="55%" stopColor="#FFFFFF" stopOpacity="0.008" />
+          <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+        </RadialGradient>
+
+        <RadialGradient id="topMist" cx="50%" cy="50%" r="50%">
+          <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.036" />
+          <Stop offset="62%" stopColor="#FFFFFF" stopOpacity="0.01" />
+          <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+        </RadialGradient>
+      </Defs>
+
+      <Rect x="0" y="0" width={width} height={height} fill="url(#authBase)" />
+
+      <Ellipse
+        cx={width * 0.16}
+        cy={height * 0.18}
+        rx={width * 0.42}
+        ry={width * 0.42}
+        fill="url(#pinkGlow)"
+      />
+      <Ellipse
+        cx={width * 0.86}
+        cy={height * 0.14}
+        rx={width * 0.25}
+        ry={width * 0.25}
+        fill="url(#coralGlow)"
+      />
+      <Ellipse
+        cx={width * 0.78}
+        cy={height * 0.83}
+        rx={width * 0.21}
+        ry={width * 0.21}
+        fill="url(#plumGlow)"
+      />
+      <Ellipse
+        cx={width * 0.5}
+        cy={height * 0.36}
+        rx={width * 0.62}
+        ry={height * 0.2}
+        fill="url(#whiteHaze)"
+      />
+      <Ellipse
+        cx={width * 0.48}
+        cy={height * 0.2}
+        rx={width * 0.76}
+        ry={height * 0.16}
+        fill="url(#topMist)"
+      />
+    </Svg>
+  );
+}
+
 export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
-  const { width } = useWindowDimensions();
-  const contentWidth = Math.min(width - 32, 420);
+  const { width, height } = useWindowDimensions();
+  const contentWidth = Math.min(width - 40, 333);
   const topInset =
-    Platform.OS === "android" ? (NativeStatusBar.currentHeight ?? 0) + 18 : 18;
-  const panelHeight = 64;
+    Platform.OS === "android" ? (NativeStatusBar.currentHeight ?? 0) + 12 : 12;
+  const stageHeight = Math.max(height - topInset - 32, 700);
 
   const [showForm, setShowForm] = useState(false);
   const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
@@ -53,7 +155,9 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   const formContentOpacity = useState(new Animated.Value(1))[0];
   const formContentTranslate = useState(new Animated.Value(0))[0];
 
-  const animateToForm = () => {
+  const animateToForm = (nextMode: "signup" | "login") => {
+    setAuthMode(nextMode);
+
     Animated.parallel([
       Animated.timing(landingOpacity, {
         toValue: 0,
@@ -62,7 +166,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
         useNativeDriver: true,
       }),
       Animated.timing(landingTranslate, {
-        toValue: -18,
+        toValue: -20,
         duration: 220,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
@@ -70,7 +174,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
     ]).start(() => {
       setShowForm(true);
       formOpacity.setValue(0);
-      formTranslate.setValue(24);
+      formTranslate.setValue(28);
       formContentOpacity.setValue(1);
       formContentTranslate.setValue(0);
 
@@ -101,7 +205,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
         useNativeDriver: true,
       }),
       Animated.timing(formTranslate, {
-        toValue: 18,
+        toValue: 16,
         duration: 220,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
@@ -130,7 +234,9 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   };
 
   const animateAuthModeChange = (nextMode: "signup" | "login") => {
-    if (nextMode === authMode) return;
+    if (nextMode === authMode) {
+      return;
+    }
 
     const exitDirection = nextMode === "signup" ? 12 : -12;
     const enterDirection = nextMode === "signup" ? -12 : 12;
@@ -176,22 +282,19 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       setLoading(true);
       setError("");
 
-      let result: TokenResponse;
-
-      if (authMode === "signup") {
-        result = await registerUser({
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          password,
-          bio: "",
-          location_city: "",
-        });
-      } else {
-        result = await loginUser({
-          email: email.trim().toLowerCase(),
-          password,
-        });
-      }
+      const result =
+        authMode === "signup"
+          ? await registerUser({
+              name: name.trim(),
+              email: email.trim().toLowerCase(),
+              password,
+              bio: "",
+              location_city: "",
+            })
+          : await loginUser({
+              email: email.trim().toLowerCase(),
+              password,
+            });
 
       onAuthenticated(result);
     } catch (err) {
@@ -211,122 +314,97 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
 
   return (
     <View style={styles.screen}>
-      <View
-        style={[
-          styles.fixedTopPanelWrap,
-          {
-            paddingTop: topInset,
-          },
-        ]}
-      >
-        <View style={[styles.topPanel, { width: contentWidth }]}>
-          <View style={styles.brandHeader}>
-            <View style={styles.brandIcon}>
-              <Text style={styles.brandIconText}>V</Text>
-            </View>
-            <Text style={styles.brandName}>VibeMatch</Text>
-          </View>
-          <View style={styles.panelUtilityButton}>
-            <View style={styles.panelUtilityDot} />
-          </View>
-        </View>
-      </View>
+      <AuthBackdrop width={width} height={height} />
+      <View style={styles.vignette} />
 
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: topInset + panelHeight + 24,
-            paddingBottom: 28,
+            paddingTop: topInset + 20,
+            paddingBottom: 32,
+            minHeight: height,
           },
         ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.content, { width: contentWidth }]}>
+        <View style={[styles.viewport, { width: contentWidth }]}>
           {!showForm ? (
             <Animated.View
               style={[
                 styles.animatedSection,
+                styles.landingLayout,
+                { minHeight: stageHeight },
                 {
                   opacity: landingOpacity,
-                  transform: [{ translateX: landingTranslate }],
+                  transform: [{ translateY: landingTranslate }],
                 },
               ]}
+              shouldRasterizeIOS={false}
+              renderToHardwareTextureAndroid={false}
             >
-              <View style={styles.heroBlock}>
-                <Text style={styles.kicker}>Music-led dating</Text>
-                <Text style={styles.title}>
-                  Your music taste says more than your bio ever could.
-                </Text>
-                <Text style={styles.subtitle}>
-                  Find connections through energy, personality, and sound.
+              <View style={styles.landingHero}>
+                <View style={styles.logoMark}>
+                  <Text style={styles.logoMarkText}>V</Text>
+                </View>
+                <Text style={styles.brandWordmark}>VibeMatch</Text>
+                <Text style={styles.landingHeadline}>
+                  Meet someone your playlist would choose.
                 </Text>
               </View>
 
-              <View style={styles.visualCard}>
-                <View style={styles.visualGlowBlue} />
-                <View style={styles.visualGlowPeach} />
+              <View style={styles.landingFooter}>
+                <Text style={styles.landingLegal}>
+                  By tapping <Text style={styles.legalStrong}>Create account</Text> or{" "}
+                  <Text style={styles.legalStrong}>Sign in</Text>, you agree to our
+                  terms and privacy policy.
+                </Text>
 
-                <View style={styles.mockCluster}>
-                  <View style={[styles.mockCard, styles.mockCardLeft]} />
-                  <View style={[styles.mockCard, styles.mockCardCenter]}>
-                    <Text style={styles.mockCardLabel}>
-                      profile{"\n"}music card
-                    </Text>
-                  </View>
-                  <View style={[styles.mockCard, styles.mockCardRight]} />
+                <View style={styles.buttonStack}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.primaryButton,
+                      pressed && styles.buttonPressed,
+                    ]}
+                    onPress={() => animateToForm("signup")}
+                  >
+                    <LinearGradient
+                      colors={["#FF4E88", "#FF6A71", "#FF7A5E"]}
+                      locations={[0, 0.55, 1]}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0.5 }}
+                      style={styles.primaryGradient}
+                    />
+                    <Text style={styles.primaryButtonText}>Create account</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.secondaryButton,
+                      pressed && styles.secondaryButtonPressed,
+                    ]}
+                    onPress={() => animateToForm("login")}
+                  >
+                    <Text style={styles.secondaryButtonText}>Sign in</Text>
+                  </Pressable>
                 </View>
-
-                <View style={styles.visualCopy}>
-                  <Text style={styles.visualTitle}>Music-led matches</Text>
-                  <Text style={styles.visualText}>
-                    Built for people who care about vibes, not just looks.
-                  </Text>
-                </View>
-
-                <View style={styles.progressRow}>
-                  <View style={[styles.progressDot, styles.progressDotActive]} />
-                  <View style={styles.progressDot} />
-                  <View style={styles.progressDot} />
-                </View>
-              </View>
-
-              <View style={styles.actions}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.primaryButton,
-                    pressed && styles.buttonPressed,
-                  ]}
-                  onPress={animateToForm}
-                >
-                  <Text style={styles.primaryButtonText}>
-                    Continue with email
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.secondaryButton,
-                    pressed && styles.secondaryButtonPressed,
-                  ]}
-                >
-                  <Text style={styles.secondaryButtonText}>
-                    Use phone number
-                  </Text>
-                </Pressable>
               </View>
             </Animated.View>
           ) : (
             <Animated.View
               style={[
-                styles.formScreen,
                 styles.animatedSection,
+                styles.formLayout,
+                { minHeight: stageHeight },
                 {
                   opacity: formOpacity,
-                  transform: [{ translateX: formTranslate }],
+                  transform: [{ translateY: formTranslate }],
                 },
               ]}
+              shouldRasterizeIOS={false}
+              renderToHardwareTextureAndroid={false}
             >
               <View style={styles.formTopRow}>
                 <Pressable
@@ -336,7 +414,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                   ]}
                   onPress={animateToLanding}
                 >
-                  <Text style={styles.backButtonText}>Back</Text>
+                  <Text style={styles.backButtonText}>{"<"}</Text>
                 </Pressable>
 
                 <View style={styles.modeSwitch}>
@@ -361,15 +439,14 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                   <Pressable
                     style={({ pressed }) => [
                       styles.modePill,
-                      authMode === "login" && styles.modePillActive,
-                      pressed && styles.modePillPressed,
+                      authMode === "login" && styles.modePillPressed,
                     ]}
                     onPress={() => animateAuthModeChange("login")}
                   >
                     <Text
                       style={[
                         styles.modePillText,
-                        authMode === "login" && styles.modePillTextActive,
+                        authMode === "login" && styles.modePillTextInactive,
                       ]}
                     >
                       Log in
@@ -387,116 +464,110 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                   },
                 ]}
               >
-                <View style={styles.formHero}>
-                  <Text style={styles.kicker}>
-                    {authMode === "signup"
-                      ? "Create your account"
-                      : "Welcome back"}
-                  </Text>
-                  <Text style={styles.formTitle}>
-                    {authMode === "signup"
-                      ? "Let's start with your email."
-                      : "Pick up where your vibe left off."}
-                  </Text>
-                  <Text style={styles.formSubtitle}>
-                    {authMode === "signup"
-                      ? "We'll use this to build your profile, connect your music taste, and get you into the app."
-                      : "Log in to keep building your profile and continue matching through music."}
-                  </Text>
-                </View>
+                <Text style={styles.kicker}>
+                  {authMode === "signup" ? "Create account" : "Welcome back"}
+                </Text>
 
-                <View style={styles.formCard}>
-                  {authMode === "signup" ? (
+                <Text style={styles.formTitle}>
+                  {authMode === "signup"
+                    ? "Start with your email, then build the vibe."
+                    : "Sign back in and pick up where you left off."}
+                </Text>
+
+                <View style={styles.formCardShell}>
+                  <LinearGradient
+                    colors={["rgba(255,255,255,0.09)", "rgba(255,255,255,0.03)"]}
+                    start={{ x: 0.1, y: 0 }}
+                    end={{ x: 0.9, y: 1 }}
+                    style={styles.formCard}
+                  >
+                    {authMode === "signup" ? (
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Name</Text>
+                        <TextInput
+                          value={name}
+                          onChangeText={setName}
+                          placeholder="Your name"
+                          placeholderTextColor="#C8C0C8"
+                          style={styles.input}
+                          autoCapitalize="words"
+                          autoCorrect={false}
+                        />
+                      </View>
+                    ) : null}
+
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Name</Text>
+                      <Text style={styles.inputLabel}>Email</Text>
                       <TextInput
-                        value={name}
-                        onChangeText={setName}
-                        placeholder="Your name"
-                        placeholderTextColor="#98A2B3"
+                        value={email}
+                        onChangeText={setEmail}
+                        placeholder="you@example.com"
+                        placeholderTextColor="#C8C0C8"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
                         style={styles.input}
                       />
                     </View>
-                  ) : null}
 
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Email</Text>
-                    <TextInput
-                      value={email}
-                      onChangeText={setEmail}
-                      placeholder="you@example.com"
-                      placeholderTextColor="#98A2B3"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      style={styles.input}
-                    />
-                  </View>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Password</Text>
+                      <TextInput
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder={
+                          authMode === "signup"
+                            ? "Create a password"
+                            : "Enter your password"
+                        }
+                        placeholderTextColor="#C8C0C8"
+                        secureTextEntry
+                        style={styles.input}
+                      />
+                    </View>
 
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Password</Text>
-                    <TextInput
-                      value={password}
-                      onChangeText={setPassword}
-                      placeholder="Enter your password"
-                      placeholderTextColor="#98A2B3"
-                      secureTextEntry
-                      style={styles.input}
-                    />
-                  </View>
+                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-                  {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.primaryButton,
+                        pressed && styles.buttonPressed,
+                        loading && styles.buttonDisabled,
+                      ]}
+                      onPress={handleAuthSubmit}
+                      disabled={loading}
+                    >
+                      <LinearGradient
+                        colors={["#FF4F88", "#FF6A71", "#FF7A59"]}
+                        locations={[0, 0.6, 1]}
+                        start={{ x: 0, y: 0.2 }}
+                        end={{ x: 1, y: 0.8 }}
+                        style={styles.primaryGradient}
+                      />
+                      <Text style={styles.primaryButtonText}>
+                        {loading
+                          ? "Please wait..."
+                          : authMode === "signup"
+                            ? "Create account"
+                            : "Continue"}
+                      </Text>
+                    </Pressable>
 
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.primaryButton,
-                      pressed && styles.buttonPressed,
-                      loading && styles.buttonDisabled,
-                    ]}
-                    onPress={handleAuthSubmit}
-                    disabled={loading}
-                  >
-                    <Text style={styles.primaryButtonText}>
-                      {loading
-                        ? "Please wait..."
-                        : authMode === "signup"
-                          ? "Create account"
-                          : "Continue"}
+                    <Text style={styles.formFootnote}>
+                      By continuing, you agree to the terms and privacy policy.
                     </Text>
-                  </Pressable>
-
-                  <Text style={styles.formFootnote}>
-                    By continuing, you agree to our terms and privacy policy.
-                  </Text>
+                  </LinearGradient>
+                  <LinearGradient
+                    colors={["rgba(255,255,255,0.08)", "rgba(255,255,255,0)"]}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={styles.formGloss}
+                    pointerEvents="none"
+                  />
                 </View>
               </Animated.View>
             </Animated.View>
           )}
-
-          <View style={styles.altSection}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.altText}>
-              {showForm ? "or keep going with" : "or sign up with"}
-            </Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <View style={styles.socialRow}>
-            <Pressable style={styles.socialButton}>
-              <Text style={styles.socialButtonText}>f</Text>
-            </Pressable>
-            <Pressable style={styles.socialButton}>
-              <Text style={styles.socialButtonText}>G</Text>
-            </Pressable>
-            <Pressable style={styles.socialButton}>
-              <Text style={styles.socialButtonText}>A</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Terms of use</Text>
-            <Text style={styles.footerDivider}>/</Text>
-            <Text style={styles.footerText}>Privacy Policy</Text>
-          </View>
         </View>
       </ScrollView>
     </View>
@@ -506,405 +577,318 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F7F6F4",
+    backgroundColor: "#09070D",
+    overflow: "hidden",
   },
-  fixedTopPanelWrap: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    alignItems: "center",
-    backgroundColor: "#F7F6F4",
+  svgBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  vignette: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(2,1,5,0.12)",
   },
   scrollContent: {
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
-  content: {
-    minHeight: "100%",
-  },
-  topPanel: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 64,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ECEEF2",
-  },
-  brandHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  brandIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#17181C",
+  viewport: {
+    flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  brandIconText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  brandName: {
-    fontSize: 21,
-    fontFamily: "SpaceGrotesk_700Bold",
-    color: "#17181C",
-    letterSpacing: -0.3,
-  },
-  panelUtilityButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E4E6EB",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  panelUtilityDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 999,
-    backgroundColor: "#6EA0F8",
-  },
-  heroBlock: {
-    marginBottom: 28,
   },
   animatedSection: {
-    marginBottom: 28,
-  },
-  formScreen: {
-    marginBottom: 28,
-  },
-  formContentWrap: {
     flex: 1,
   },
-  kicker: {
-    fontSize: 14,
-    fontFamily: "SpaceGrotesk_700Bold",
-    color: "#6EA0F8",
-    textTransform: "uppercase",
-    marginBottom: 14,
+  landingLayout: {
+    justifyContent: "space-between",
+    paddingHorizontal: 2,
+    paddingTop: 26,
+    paddingBottom: 8,
   },
-  title: {
+  landingHero: {
+    alignItems: "center",
+    marginTop: 112,
+  },
+  logoMark: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.98)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 28,
+    elevation: 6,
+  },
+  logoMarkText: {
+    color: "#19111A",
+    fontSize: 20,
+    lineHeight: 20,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  brandWordmark: {
+    color: "#FFFFFF",
     fontSize: 34,
-    lineHeight: 40,
-    fontFamily: "SpaceGrotesk_700Bold",
-    color: "#17181C",
-    letterSpacing: -0.8,
-    marginBottom: 14,
-    maxWidth: 340,
+    lineHeight: 34,
+    letterSpacing: -2.1,
+    fontFamily: Platform.select({
+      android: "sans-serif-black",
+      default: "SpaceGrotesk_700Bold",
+    }),
+    marginBottom: 18,
+    includeFontPadding: false,
   },
-  subtitle: {
+  landingHeadline: {
+    color: "#FFF8FB",
     fontSize: 17,
-    lineHeight: 27,
-    color: "#667085",
-    maxWidth: 360,
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  visualCard: {
-    borderRadius: 34,
-    backgroundColor: "#FBF9F5",
-    borderWidth: 1,
-    borderColor: "#E4E6EB",
-    paddingHorizontal: 22,
-    paddingTop: 24,
-    paddingBottom: 22,
-    marginBottom: 28,
-    overflow: "hidden",
-  },
-  visualGlowBlue: {
-    position: "absolute",
-    top: 88,
-    left: -36,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: "rgba(110,160,248,0.14)",
-  },
-  visualGlowPeach: {
-    position: "absolute",
-    right: -24,
-    bottom: 70,
-    width: 132,
-    height: 132,
-    borderRadius: 66,
-    backgroundColor: "rgba(255,164,142,0.16)",
-  },
-  mockCluster: {
-    height: 160,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  mockCard: {
-    position: "absolute",
-    width: 74,
-    height: 118,
-    borderRadius: 18,
-  },
-  mockCardLeft: {
-    left: "22%",
-    backgroundColor: "#F5D2E4",
-  },
-  mockCardCenter: {
-    width: 106,
-    height: 136,
-    borderRadius: 24,
-    backgroundColor: "#E9EEFF",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 2,
-  },
-  mockCardRight: {
-    right: "22%",
-    backgroundColor: "#EEDFCB",
-  },
-  mockCardLabel: {
+    lineHeight: 22,
     textAlign: "center",
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: "SpaceGrotesk_500Medium",
-    color: "#475467",
+    fontFamily: Platform.select({
+      android: "sans-serif-medium",
+      default: "SpaceGrotesk_500Medium",
+    }),
+    letterSpacing: -0.4,
+    maxWidth: 248,
+    includeFontPadding: false,
   },
-  visualCopy: {
+  landingFooter: {
+    paddingBottom: 2,
+  },
+  landingLegal: {
+    color: "rgba(255,248,251,0.88)",
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: "center",
+    fontFamily: Platform.select({
+      android: "sans-serif",
+      default: "SpaceGrotesk_400Regular",
+    }),
+    maxWidth: 252,
+    alignSelf: "center",
     marginBottom: 18,
+    includeFontPadding: false,
   },
-  visualTitle: {
-    fontSize: 31,
-    lineHeight: 35,
-    fontFamily: "SpaceGrotesk_700Bold",
-    color: "#17181C",
-    letterSpacing: -0.6,
-    marginBottom: 10,
-    maxWidth: 260,
+  legalStrong: {
+    color: "#FFFFFF",
+    fontFamily: Platform.select({
+      android: "sans-serif-bold",
+      default: "SpaceGrotesk_700Bold",
+    }),
   },
-  visualText: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: "#667085",
-    maxWidth: 300,
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  progressRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: "#D0D5DD",
-    marginHorizontal: 4,
-  },
-  progressDotActive: {
-    backgroundColor: "#6EA0F8",
-    width: 22,
-  },
-  actions: {
+  buttonStack: {
     gap: 12,
-    marginBottom: 22,
   },
   primaryButton: {
     height: 52,
-    borderRadius: 18,
-    backgroundColor: "#17181C",
+    borderRadius: 17,
+    overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#FF5A84",
+    shadowColor: "#050109",
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.28,
+    shadowRadius: 32,
+    elevation: 8,
   },
-  buttonPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.985 }],
+  primaryGradient: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 17,
   },
   primaryButtonText: {
     color: "#FFFFFF",
-    fontSize: 15,
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontSize: 14,
+    lineHeight: 17,
+    fontFamily: Platform.select({
+      android: "sans-serif-bold",
+      default: "SpaceGrotesk_700Bold",
+    }),
+    includeFontPadding: false,
   },
   secondaryButton: {
-    height: 50,
-    borderRadius: 18,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E4E6EB",
+    height: 52,
+    borderRadius: 17,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "rgba(255,255,255,0.03)",
     justifyContent: "center",
     alignItems: "center",
   },
-  secondaryButtonPressed: {
-    opacity: 0.85,
-    backgroundColor: "#F8F9FB",
-  },
   secondaryButtonText: {
-    color: "#17181C",
-    fontSize: 15,
-    fontFamily: "SpaceGrotesk_500Medium",
+    color: "#FFFFFF",
+    fontSize: 14,
+    lineHeight: 17,
+    fontFamily: Platform.select({
+      android: "sans-serif-bold",
+      default: "SpaceGrotesk_700Bold",
+    }),
+    includeFontPadding: false,
+  },
+  buttonPressed: {
+    opacity: 0.94,
+    transform: [{ scale: 0.988 }],
+  },
+  secondaryButtonPressed: {
+    opacity: 0.84,
+    backgroundColor: "rgba(255,255,255,0.07)",
+  },
+  buttonDisabled: {
+    opacity: 0.65,
+  },
+  formLayout: {
+    paddingTop: 10,
   },
   formTopRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 2,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   backButtonPressed: {
-    opacity: 0.7,
+    opacity: 0.82,
   },
   backButtonText: {
-    color: "#667085",
-    fontSize: 14,
+    color: "#FFFFFF",
+    fontSize: 16,
+    lineHeight: 16,
     fontFamily: "SpaceGrotesk_500Medium",
+    marginLeft: -1,
+    includeFontPadding: false,
   },
   modeSwitch: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E4E6EB",
+    alignItems: "center",
+    padding: 5,
+    gap: 6,
     borderRadius: 999,
-    padding: 4,
+    backgroundColor: "rgba(255,255,255,0.065)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
   },
   modePill: {
+    minWidth: 74,
+    height: 34,
     borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
   },
   modePillActive: {
-    backgroundColor: "#17181C",
+    backgroundColor: "#FF5A84",
   },
   modePillPressed: {
     opacity: 0.88,
   },
   modePillText: {
-    color: "#667085",
     fontSize: 13,
+    lineHeight: 16,
     fontFamily: "SpaceGrotesk_500Medium",
+    color: "rgba(255,248,251,0.74)",
+    includeFontPadding: false,
   },
   modePillTextActive: {
     color: "#FFFFFF",
   },
-  formHero: {
-    marginBottom: 22,
+  modePillTextInactive: {
+    color: "rgba(255,244,248,0.72)",
+  },
+  formContentWrap: {
+    flex: 1,
+  },
+  kicker: {
+    color: "rgba(255,248,251,0.72)",
+    fontSize: 10,
+    lineHeight: 12,
+    letterSpacing: 1.9,
+    textTransform: "uppercase",
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 10,
+    includeFontPadding: false,
   },
   formTitle: {
+    color: "#FFFFFF",
     fontSize: 30,
-    lineHeight: 36,
+    lineHeight: 31,
+    letterSpacing: -1.9,
     fontFamily: "SpaceGrotesk_700Bold",
-    color: "#17181C",
-    letterSpacing: -0.6,
-    marginBottom: 12,
-    maxWidth: 320,
+    maxWidth: 314,
+    marginBottom: 14,
+    includeFontPadding: false,
   },
-  formSubtitle: {
-    fontSize: 16,
-    lineHeight: 25,
-    color: "#667085",
-    maxWidth: 360,
-    fontFamily: "SpaceGrotesk_400Regular",
+  formCardShell: {
+    position: "relative",
+    marginTop: 20,
+    borderRadius: 28,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "rgba(255,255,255,0.04)",
   },
   formCard: {
-    borderRadius: 28,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E4E6EB",
-    padding: 18,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 22,
+  },
+  formGloss: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 88,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   inputLabel: {
-    color: "#344054",
-    fontSize: 14,
-    marginBottom: 8,
+    color: "rgba(255,248,251,0.82)",
+    fontSize: 12,
+    lineHeight: 15,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
     fontFamily: "SpaceGrotesk_500Medium",
+    marginBottom: 8,
+    includeFontPadding: false,
   },
   input: {
     height: 52,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E4E6EB",
-    backgroundColor: "#FCFCFD",
+    borderColor: "rgba(255,255,255,0.09)",
+    backgroundColor: "rgba(255,255,255,0.05)",
     paddingHorizontal: 16,
-    color: "#17181C",
-    fontSize: 15,
+    color: "#FFFFFF",
+    fontSize: 14,
+    lineHeight: 17,
     fontFamily: "SpaceGrotesk_400Regular",
+    includeFontPadding: false,
   },
   errorText: {
-    color: "#D92D20",
+    color: "#FFB7BD",
     fontSize: 13,
-    marginBottom: 12,
+    lineHeight: 19,
     fontFamily: "SpaceGrotesk_500Medium",
-  },
-  buttonDisabled: {
-    opacity: 0.65,
+    marginBottom: 12,
+    includeFontPadding: false,
   },
   formFootnote: {
-    marginTop: 14,
-    color: "#98A2B3",
+    marginTop: 16,
+    color: "rgba(255,248,251,0.68)",
     fontSize: 12,
     lineHeight: 18,
-    textAlign: "center",
     fontFamily: "SpaceGrotesk_400Regular",
-  },
-  altSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#E4E6EB",
-  },
-  altText: {
-    marginHorizontal: 12,
-    fontSize: 13,
-    color: "#98A2B3",
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  socialRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 26,
-  },
-  socialButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E4E6EB",
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 6,
-  },
-  socialButtonText: {
-    fontSize: 16,
-    fontFamily: "SpaceGrotesk_700Bold",
-    color: "#17181C",
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingBottom: 8,
-  },
-  footerText: {
-    fontSize: 12,
-    color: "#98A2B3",
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  footerDivider: {
-    marginHorizontal: 8,
-    color: "#98A2B3",
-    fontFamily: "SpaceGrotesk_400Regular",
+    maxWidth: 220,
+    includeFontPadding: false,
   },
 });

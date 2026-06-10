@@ -18,15 +18,23 @@ def ensure_user_profile_columns():
         "pronouns": "TEXT",
         "gender": "TEXT",
         "sexuality": "TEXT",
+        "ethnicity": "TEXT",
+        "height": "TEXT",
+        "z_sign": "TEXT",
+        "f_plan": "TEXT",
+        "pets": "TEXT",
+        "religion": "TEXT",
+        "habit": "JSON"
     }
 
     with engine.begin() as connection:
-        existing_columns = {
+        existing_columns = [
             row[1] for row in connection.execute(text("PRAGMA table_info(users)"))
-        }
+        ]
+        existing_columns_normalized = {column.lower() for column in existing_columns}
 
         for column_name, column_type in required_columns.items():
-            if column_name not in existing_columns:
+            if column_name.lower() not in existing_columns_normalized:
                 connection.execute(
                     text(
                         f"ALTER TABLE users ADD COLUMN {column_name} {column_type}"

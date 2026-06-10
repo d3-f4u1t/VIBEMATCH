@@ -38,4 +38,3 @@ class UserArtistItem(BaseModel):
     name: str
     tags: list[str] = []
 
-class UserA
