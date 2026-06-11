@@ -19,7 +19,11 @@ import {
 } from "@expo-google-fonts/space-grotesk";
 
 import { getUserProfile, updateUserProfile } from "../lib/profile";
-import type { TokenResponse, UserProfileResponse } from "../types/auth";
+import type {
+  TokenResponse,
+  UserHabits,
+  UserProfileResponse,
+} from "../types/auth";
 
 type ProfileSetupScreenProps = {
   session: TokenResponse;
@@ -33,7 +37,17 @@ type ProfileStepKey =
   | "gender"
   | "sexuality"
   | "pronouns"
-  | "location";
+  | "location"
+  | "bio"
+  | "height"
+  | "ethnicity"
+  | "z_sign"
+  | "f_plan"
+  | "pets"
+  | "religion"
+  | "smoking"
+  | "drinking"
+  | "weed";
 
 type ProfileState = {
   name: string;
@@ -42,6 +56,14 @@ type ProfileState = {
   sexuality: string;
   pronouns: string;
   location: string;
+  bio: string;
+  height: string;
+  ethnicity: string;
+  z_sign: string;
+  f_plan: string;
+  pets: string;
+  religion: string;
+  habit: UserHabits;
 };
 
 type Choice = {
@@ -56,6 +78,7 @@ type StepConfig = {
   placeholder?: string;
   keyboardType?: "default" | "numeric";
   choices?: Choice[];
+  multiline?: boolean;
 };
 
 const GENDER_CHOICES: Choice[] = [
@@ -81,6 +104,60 @@ const PRONOUN_CHOICES: Choice[] = [
   { label: "He / him", value: "he_him" },
   { label: "They / them", value: "they_them" },
   { label: "Any", value: "any" },
+];
+
+const FAMILY_PLAN_CHOICES: Choice[] = [
+  { label: "Want kids", value: "want_kids" },
+  { label: "Open to kids", value: "open_to_kids" },
+  { label: "Don't want kids", value: "dont_want_kids" },
+  { label: "Not sure yet", value: "not_sure_yet" },
+];
+
+const PET_CHOICES: Choice[] = [
+  { label: "Dog person", value: "dog_person" },
+  { label: "Cat person", value: "cat_person" },
+  { label: "Love all pets", value: "love_all_pets" },
+  { label: "No pets", value: "no_pets" },
+];
+
+const HABIT_CHOICES: Choice[] = [
+  { label: "Never", value: "never" },
+  { label: "Sometimes", value: "sometimes" },
+  { label: "Socially", value: "socially" },
+  { label: "Regularly", value: "regularly" },
+];
+//just for updated
+const ETH_CHOICES: Choice[] = [
+  {label: "Asian", value: "asian"},
+  {label: "African", value: "african"},
+  {label: "European", value: "erupean"},
+  {label: "Hispanic", value: "hispanic"},
+];
+
+const Z_Sig: Choice[] = [
+  {label: "Aquarius", value: "aquarius"},
+  {label: "Pisences", value: "pisences"},
+  {label: "Aries", value: "aries"},
+  {label: "Taurus", value: "taurus"},
+  {label: "gemini", value: "gemini"},
+  {label: "Cancer", value: "cancer"},
+  {label: "Leo", value: "leo"},
+  {label: "Virgo", value: "virgo"},
+  {label: "Libra", value: "libra"},
+  {label: "Scorpio", value: "scorpio"},
+  {label: "Sagittarius", value: "sagittarius"},
+  {label: "Capricorn", value: "capricorn"},
+
+];
+
+const R_CHOICES: Choice[] = [
+  {label: "Christian", value: "christian"},
+  {label: "Islam", value: "islam"},
+  {label: "Hindu", value: "hindu"},
+  {label: "Buddhism", value:"buddhism"},
+  {label: "Sikh", value: "sikh"},
+  {label: "Jud", value: "jud"},
+  {label: "Jain", value:"jain"},
 ];
 
 const PROFILE_STEPS: StepConfig[] = [
@@ -121,6 +198,69 @@ const PROFILE_STEPS: StepConfig[] = [
     title: "Where are you dating from?",
     placeholder: "City or area",
   },
+  {
+    key: "bio",
+    eyebrow: "Story",
+    title: "Write a short bio people can feel.",
+    placeholder: "Give your profile a little personality",
+    multiline: true,
+  },
+  {
+    key: "height",
+    eyebrow: "Details",
+    title: "How tall are you?",
+    placeholder: `5'10" or 178 cm`,
+  },
+  {
+    key: "ethnicity",
+    eyebrow: "Details",
+    title: "How do you describe your ethnicity?",
+    placeholder: "Write what feels right for you",
+    choices: ETH_CHOICES,
+  },
+  {
+    key: "z_sign",
+    eyebrow: "Details",
+    title: "What's your zodiac sign?",
+    choices: Z_Sig,
+  },
+  {
+    key: "f_plan",
+    eyebrow: "Life plans",
+    title: "What are your family plans?",
+    choices: FAMILY_PLAN_CHOICES,
+  },
+  {
+    key: "pets",
+    eyebrow: "Lifestyle",
+    title: "What is your pet vibe?",
+    choices: PET_CHOICES,
+  },
+  {
+    key: "religion",
+    eyebrow: "Values",
+    title: "Any religious belief you want shown?",
+    placeholder: "Optional style, but required for this flow",
+    choices: R_CHOICES,
+  },
+  {
+    key: "smoking",
+    eyebrow: "Habits",
+    title: "What's your smoking habit?",
+    choices: HABIT_CHOICES,
+  },
+  {
+    key: "drinking",
+    eyebrow: "Habits",
+    title: "What's your drinking habit?",
+    choices: HABIT_CHOICES,
+  },
+  {
+    key: "weed",
+    eyebrow: "Habits",
+    title: "What's your weed habit?",
+    choices: HABIT_CHOICES,
+  },
 ];
 
 export function ProfileSetupScreen({
@@ -147,6 +287,18 @@ export function ProfileSetupScreen({
     sexuality: "",
     pronouns: "",
     location: session.user.location_city ?? "",
+    bio: session.user.bio ?? "",
+    height: "",
+    ethnicity: "",
+    z_sign: "",
+    f_plan: "",
+    pets: "",
+    religion: "",
+    habit: {
+      smoking: "",
+      drinking: "",
+      weed: "",
+    },
   });
   const [screenError, setScreenError] = useState("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -195,6 +347,18 @@ export function ProfileSetupScreen({
           sexuality: data.sexuality ?? "",
           pronouns: data.pronouns ?? "",
           location: data.location_city ?? "",
+          bio: data.bio ?? "",
+          height: data.height ?? "",
+          ethnicity: data.ethnicity ?? "",
+          z_sign: data.z_sign ?? "",
+          f_plan: data.f_plan ?? "",
+          pets: data.pets ?? "",
+          religion: data.religion ?? "",
+          habit: {
+            smoking: data.habit?.smoking ?? "",
+            drinking: data.habit?.drinking ?? "",
+            weed: data.habit?.weed ?? "",
+          },
         });
       } catch (error) {
         if (!isMounted) {
@@ -226,6 +390,19 @@ export function ProfileSetupScreen({
   const progress = (stepIndex + 1) / PROFILE_STEPS.length;
   const progressPercent = Math.round(progress * 100);
   const isLastStep = stepIndex === PROFILE_STEPS.length - 1;
+
+  const getStepValue = (stepKey: ProfileStepKey) => {
+    switch (stepKey) {
+      case "smoking":
+        return profile.habit.smoking ?? "";
+      case "drinking":
+        return profile.habit.drinking ?? "";
+      case "weed":
+        return profile.habit.weed ?? "";
+      default:
+        return profile[stepKey];
+    }
+  };
 
   const formatDobInput = (value: string) => {
     const digitsOnly = value.replace(/\D/g, "").slice(0, 8);
@@ -294,13 +471,29 @@ export function ProfileSetupScreen({
     const nextValue =
       currentStep.key === "dob" ? formatDobInput(value) : value;
 
-    setProfile((current) => ({
-      ...current,
-      [currentStep.key]: nextValue,
-    }));
+    setProfile((current) => {
+      if (
+        currentStep.key === "smoking" ||
+        currentStep.key === "drinking" ||
+        currentStep.key === "weed"
+      ) {
+        return {
+          ...current,
+          habit: {
+            ...current.habit,
+            [currentStep.key]: nextValue,
+          },
+        };
+      }
+
+      return {
+        ...current,
+        [currentStep.key]: nextValue,
+      };
+    });
   };
 
-  const currentValue = profile[currentStep.key];
+  const currentValue = getStepValue(currentStep.key);
 
   const getDobValidationMessage = (value: string) => {
     const digitsOnly = value.replace(/\D/g, "");
@@ -381,6 +574,30 @@ export function ProfileSetupScreen({
         return { pronouns: profile.pronouns };
       case "location":
         return { location_city: profile.location.trim() };
+      case "bio":
+        return { bio: profile.bio.trim() };
+      case "height":
+        return { height: profile.height.trim() };
+      case "ethnicity":
+        return { ethnicity: profile.ethnicity.trim() };
+      case "z_sign":
+        return { z_sign: profile.z_sign.trim() };
+      case "f_plan":
+        return { f_plan: profile.f_plan };
+      case "pets":
+        return { pets: profile.pets };
+      case "religion":
+        return { religion: profile.religion.trim() };
+      case "smoking":
+      case "drinking":
+      case "weed":
+        return {
+          habit: {
+            smoking: profile.habit.smoking || null,
+            drinking: profile.habit.drinking || null,
+            weed: profile.habit.weed || null,
+          },
+        };
       default:
         return {};
     }
@@ -395,6 +612,18 @@ export function ProfileSetupScreen({
       sexuality: data.sexuality ?? current.sexuality,
       pronouns: data.pronouns ?? current.pronouns,
       location: data.location_city ?? current.location,
+      bio: data.bio ?? current.bio,
+      height: data.height ?? current.height,
+      ethnicity: data.ethnicity ?? current.ethnicity,
+      z_sign: data.z_sign ?? current.z_sign,
+      f_plan: data.f_plan ?? current.f_plan,
+      pets: data.pets ?? current.pets,
+      religion: data.religion ?? current.religion,
+      habit: {
+        smoking: data.habit?.smoking ?? current.habit.smoking,
+        drinking: data.habit?.drinking ?? current.habit.drinking,
+        weed: data.habit?.weed ?? current.habit.weed,
+      },
     }));
   };
 
@@ -532,13 +761,21 @@ export function ProfileSetupScreen({
                     placeholder={currentStep.placeholder}
                     placeholderTextColor="#9D97A5"
                     keyboardType={currentStep.keyboardType ?? "default"}
+                    multiline={currentStep.multiline}
                     autoCapitalize={
-                      currentStep.key === "location" || currentStep.key === "name"
+                      currentStep.key === "location" ||
+                      currentStep.key === "name" ||
+                      currentStep.key === "ethnicity" ||
+                      currentStep.key === "religion"
                         ? "words"
                         : "none"
                     }
                     autoCorrect={false}
-                    style={styles.input}
+                    textAlignVertical={currentStep.multiline ? "top" : "center"}
+                    style={[
+                      styles.input,
+                      currentStep.multiline && styles.inputMultiline,
+                    ]}
                   />
                 </View>
               )}
@@ -742,6 +979,12 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontFamily: "SpaceGrotesk_400Regular",
+  },
+  inputMultiline: {
+    minHeight: 120,
+    height: 120,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   choiceGrid: {
     flexDirection: "row",

@@ -22,11 +22,24 @@ export type UserResponse = {
   created_at: string;
 };
 
+export type UserHabits = {
+  smoking: string | null;
+  drinking: string | null;
+  weed: string | null;
+};
+
 export type UserProfileResponse = UserResponse & {
   date_of_birth: string | null;
   pronouns: string | null;
   gender: string | null;
   sexuality: string | null;
+  ethnicity: string | null;
+  height: string | null;
+  z_sign: string | null;
+  f_plan: string | null;
+  pets: string | null;
+  religion: string | null;
+  habit: UserHabits | null;
 };
 
 export type UserProfileUpdatePayload = {
@@ -37,6 +50,13 @@ export type UserProfileUpdatePayload = {
   pronouns?: string;
   gender?: string;
   sexuality?: string;
+  ethnicity?: string;
+  height?: string;
+  z_sign?: string;
+  f_plan?: string;
+  pets?: string;
+  religion?: string;
+  habit?: Partial<UserHabits>;
 };
 
 export type TokenResponse = {
