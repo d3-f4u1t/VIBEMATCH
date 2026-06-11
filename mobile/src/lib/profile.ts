@@ -3,9 +3,10 @@ import type {
   UserProfileUpdatePayload,
 } from "../types/auth";
 
-const API_BASE_URL = "http://192.168.1.37:8000";
+import {API_BASE_URL} from "./config"
 //just use this url for this
 // http://192.168.43.214:8000
+// this is a public url that is saved in the .config file as it keeps it comman
 
 async function parseJson<T>(response: Response): Promise<T> {
   const data = await response.json();

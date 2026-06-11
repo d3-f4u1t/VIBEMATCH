@@ -31,6 +31,6 @@ def home():
 cd mobile
 
 & "C:\Program Files\nodejs\nnpm.cmd" start
-cmd /c npm start
+    cmd /c npm start
 '''
 
