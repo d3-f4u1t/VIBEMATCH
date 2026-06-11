@@ -77,10 +77,10 @@ export default function App() {
     }
 
     const applyNavigationBarState = () => {
-      NavigationBar.setPositionAsync("absolute").catch(() => {});
-      NavigationBar.setBackgroundColorAsync("#00000000").catch(() => {});
-      NavigationBar.setBehaviorAsync("overlay-swipe").catch(() => {});
-      NavigationBar.setVisibilityAsync("hidden").catch(() => {});
+      NavigationBar.setPositionAsync("relative").catch(() => {});
+      NavigationBar.setBackgroundColorAsync("#09070D").catch(() => {});
+      NavigationBar.setBehaviorAsync("inset-swipe").catch(() => {});
+      NavigationBar.setVisibilityAsync("visible").catch(() => {});
     };
 
     applyNavigationBarState();
@@ -137,7 +137,7 @@ export default function App() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#0E0A11",
+    backgroundColor: "#09070D",
   },
   content: {
     flex: 1,

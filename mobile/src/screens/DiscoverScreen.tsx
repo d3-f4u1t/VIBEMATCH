@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  Dimensions,
   Easing,
   Platform,
   Pressable,
@@ -104,15 +105,6 @@ function buildFallbackMatches(currentUserName: string): MatchResult[] {
   ];
 }
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("");
-}
-
 function useMatchTone(index: number) {
   return FEED_TONES[index % FEED_TONES.length];
 }
@@ -120,9 +112,22 @@ function useMatchTone(index: number) {
 export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   const { width, height } = useWindowDimensions();
   const contentWidth = Math.min(width - 32, 430);
+  const statusBarHeight = NativeStatusBar.currentHeight ?? 0;
   const topInset =
-    Platform.OS === "android" ? (NativeStatusBar.currentHeight ?? 0) + 18 : 18;
-  const safeBottom = Platform.OS === "ios" ? 26 : 10;
+    Platform.OS === "android" ? statusBarHeight + 18 : 18;
+  const androidBottomInset = useMemo(() => {
+    if (Platform.OS !== "android") {
+      return 0;
+    }
+
+    const screenHeight = Dimensions.get("screen").height;
+    const rawInset = screenHeight - height - statusBarHeight;
+
+    return Math.max(rawInset, 0);
+  }, [height, statusBarHeight]);
+  const safeBottom = Platform.OS === "ios" ? 26 : Math.max(androidBottomInset + 8, 18);
+  const bottomNavHeight = 62;
+  const bottomNavOffset = safeBottom + 4;
 
   const [fontsLoaded] = useFonts({
     SpaceGrotesk_400Regular,
@@ -146,21 +151,17 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
         setError("");
         const data = await getMatches(session.user.id);
 
-        if (isCancelled) {
-          return;
+        if (!isCancelled) {
+          setMatches(data);
         }
-
-        setMatches(data);
       } catch (loadError) {
-        if (isCancelled) {
-          return;
+        if (!isCancelled) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Could not load discover right now."
+          );
         }
-
-        setError(
-          loadError instanceof Error
-            ? loadError.message
-            : "Could not load discover right now."
-        );
       } finally {
         if (!isCancelled) {
           setLoading(false);
@@ -181,6 +182,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   );
   const displayMatches = matches.length > 0 ? matches : fallbackMatches;
   const usingPreviewData = matches.length === 0;
+
   const selectedMatch =
     displayMatches.find((match) => match.userId === selectedMatchId) ??
     displayMatches[0] ??
@@ -225,6 +227,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
     ],
   };
 
+  const isDetailMode = activeTab === "detail";
   const heroMatch = displayMatches[0] ?? null;
   const communityFeature = displayMatches[1] ?? heroMatch;
   const nearbyCards = displayMatches.slice(0, 2);
@@ -243,7 +246,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
       <View style={styles.infoBanner}>
         <Text style={styles.infoBannerText}>
           {error
-            ? `Live matches could not load, so this screen is showing preview concepts.`
+            ? "Live matches could not load, so this screen is showing preview concepts."
             : "Live matches are still light, so this screen is using preview concept data for now."}
         </Text>
       </View>
@@ -254,13 +257,11 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
     if (activeTab === "matches") {
       return (
         <View style={styles.topSection}>
-          <View>
-            <Text style={styles.heroTitle}>Matches</Text>
-          </View>
+          <Text style={styles.heroTitle}>Matches</Text>
 
           <View style={styles.topActionRow}>
             <Pressable style={styles.topIconButton}>
-              <Text style={styles.topIconGlyph}>◦</Text>
+              <Text style={styles.topIconGlyph}>o</Text>
               <View style={styles.badgeDot}>
                 <Text style={styles.badgeText}>3</Text>
               </View>
@@ -272,21 +273,27 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
 
     if (activeTab === "detail") {
       return (
-        <View style={styles.topSection}>
+        <View
+          style={[
+            styles.topSection,
+            styles.detailTopSection,
+            { paddingTop: 8 },
+          ]}
+        >
           <View style={styles.detailTopRow}>
             <Pressable
-              style={styles.topIconButton}
+              style={styles.detailTopIconButton}
               onPress={() => setActiveTab("matches")}
             >
-              <Text style={styles.topIconGlyph}>‹</Text>
+              <Text style={styles.topIconGlyph}>{"<"}</Text>
             </Pressable>
 
             <View style={styles.detailProgressTrack}>
               <View style={styles.detailProgressFill} />
             </View>
 
-            <Pressable style={styles.topIconButton}>
-              <Text style={styles.topIconGlyph}>◦</Text>
+            <Pressable style={styles.detailTopIconButton}>
+              <Text style={styles.topIconGlyph}>o</Text>
               <View style={styles.badgeDot}>
                 <Text style={styles.badgeText}>3</Text>
               </View>
@@ -329,7 +336,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
       <View style={styles.sectionBody}>
         <View style={styles.filterRow}>
           <Pressable style={styles.filterIconButton}>
-            <Text style={styles.filterIconGlyph}>≡</Text>
+            <Text style={styles.filterIconGlyph}>=</Text>
           </Pressable>
           <View style={styles.filterChipRow}>
             <View style={styles.filterChip}>
@@ -344,47 +351,49 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
           </View>
         </View>
 
-        <Pressable
-          style={styles.heroCardWrap}
-          onPress={() => handleOpenDetail(heroMatch)}
-        >
-          <LinearGradient
-            colors={[tone.start, tone.end]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroCard}
+        <View style={styles.feedStageCard}>
+          <Pressable
+            style={styles.heroCardWrap}
+            onPress={() => handleOpenDetail(heroMatch)}
           >
-            <View style={styles.heroPhotoOrbLarge} />
-            <View
-              style={[
-                styles.heroPhotoBody,
-                { backgroundColor: tone.orb, borderColor: `${tone.accent}20` },
-              ]}
-            />
+            <LinearGradient
+              colors={[tone.start, tone.end]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroCard}
+            >
+              <View style={styles.heroPhotoOrbLarge} />
+              <View
+                style={[
+                  styles.heroPhotoBody,
+                  { backgroundColor: tone.orb, borderColor: `${tone.accent}20` },
+                ]}
+              />
 
-            <View style={styles.heroOverlay}>
-              <Text style={styles.heroOnline}>• Online</Text>
-              <View style={styles.heroNameRow}>
-                <Text style={styles.heroName}>{heroMatch.name}</Text>
-                <Text style={styles.heroAge}>
-                  {20 + (Math.round(heroMatch.similarity * 10) % 7)}
-                </Text>
+              <View style={styles.heroOverlay}>
+                <Text style={styles.heroOnline}>Online</Text>
+                <View style={styles.heroNameRow}>
+                  <Text style={styles.heroName}>{heroMatch.name}</Text>
+                  <Text style={styles.heroAge}>
+                    {20 + (Math.round(heroMatch.similarity * 10) % 7)}
+                  </Text>
+                </View>
+                <Text style={styles.heroMeta}>USA, California</Text>
               </View>
-              <Text style={styles.heroMeta}>USA, California</Text>
-            </View>
-          </LinearGradient>
-        </Pressable>
+            </LinearGradient>
+          </Pressable>
 
-        <View style={styles.heroActionRow}>
-          <Pressable style={styles.roundActionGhost}>
-            <Text style={styles.roundActionGhostLabel}>×</Text>
-          </Pressable>
-          <Pressable style={styles.roundActionPrimary}>
-            <Text style={styles.roundActionPrimaryLabel}>♥</Text>
-          </Pressable>
-          <Pressable style={styles.roundActionGhost}>
-            <Text style={styles.roundActionGhostLabel}>◔</Text>
-          </Pressable>
+          <View style={styles.heroActionRow}>
+            <Pressable style={styles.roundActionGhost}>
+              <Text style={styles.roundActionGhostLabel}>X</Text>
+            </Pressable>
+            <Pressable style={styles.roundActionPrimary}>
+              <Text style={styles.roundActionPrimaryLabel}>Love</Text>
+            </Pressable>
+            <Pressable style={styles.roundActionGhost}>
+              <Text style={styles.roundActionGhostLabel}>Chat</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     );
@@ -418,7 +427,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
           </LinearGradient>
 
           <View style={styles.detailOverlay}>
-            <Text style={styles.detailOnline}>• Online</Text>
+            <Text style={styles.detailOnline}>Online</Text>
             <View style={styles.detailNameRow}>
               <Text style={styles.detailName}>{selectedMatch.name}</Text>
               <Text style={styles.detailAge}>
@@ -452,7 +461,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
           <Text style={styles.searchPlaceholder}>
             Search by vibe, artist, place
           </Text>
-          <Text style={styles.searchAccent}>⌕</Text>
+          <Text style={styles.searchAccent}>Q</Text>
         </View>
 
         <View style={styles.communityChipRow}>
@@ -467,45 +476,47 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
           </View>
         </View>
 
-        <View style={styles.communityStoryCard}>
-          <Text style={styles.communityStoryTitle}>Shared energy right now</Text>
-          <View style={styles.communityStoryRow}>
-            {COMMUNITY_PEOPLE.map((person) => (
-              <View key={person.name} style={styles.communityStoryPill}>
-                <View
-                  style={[
-                    styles.communityAvatar,
-                    { backgroundColor: person.color },
-                  ]}
-                />
-                <Text style={styles.communityAvatarLabel}>{person.name}</Text>
-              </View>
-            ))}
+        <View style={styles.feedStageCard}>
+          <View style={styles.communityStoryCard}>
+            <Text style={styles.communityStoryTitle}>Shared energy right now</Text>
+            <View style={styles.communityStoryRow}>
+              {COMMUNITY_PEOPLE.map((person) => (
+                <View key={person.name} style={styles.communityStoryPill}>
+                  <View
+                    style={[
+                      styles.communityAvatar,
+                      { backgroundColor: person.color },
+                    ]}
+                  />
+                  <Text style={styles.communityAvatarLabel}>{person.name}</Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
 
-        {communityFeature ? (
-          <Pressable
-            style={styles.communityFeatureCard}
-            onPress={() => handleOpenDetail(communityFeature)}
-          >
-            <LinearGradient
-              colors={["#BFD6F3", "#7B9BC7"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.communityFeatureVisual}
+          {communityFeature ? (
+            <Pressable
+              style={styles.communityFeatureCard}
+              onPress={() => handleOpenDetail(communityFeature)}
             >
-              <View style={styles.communityFeatureOverlay} />
-              <Pressable style={styles.communityHeartButton}>
-                <Text style={styles.communityHeartGlyph}>♥</Text>
-              </Pressable>
-            </LinearGradient>
-            <Text style={styles.communityFeatureName}>{communityFeature.name}</Text>
-            <Text style={styles.communityFeatureMeta}>
-              {communityFeature.sharedArtists.slice(0, 3).join(" / ")}
-            </Text>
-          </Pressable>
-        ) : null}
+              <LinearGradient
+                colors={["#BFD6F3", "#7B9BC7"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.communityFeatureVisual}
+              >
+                <View style={styles.communityFeatureOverlay} />
+                <Pressable style={styles.communityHeartButton}>
+                  <Text style={styles.communityHeartGlyph}>Love</Text>
+                </Pressable>
+              </LinearGradient>
+              <Text style={styles.communityFeatureName}>{communityFeature.name}</Text>
+              <Text style={styles.communityFeatureMeta}>
+                {communityFeature.sharedArtists.slice(0, 3).join(" / ")}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
     );
   };
@@ -513,45 +524,47 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   const renderNearbyTab = () => {
     return (
       <View style={styles.sectionBody}>
-        <View style={styles.mapCard}>
-          <View style={styles.mapLineOne} />
-          <View style={styles.mapLineTwo} />
-          <View style={styles.mapMarkerOne} />
-          <View style={styles.mapMarkerTwo} />
-          <Text style={styles.mapPlaceholder}>Map layer</Text>
-        </View>
+        <View style={styles.feedStageCard}>
+          <View style={styles.mapCard}>
+            <View style={styles.mapLineOne} />
+            <View style={styles.mapLineTwo} />
+            <View style={styles.mapMarkerOne} />
+            <View style={styles.mapMarkerTwo} />
+            <Text style={styles.mapPlaceholder}>Map layer</Text>
+          </View>
 
-        <View style={styles.nearbyCardsRow}>
-          {nearbyCards.map((match, index) => {
-            const tone = useMatchTone(index);
+          <View style={styles.nearbyCardsRow}>
+            {nearbyCards.map((match, index) => {
+              const tone = useMatchTone(index);
 
-            return (
-              <Pressable
-                key={match.userId}
-                style={styles.nearbyMiniCardWrap}
-                onPress={() => handleOpenDetail(match)}
-              >
-                <LinearGradient
-                  colors={[tone.start, tone.end]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.nearbyMiniCard}
-                />
-                <Text style={styles.nearbyMiniName}>{match.name.split(" ")[0]}</Text>
-                <Text style={styles.nearbyMiniDistance}>
-                  {NEARBY_DISTANCES[index] ?? "1.4 km"}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+              return (
+                <Pressable
+                  key={match.userId}
+                  style={styles.nearbyMiniCardWrap}
+                  onPress={() => handleOpenDetail(match)}
+                >
+                  <LinearGradient
+                    colors={[tone.start, tone.end]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.nearbyMiniCard}
+                  />
+                  <Text style={styles.nearbyMiniName}>{match.name.split(" ")[0]}</Text>
+                  <Text style={styles.nearbyMiniDistance}>
+                    {NEARBY_DISTANCES[index] ?? "1.4 km"}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
-        <View style={styles.contextCard}>
-          <Text style={styles.contextCardTitle}>Why these people?</Text>
-          <Text style={styles.contextCardBody}>
-            Shared late-night artists, city overlap, and matching listening pace
-            keep these profiles near the top of your discover stack.
-          </Text>
+          <View style={styles.contextCard}>
+            <Text style={styles.contextCardTitle}>Why these people?</Text>
+            <Text style={styles.contextCardBody}>
+              Shared late-night artists, city overlap, and matching listening pace
+              keep these profiles near the top of your discover stack.
+            </Text>
+          </View>
         </View>
       </View>
     );
@@ -582,40 +595,63 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   };
 
   const navItems: Array<{ key: DiscoverTab; icon: string }> = [
-    { key: "matches", icon: "◫" },
-    { key: "detail", icon: "◔" },
-    { key: "community", icon: "◉" },
-    { key: "nearby", icon: "⌕" },
+    { key: "matches", icon: "Feed" },
+    { key: "detail", icon: "View" },
+    { key: "community", icon: "Club" },
+    { key: "nearby", icon: "Near" },
   ];
 
-  const pagePaddingTop = activeTab === "detail" ? topInset + 76 : topInset + 88;
-  const pagePaddingBottom = safeBottom + 86;
-  const contentMinHeight = Math.max(height - pagePaddingTop - pagePaddingBottom, 520);
+  const pagePaddingTop = isDetailMode ? 84 : 96;
+  const pagePaddingBottom = bottomNavHeight + bottomNavOffset + 22;
+  const contentMinHeight = Math.max(
+    height - topInset - pagePaddingTop - pagePaddingBottom,
+    520
+  );
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.phoneShell, { width: contentWidth, marginTop: topInset }]}>
+      <View
+        style={[
+          styles.phoneShell,
+          { width: contentWidth, marginTop: topInset },
+        ]}
+      >
         {renderTopSection()}
 
         <ScrollView
           showsVerticalScrollIndicator={false}
           bounces={false}
           contentContainerStyle={[
-            styles.scrollContent,
+            isDetailMode ? styles.scrollContentDetail : styles.scrollContent,
             {
-              paddingTop: pagePaddingTop,
+              paddingTop: isDetailMode ? 0 : pagePaddingTop,
               paddingBottom: pagePaddingBottom,
-              minHeight: contentMinHeight + pagePaddingTop + pagePaddingBottom,
+              minHeight: isDetailMode
+                ? height + pagePaddingBottom
+                : contentMinHeight + pagePaddingTop + pagePaddingBottom,
             },
           ]}
         >
           <View style={styles.innerContent}>
-            {renderInfoBanner()}
-            <Animated.View style={tabAnimatedStyle}>{renderContent()}</Animated.View>
+            {!isDetailMode ? renderInfoBanner() : null}
+            <Animated.View
+              key={isDetailMode ? `detail-${selectedMatchId ?? "none"}` : activeTab}
+              style={tabAnimatedStyle}
+            >
+              {renderContent()}
+            </Animated.View>
           </View>
         </ScrollView>
 
-        <View style={[styles.bottomNav, { bottom: safeBottom }]}>
+        <View
+          style={[
+            styles.bottomNav,
+            {
+              bottom: bottomNavOffset,
+              height: bottomNavHeight,
+            },
+          ]}
+        >
           {navItems.map((item) => {
             const isActive = activeTab === item.key;
 
@@ -658,9 +694,7 @@ const styles = StyleSheet.create({
     maxWidth: 430,
     borderRadius: 34,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(10,8,12,0.22)",
+    backgroundColor: "transparent",
   },
   topSection: {
     position: "absolute",
@@ -670,26 +704,30 @@ const styles = StyleSheet.create({
     zIndex: 20,
     paddingHorizontal: 22,
     paddingTop: 18,
-    backgroundColor: "rgba(13,10,17,0.08)",
+    backgroundColor: "transparent",
+  },
+  detailTopSection: {
+    backgroundColor: "transparent",
+    paddingTop: 22,
   },
   heroTitle: {
     color: "#FFFFFF",
     fontSize: 42,
-    lineHeight: 44,
+    lineHeight: 42,
     letterSpacing: -1.3,
     fontFamily: "SpaceGrotesk_700Bold",
   },
   heroTitleSmaller: {
     color: "#FFFFFF",
     fontSize: 38,
-    lineHeight: 40,
+    lineHeight: 38,
     letterSpacing: -1.1,
     fontFamily: "SpaceGrotesk_700Bold",
   },
   topActionRow: {
     position: "absolute",
     right: 22,
-    top: 18,
+    top: 16,
   },
   topIconButton: {
     width: 46,
@@ -698,6 +736,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
     backgroundColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detailTopIconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+    backgroundColor: "rgba(12,10,16,0.22)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -731,7 +779,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     height: 5,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: "rgba(255,255,255,0.16)",
     overflow: "hidden",
   },
   detailProgressFill: {
@@ -742,6 +790,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 22,
+  },
+  scrollContentDetail: {
+    paddingHorizontal: 0,
   },
   innerContent: {
     flex: 1,
@@ -798,12 +849,25 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceGrotesk_400Regular",
   },
   sectionBody: {
+    gap: 18,
+  },
+  feedStageCard: {
+    borderRadius: 32,
+    padding: 16,
+    backgroundColor: "rgba(10,8,12,0.26)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
     gap: 16,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.2,
+    shadowRadius: 28,
+    elevation: 10,
   },
   filterRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 2,
   },
   filterIconButton: {
     width: 46,
@@ -823,13 +887,15 @@ const styles = StyleSheet.create({
   },
   filterChipRow: {
     flexDirection: "row",
+    flex: 1,
     gap: 10,
   },
   filterChip: {
-    minWidth: 68,
-    height: 34,
-    borderRadius: 17,
-    paddingHorizontal: 16,
+    flex: 1,
+    minWidth: 0,
+    height: 36,
+    borderRadius: 18,
+    paddingHorizontal: 14,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.08)",
@@ -853,6 +919,7 @@ const styles = StyleSheet.create({
   heroCardWrap: {
     borderRadius: 30,
     overflow: "hidden",
+    marginTop: 2,
   },
   heroCard: {
     height: 392,
@@ -920,12 +987,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 22,
+    gap: 18,
   },
   roundActionGhost: {
-    width: 44,
+    minWidth: 58,
     height: 44,
     borderRadius: 22,
+    paddingHorizontal: 16,
     backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
@@ -934,13 +1002,14 @@ const styles = StyleSheet.create({
   },
   roundActionGhostLabel: {
     color: "#FFFFFF",
-    fontSize: 21,
+    fontSize: 14,
     fontFamily: "SpaceGrotesk_700Bold",
   },
   roundActionPrimary: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    minWidth: 74,
+    height: 56,
+    borderRadius: 28,
+    paddingHorizontal: 18,
     backgroundColor: "#F26A8D",
     borderWidth: 1,
     borderColor: "rgba(255,123,89,0.28)",
@@ -949,7 +1018,7 @@ const styles = StyleSheet.create({
   },
   roundActionPrimaryLabel: {
     color: "#FFFFFF",
-    fontSize: 22,
+    fontSize: 14,
     fontFamily: "SpaceGrotesk_700Bold",
   },
   detailCard: {
@@ -987,10 +1056,10 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   detailOnline: {
-    color: "#82F7A6",
+    color: "#A5FFBF",
     fontSize: 16,
     fontFamily: "SpaceGrotesk_500Medium",
-    marginBottom: 10,
+    marginBottom: 12,
   },
   detailNameRow: {
     flexDirection: "row",
@@ -1001,39 +1070,39 @@ const styles = StyleSheet.create({
   detailName: {
     flex: 1,
     color: "#FFFFFF",
-    fontSize: 36,
-    lineHeight: 38,
+    fontSize: 44,
+    lineHeight: 46,
     fontFamily: "SpaceGrotesk_700Bold",
-    letterSpacing: -1.1,
+    letterSpacing: -1.5,
     marginRight: 12,
   },
   detailAge: {
     color: "rgba(255,255,255,0.86)",
-    fontSize: 30,
-    lineHeight: 32,
+    fontSize: 34,
+    lineHeight: 36,
     fontFamily: "SpaceGrotesk_400Regular",
   },
   detailMeta: {
-    color: "rgba(255,255,255,0.80)",
-    fontSize: 14,
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 15,
     fontFamily: "SpaceGrotesk_500Medium",
-    marginBottom: 16,
+    marginBottom: 18,
   },
   detailChipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 18,
   },
   detailInterestChip: {
-    height: 32,
-    borderRadius: 17,
-    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: 18,
+    paddingHorizontal: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.14)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(255,255,255,0.09)",
   },
   detailInterestChipText: {
     color: "#FFFFFF",
@@ -1049,9 +1118,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   detailBioText: {
-    color: "rgba(255,248,251,0.78)",
-    fontSize: 14,
-    lineHeight: 21,
+    color: "rgba(255,248,251,0.86)",
+    fontSize: 15,
+    lineHeight: 22,
     fontFamily: "SpaceGrotesk_400Regular",
   },
   searchCard: {
@@ -1129,16 +1198,17 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 18,
     right: 18,
-    width: 34,
+    minWidth: 50,
     height: 34,
     borderRadius: 17,
+    paddingHorizontal: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.18)",
   },
   communityHeartGlyph: {
     color: "#82F7A6",
-    fontSize: 16,
+    fontSize: 12,
     fontFamily: "SpaceGrotesk_700Bold",
   },
   communityFeatureName: {
@@ -1260,33 +1330,30 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     position: "absolute",
-    left: 22,
-    right: 22,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(10,8,12,0.92)",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
   },
   bottomNavItem: {
-    width: 48,
-    height: 40,
+    flex: 1,
+    height: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
   bottomNavGlow: {
     position: "absolute",
-    width: 40,
-    height: 34,
-    borderRadius: 20,
-    backgroundColor: "rgba(242,106,141,0.18)",
+    width: 72,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(242,106,141,0.16)",
   },
   bottomNavIcon: {
     color: "rgba(255,255,255,0.66)",
-    fontSize: 18,
+    fontSize: 12,
     fontFamily: "SpaceGrotesk_700Bold",
   },
   bottomNavIconActive: {
