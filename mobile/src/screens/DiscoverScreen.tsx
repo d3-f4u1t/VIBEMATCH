@@ -277,7 +277,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
           style={[
             styles.topSection,
             styles.detailTopSection,
-            { paddingTop: 8 },
+            { paddingTop: topInset - 4 },
           ]}
         >
           <View style={styles.detailTopRow}>
@@ -410,7 +410,14 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
 
     return (
       <View style={styles.sectionBody}>
-        <View style={styles.detailCard}>
+        <View
+          style={[
+            styles.detailCard,
+            {
+              minHeight: height - topInset + safeBottom + 24,
+            },
+          ]}
+        >
           <LinearGradient
             colors={[tone.start, tone.end]}
             start={{ x: 0, y: 0 }}
@@ -424,31 +431,68 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
                 { backgroundColor: `${tone.accent}CC` },
               ]}
             />
-          </LinearGradient>
+            <View style={styles.detailPhotoSubjectGlow} />
+            <LinearGradient
+              colors={[
+                "rgba(8,8,11,0.00)",
+                "rgba(8,8,11,0.08)",
+                "rgba(8,8,11,0.36)",
+                "rgba(8,8,11,0.78)",
+                "rgba(8,8,11,0.94)",
+              ]}
+              locations={[0, 0.3, 0.58, 0.82, 1]}
+              style={styles.detailImageShade}
+            />
 
-          <View style={styles.detailOverlay}>
-            <Text style={styles.detailOnline}>Online</Text>
-            <View style={styles.detailNameRow}>
-              <Text style={styles.detailName}>{selectedMatch.name}</Text>
-              <Text style={styles.detailAge}>
-                {20 + (Math.round(selectedMatch.similarity * 10) % 7)}
-              </Text>
-            </View>
-            <Text style={styles.detailMeta}>USA, California</Text>
+            <View style={styles.detailOverlay}>
+              <View style={styles.detailOverlayTop}>
+                <View style={styles.detailIdentityLead}>
+                  <Text style={styles.detailOnline}>Online</Text>
+                </View>
+              </View>
 
-            <View style={styles.detailChipRow}>
-              {selectedMatch.sharedArtists.slice(0, 3).map((artist) => (
-                <View key={artist} style={styles.detailInterestChip}>
-                  <Text style={styles.detailInterestChipText}>
-                    {artist.split(" ")[0]}
+              <View style={styles.detailOverlayBottom}>
+                <View style={styles.detailNameRow}>
+                  <Text style={styles.detailName}>{selectedMatch.name}</Text>
+                  <Text style={styles.detailAge}>
+                    {20 + (Math.round(selectedMatch.similarity * 10) % 7)}
                   </Text>
                 </View>
-              ))}
-            </View>
+                <Text style={styles.detailMeta}>USA, California</Text>
 
-            <Text style={styles.detailBioLabel}>Why this match</Text>
-            <Text style={styles.detailBioText}>{selectedMatch.matchReason}</Text>
-          </View>
+                <View style={styles.detailChipRow}>
+                  {selectedMatch.sharedArtists.slice(0, 3).map((artist) => (
+                    <View key={artist} style={styles.detailInterestChip}>
+                      <Text style={styles.detailInterestChipText}>
+                        {artist.split(" ")[0]}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                <Text style={styles.detailBioLabel}>Why this match</Text>
+                <Text style={styles.detailBioText}>
+                  {selectedMatch.matchReason}
+                </Text>
+
+                <View style={styles.detailPromptBlock}>
+                  <Text style={styles.detailPromptLabel}>Prompt</Text>
+                  <Text style={styles.detailPromptText}>
+                    A perfect first date for me starts with music, something spontaneous,
+                    and a place where the conversation can actually breathe.
+                  </Text>
+                </View>
+
+                <View style={styles.detailPromptBlock}>
+                  <Text style={styles.detailPromptLabel}>More vibe</Text>
+                  <Text style={styles.detailPromptText}>
+                    Usually into night drives, films with atmosphere, and people who
+                    feel easy to talk to after one song.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </LinearGradient>
         </View>
       </View>
     );
@@ -601,8 +645,8 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
     { key: "nearby", icon: "Near" },
   ];
 
-  const pagePaddingTop = isDetailMode ? 84 : 96;
-  const pagePaddingBottom = bottomNavHeight + bottomNavOffset + 22;
+  const pagePaddingTop = isDetailMode ? 0 : 96;
+  const pagePaddingBottom = isDetailMode ? safeBottom + 28 : bottomNavHeight + bottomNavOffset + 22;
   const contentMinHeight = Math.max(
     height - topInset - pagePaddingTop - pagePaddingBottom,
     520
@@ -613,14 +657,18 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
       <View
         style={[
           styles.phoneShell,
-          { width: contentWidth, marginTop: topInset },
+          isDetailMode ? styles.phoneShellImmersive : null,
+          {
+            width: isDetailMode ? width : contentWidth,
+            marginTop: isDetailMode ? 0 : topInset,
+          },
         ]}
       >
         {renderTopSection()}
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          bounces={false}
+          bounces={isDetailMode}
           contentContainerStyle={[
             isDetailMode ? styles.scrollContentDetail : styles.scrollContent,
             {
@@ -643,37 +691,39 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
           </View>
         </ScrollView>
 
-        <View
-          style={[
-            styles.bottomNav,
-            {
-              bottom: bottomNavOffset,
-              height: bottomNavHeight,
-            },
-          ]}
-        >
-          {navItems.map((item) => {
-            const isActive = activeTab === item.key;
+        {!isDetailMode ? (
+          <View
+            style={[
+              styles.bottomNav,
+              {
+                bottom: bottomNavOffset,
+                height: bottomNavHeight,
+              },
+            ]}
+          >
+            {navItems.map((item) => {
+              const isActive = activeTab === item.key;
 
-            return (
-              <Pressable
-                key={item.key}
-                style={styles.bottomNavItem}
-                onPress={() => setActiveTab(item.key)}
-              >
-                {isActive ? <View style={styles.bottomNavGlow} /> : null}
-                <Text
-                  style={[
-                    styles.bottomNavIcon,
-                    isActive && styles.bottomNavIconActive,
-                  ]}
+              return (
+                <Pressable
+                  key={item.key}
+                  style={styles.bottomNavItem}
+                  onPress={() => setActiveTab(item.key)}
                 >
-                  {item.icon}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+                  {isActive ? <View style={styles.bottomNavGlow} /> : null}
+                  <Text
+                    style={[
+                      styles.bottomNavIcon,
+                      isActive && styles.bottomNavIconActive,
+                    ]}
+                  >
+                    {item.icon}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
 
         <Pressable style={styles.hiddenSignOutHit} onPress={onSignOut}>
           <Text style={styles.hiddenSignOutText}>sign out</Text>
@@ -696,6 +746,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "transparent",
   },
+  phoneShellImmersive: {
+    maxWidth: "100%",
+    borderRadius: 0,
+  },
   topSection: {
     position: "absolute",
     top: 0,
@@ -708,7 +762,7 @@ const styles = StyleSheet.create({
   },
   detailTopSection: {
     backgroundColor: "transparent",
-    paddingTop: 22,
+    paddingHorizontal: 12,
   },
   heroTitle: {
     color: "#FFFFFF",
@@ -740,12 +794,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   detailTopIconButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
-    backgroundColor: "rgba(12,10,16,0.22)",
+    borderColor: "rgba(255,255,255,0.16)",
+    backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -776,17 +830,17 @@ const styles = StyleSheet.create({
   },
   detailProgressTrack: {
     flex: 1,
-    marginHorizontal: 16,
-    height: 5,
+    marginHorizontal: 14,
+    height: 4,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: "rgba(255,255,255,0.22)",
     overflow: "hidden",
   },
   detailProgressFill: {
-    width: "28%",
+    width: "24%",
     height: "100%",
     borderRadius: 999,
-    backgroundColor: "#82F7A6",
+    backgroundColor: "#DFFF00",
   },
   scrollContent: {
     paddingHorizontal: 22,
@@ -1022,87 +1076,120 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceGrotesk_700Bold",
   },
   detailCard: {
-    borderRadius: 32,
+    borderRadius: 0,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "transparent",
+    marginHorizontal: 0,
   },
   detailPhoto: {
-    height: 478,
+    flex: 1,
     overflow: "hidden",
+    justifyContent: "space-between",
   },
   detailPhotoOrbLarge: {
     position: "absolute",
-    top: 152,
-    left: 30,
-    width: 236,
-    height: 236,
-    borderRadius: 118,
-    backgroundColor: "rgba(246,187,170,0.44)",
+    top: 116,
+    left: -22,
+    width: 212,
+    height: 212,
+    borderRadius: 106,
+    backgroundColor: "rgba(255, 102, 156, 0.24)",
   },
   detailPhotoAccentShape: {
     position: "absolute",
-    right: 26,
-    top: 162,
-    width: 112,
-    height: 300,
-    borderRadius: 52,
+    right: -22,
+    top: 96,
+    width: 168,
+    height: 338,
+    borderRadius: 74,
+  },
+  detailPhotoSubjectGlow: {
+    position: "absolute",
+    top: 128,
+    left: 48,
+    width: 278,
+    height: 386,
+    borderRadius: 140,
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+  },
+  detailImageShade: {
+    ...StyleSheet.absoluteFillObject,
   },
   detailOverlay: {
-    backgroundColor: "rgba(8,8,11,0.48)",
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 20,
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 86,
+    paddingBottom: 42,
+    justifyContent: "space-between",
+  },
+  detailOverlayTop: {
+    alignItems: "flex-start",
+  },
+  detailIdentityLead: {
+    paddingTop: 178,
+  },
+  detailOverlayBottom: {
+    paddingTop: 12,
   },
   detailOnline: {
-    color: "#A5FFBF",
-    fontSize: 16,
+    color: "#E9FF48",
+    fontSize: 15,
     fontFamily: "SpaceGrotesk_500Medium",
-    marginBottom: 12,
+    marginBottom: 10,
+    textShadowColor: "rgba(8,8,11,0.42)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
   },
   detailNameRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
-    marginBottom: 8,
+    alignItems: "flex-start",
+    marginBottom: 4,
   },
   detailName: {
     flex: 1,
-    color: "#FFFFFF",
-    fontSize: 44,
-    lineHeight: 46,
+    color: "#E9FF1A",
+    fontSize: 54,
+    lineHeight: 52,
     fontFamily: "SpaceGrotesk_700Bold",
-    letterSpacing: -1.5,
-    marginRight: 12,
+    letterSpacing: -2.1,
+    marginRight: 10,
+    textShadowColor: "rgba(8,8,11,0.38)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
   },
   detailAge: {
-    color: "rgba(255,255,255,0.86)",
-    fontSize: 34,
-    lineHeight: 36,
-    fontFamily: "SpaceGrotesk_400Regular",
+    color: "rgba(233,255,26,0.28)",
+    fontSize: 44,
+    lineHeight: 44,
+    fontFamily: "SpaceGrotesk_700Bold",
+    letterSpacing: -1.2,
+    paddingTop: 8,
   },
   detailMeta: {
-    color: "rgba(255,255,255,0.82)",
+    color: "#F4EFDA",
     fontSize: 15,
     fontFamily: "SpaceGrotesk_500Medium",
-    marginBottom: 18,
+    marginBottom: 14,
+    textShadowColor: "rgba(8,8,11,0.34)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
   },
   detailChipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 18,
+    gap: 8,
+    marginBottom: 16,
   },
   detailInterestChip: {
     height: 34,
-    borderRadius: 18,
-    paddingHorizontal: 15,
+    borderRadius: 17,
+    paddingHorizontal: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: "rgba(255,255,255,0.18)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.09)",
+    borderColor: "rgba(255,255,255,0.12)",
   },
   detailInterestChipText: {
     color: "#FFFFFF",
@@ -1110,18 +1197,44 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceGrotesk_500Medium",
   },
   detailBioLabel: {
-    color: "rgba(255,248,251,0.56)",
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 6,
+  },
+  detailBioText: {
+    color: "rgba(255,248,251,0.92)",
+    fontSize: 14,
+    lineHeight: 19,
+    fontFamily: "SpaceGrotesk_400Regular",
+    maxWidth: "90%",
+    textShadowColor: "rgba(8,8,11,0.36)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
+  },
+  detailPromptBlock: {
+    marginTop: 18,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.12)",
+    maxWidth: "92%",
+  },
+  detailPromptLabel: {
+    color: "rgba(255,255,255,0.62)",
     fontSize: 11,
+    letterSpacing: 1.1,
     textTransform: "uppercase",
-    letterSpacing: 1.2,
     fontFamily: "SpaceGrotesk_700Bold",
     marginBottom: 8,
   },
-  detailBioText: {
-    color: "rgba(255,248,251,0.86)",
-    fontSize: 15,
-    lineHeight: 22,
+  detailPromptText: {
+    color: "rgba(255,248,251,0.92)",
+    fontSize: 14,
+    lineHeight: 20,
     fontFamily: "SpaceGrotesk_400Regular",
+    textShadowColor: "rgba(8,8,11,0.36)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
   },
   searchCard: {
     height: 48,
