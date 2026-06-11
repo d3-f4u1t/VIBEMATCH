@@ -135,7 +135,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   const stageHeight = Math.max(height - topInset - 32, 700);
 
   const [showForm, setShowForm] = useState(false);
-  const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
+  const [selectedMode, setSelectedMode] = useState<"signup" | "login">("signup");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -152,11 +152,11 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   const landingTranslate = useState(new Animated.Value(0))[0];
   const formOpacity = useState(new Animated.Value(0))[0];
   const formTranslate = useState(new Animated.Value(26))[0];
-  const formContentOpacity = useState(new Animated.Value(1))[0];
-  const formContentTranslate = useState(new Animated.Value(0))[0];
+  const modeProgress = useState(new Animated.Value(0))[0];
 
   const animateToForm = (nextMode: "signup" | "login") => {
-    setAuthMode(nextMode);
+    setSelectedMode(nextMode);
+    modeProgress.setValue(nextMode === "login" ? 1 : 0);
 
     Animated.parallel([
       Animated.timing(landingOpacity, {
@@ -175,8 +175,6 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       setShowForm(true);
       formOpacity.setValue(0);
       formTranslate.setValue(28);
-      formContentOpacity.setValue(1);
-      formContentTranslate.setValue(0);
 
       Animated.parallel([
         Animated.timing(formOpacity, {
@@ -234,47 +232,19 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   };
 
   const animateAuthModeChange = (nextMode: "signup" | "login") => {
-    if (nextMode === authMode) {
+    if (nextMode === selectedMode) {
       return;
     }
 
-    const exitDirection = nextMode === "signup" ? 12 : -12;
-    const enterDirection = nextMode === "signup" ? -12 : 12;
-
-    Animated.parallel([
-      Animated.timing(formContentOpacity, {
-        toValue: 0,
-        duration: 140,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(formContentTranslate, {
-        toValue: exitDirection,
-        duration: 160,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setAuthMode(nextMode);
-      formContentOpacity.setValue(0);
-      formContentTranslate.setValue(enterDirection);
-
-      Animated.parallel([
-        Animated.timing(formContentOpacity, {
-          toValue: 1,
-          duration: 180,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.spring(formContentTranslate, {
-          toValue: 0,
-          damping: 18,
-          stiffness: 200,
-          mass: 0.9,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
+    setSelectedMode(nextMode);
+    setError("");
+    modeProgress.stopAnimation();
+    Animated.timing(modeProgress, {
+      toValue: nextMode === "login" ? 1 : 0,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleAuthSubmit = async () => {
@@ -283,7 +253,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       setError("");
 
       const result =
-        authMode === "signup"
+        selectedMode === "signup"
           ? await registerUser({
               name: name.trim(),
               email: email.trim().toLowerCase(),
@@ -311,6 +281,36 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   if (!fontsLoaded) {
     return null;
   }
+
+  const signupPanelStyle = {
+    opacity: modeProgress.interpolate({
+      inputRange: [0, 0.45, 1],
+      outputRange: [1, 0.2, 0],
+    }),
+    transform: [
+      {
+        translateX: modeProgress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -18],
+        }),
+      },
+    ],
+  };
+
+  const loginPanelStyle = {
+    opacity: modeProgress.interpolate({
+      inputRange: [0, 0.55, 1],
+      outputRange: [0, 0.2, 1],
+    }),
+    transform: [
+      {
+        translateX: modeProgress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [18, 0],
+        }),
+      },
+    ],
+  };
 
   return (
     <View style={styles.screen}>
@@ -421,7 +421,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                   <Pressable
                     style={({ pressed }) => [
                       styles.modePill,
-                      authMode === "signup" && styles.modePillActive,
+                      selectedMode === "signup" && styles.modePillActive,
                       pressed && styles.modePillPressed,
                     ]}
                     onPress={() => animateAuthModeChange("signup")}
@@ -429,7 +429,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                     <Text
                       style={[
                         styles.modePillText,
-                        authMode === "signup" && styles.modePillTextActive,
+                        selectedMode === "signup" && styles.modePillTextActive,
                       ]}
                     >
                       Sign up
@@ -439,14 +439,15 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                   <Pressable
                     style={({ pressed }) => [
                       styles.modePill,
-                      authMode === "login" && styles.modePillPressed,
+                      selectedMode === "login" && styles.modePillActive,
+                      pressed && styles.modePillPressed,
                     ]}
                     onPress={() => animateAuthModeChange("login")}
                   >
                     <Text
                       style={[
                         styles.modePillText,
-                        authMode === "login" && styles.modePillTextInactive,
+                        selectedMode === "login" && styles.modePillTextActive,
                       ]}
                     >
                       Log in
@@ -458,112 +459,189 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
               <Animated.View
                 style={[
                   styles.formContentWrap,
-                  {
-                    opacity: formContentOpacity,
-                    transform: [{ translateX: formContentTranslate }],
-                  },
                 ]}
               >
-                <Text style={styles.kicker}>
-                  {authMode === "signup" ? "Create account" : "Welcome back"}
-                </Text>
-
-                <Text style={styles.formTitle}>
-                  {authMode === "signup"
-                    ? "Start with your email, then build the vibe."
-                    : "Sign back in and pick up where you left off."}
-                </Text>
-
-                <View style={styles.formCardShell}>
-                  <LinearGradient
-                    colors={["rgba(255,255,255,0.09)", "rgba(255,255,255,0.03)"]}
-                    start={{ x: 0.1, y: 0 }}
-                    end={{ x: 0.9, y: 1 }}
-                    style={styles.formCard}
+                <View style={styles.formStage}>
+                  <Animated.View
+                    pointerEvents={selectedMode === "signup" ? "auto" : "none"}
+                    style={[styles.formPanel, signupPanelStyle]}
                   >
-                    {authMode === "signup" ? (
-                      <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Name</Text>
-                        <TextInput
-                          value={name}
-                          onChangeText={setName}
-                          placeholder="Your name"
-                          placeholderTextColor="#C8C0C8"
-                          style={styles.input}
-                          autoCapitalize="words"
-                          autoCorrect={false}
-                        />
-                      </View>
-                    ) : null}
+                    <Text style={styles.kicker}>Create account</Text>
 
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Email</Text>
-                      <TextInput
-                        value={email}
-                        onChangeText={setEmail}
-                        placeholder="you@example.com"
-                        placeholderTextColor="#C8C0C8"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        style={styles.input}
-                      />
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Password</Text>
-                      <TextInput
-                        value={password}
-                        onChangeText={setPassword}
-                        placeholder={
-                          authMode === "signup"
-                            ? "Create a password"
-                            : "Enter your password"
-                        }
-                        placeholderTextColor="#C8C0C8"
-                        secureTextEntry
-                        style={styles.input}
-                      />
-                    </View>
-
-                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.primaryButton,
-                        pressed && styles.buttonPressed,
-                        loading && styles.buttonDisabled,
-                      ]}
-                      onPress={handleAuthSubmit}
-                      disabled={loading}
-                    >
-                      <LinearGradient
-                        colors={["#FF4F88", "#FF6A71", "#FF7A59"]}
-                        locations={[0, 0.6, 1]}
-                        start={{ x: 0, y: 0.2 }}
-                        end={{ x: 1, y: 0.8 }}
-                        style={styles.primaryGradient}
-                      />
-                      <Text style={styles.primaryButtonText}>
-                        {loading
-                          ? "Please wait..."
-                          : authMode === "signup"
-                            ? "Create account"
-                            : "Continue"}
-                      </Text>
-                    </Pressable>
-
-                    <Text style={styles.formFootnote}>
-                      By continuing, you agree to the terms and privacy policy.
+                    <Text style={styles.formTitle}>
+                      Start with your email, then build the vibe.
                     </Text>
-                  </LinearGradient>
-                  <LinearGradient
-                    colors={["rgba(255,255,255,0.08)", "rgba(255,255,255,0)"]}
-                    start={{ x: 0.5, y: 0 }}
-                    end={{ x: 0.5, y: 1 }}
-                    style={styles.formGloss}
-                    pointerEvents="none"
-                  />
+
+                    <View style={styles.formCardShell}>
+                      <LinearGradient
+                        colors={["rgba(255,255,255,0.09)", "rgba(255,255,255,0.03)"]}
+                        start={{ x: 0.1, y: 0 }}
+                        end={{ x: 0.9, y: 1 }}
+                        style={styles.formCard}
+                      >
+                        <View style={styles.inputGroup}>
+                          <Text style={styles.inputLabel}>Name</Text>
+                          <TextInput
+                            value={name}
+                            onChangeText={setName}
+                            placeholder="Your name"
+                            placeholderTextColor="#C8C0C8"
+                            style={styles.input}
+                            autoCapitalize="words"
+                            autoCorrect={false}
+                          />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                          <Text style={styles.inputLabel}>Email</Text>
+                          <TextInput
+                            value={email}
+                            onChangeText={setEmail}
+                            placeholder="you@example.com"
+                            placeholderTextColor="#C8C0C8"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            style={styles.input}
+                          />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                          <Text style={styles.inputLabel}>Password</Text>
+                          <TextInput
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="Create a password"
+                            placeholderTextColor="#C8C0C8"
+                            secureTextEntry
+                            style={styles.input}
+                          />
+                        </View>
+
+                        {selectedMode === "signup" && error ? (
+                          <Text style={styles.errorText}>{error}</Text>
+                        ) : null}
+
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.primaryButton,
+                            pressed && styles.buttonPressed,
+                            loading && styles.buttonDisabled,
+                          ]}
+                          onPress={handleAuthSubmit}
+                          disabled={loading || selectedMode !== "signup"}
+                        >
+                          <LinearGradient
+                            colors={["#FF4F88", "#FF6A71", "#FF7A59"]}
+                            locations={[0, 0.6, 1]}
+                            start={{ x: 0, y: 0.2 }}
+                            end={{ x: 1, y: 0.8 }}
+                            style={styles.primaryGradient}
+                          />
+                          <Text style={styles.primaryButtonText}>
+                            {loading && selectedMode === "signup"
+                              ? "Please wait..."
+                              : "Create account"}
+                          </Text>
+                        </Pressable>
+
+                        <Text style={styles.formFootnote}>
+                          By continuing, you agree to the terms and privacy policy.
+                        </Text>
+                      </LinearGradient>
+                      <LinearGradient
+                        colors={["rgba(255,255,255,0.08)", "rgba(255,255,255,0)"]}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.formGloss}
+                        pointerEvents="none"
+                      />
+                    </View>
+                  </Animated.View>
+
+                  <Animated.View
+                    pointerEvents={selectedMode === "login" ? "auto" : "none"}
+                    style={[styles.formPanel, loginPanelStyle]}
+                  >
+                    <Text style={styles.kicker}>Welcome back</Text>
+
+                    <Text style={styles.formTitle}>
+                      Sign back in and pick up where you left off.
+                    </Text>
+
+                    <View style={styles.formCardShell}>
+                      <LinearGradient
+                        colors={["rgba(255,255,255,0.09)", "rgba(255,255,255,0.03)"]}
+                        start={{ x: 0.1, y: 0 }}
+                        end={{ x: 0.9, y: 1 }}
+                        style={styles.formCard}
+                      >
+                        <View style={styles.inputGroup}>
+                          <Text style={styles.inputLabel}>Email</Text>
+                          <TextInput
+                            value={email}
+                            onChangeText={setEmail}
+                            placeholder="you@example.com"
+                            placeholderTextColor="#C8C0C8"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            style={styles.input}
+                          />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                          <Text style={styles.inputLabel}>Password</Text>
+                          <TextInput
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="Enter your password"
+                            placeholderTextColor="#C8C0C8"
+                            secureTextEntry
+                            style={styles.input}
+                          />
+                        </View>
+
+                        {selectedMode === "login" && error ? (
+                          <Text style={styles.errorText}>{error}</Text>
+                        ) : null}
+
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.primaryButton,
+                            pressed && styles.buttonPressed,
+                            loading && styles.buttonDisabled,
+                          ]}
+                          onPress={handleAuthSubmit}
+                          disabled={loading || selectedMode !== "login"}
+                        >
+                          <LinearGradient
+                            colors={["#FF4F88", "#FF6A71", "#FF7A59"]}
+                            locations={[0, 0.6, 1]}
+                            start={{ x: 0, y: 0.2 }}
+                            end={{ x: 1, y: 0.8 }}
+                            style={styles.primaryGradient}
+                          />
+                          <Text style={styles.primaryButtonText}>
+                            {loading && selectedMode === "login"
+                              ? "Please wait..."
+                              : "Continue"}
+                          </Text>
+                        </Pressable>
+
+                        <Text style={styles.formFootnote}>
+                          By continuing, you agree to the terms and privacy policy.
+                        </Text>
+                      </LinearGradient>
+                      <LinearGradient
+                        colors={["rgba(255,255,255,0.08)", "rgba(255,255,255,0)"]}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.formGloss}
+                        pointerEvents="none"
+                      />
+                    </View>
+                  </Animated.View>
                 </View>
               </Animated.View>
             </Animated.View>
@@ -806,6 +884,16 @@ const styles = StyleSheet.create({
   },
   formContentWrap: {
     flex: 1,
+  },
+  formStage: {
+    position: "relative",
+    minHeight: 438,
+  },
+  formPanel: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
   },
   kicker: {
     color: "rgba(255,248,251,0.72)",

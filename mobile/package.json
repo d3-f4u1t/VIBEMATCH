@@ -14,6 +14,7 @@
     "expo-blur": "~15.0.8",
     "expo-font": "^55.0.7",
     "expo-linear-gradient": "~15.0.8",
+    "expo-navigation-bar": "~5.0.10",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-native": "0.81.5",

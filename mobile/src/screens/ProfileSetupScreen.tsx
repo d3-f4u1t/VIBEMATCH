@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Platform,
   Pressable,
   ScrollView,
@@ -303,6 +305,7 @@ export function ProfileSetupScreen({
   const [screenError, setScreenError] = useState("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSavingStep, setIsSavingStep] = useState(false);
+  const stepMotion = useRef(new Animated.Value(1)).current;
 
   const formatDobFromApi = (value: string | null) => {
     if (!value) {
@@ -381,6 +384,17 @@ export function ProfileSetupScreen({
       isMounted = false;
     };
   }, [session.access_token, session.user.id]);
+
+  useEffect(() => {
+    stepMotion.setValue(0);
+
+    Animated.timing(stepMotion, {
+      toValue: 1,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [isLoadingProfile, stepIndex, stepMotion]);
 
   if (!fontsLoaded) {
     return null;
@@ -494,6 +508,23 @@ export function ProfileSetupScreen({
   };
 
   const currentValue = getStepValue(currentStep.key);
+  const stepAnimatedStyle = {
+    opacity: stepMotion,
+    transform: [
+      {
+        translateX: stepMotion.interpolate({
+          inputRange: [0, 1],
+          outputRange: [16, 0],
+        }),
+      },
+      {
+        translateY: stepMotion.interpolate({
+          inputRange: [0, 1],
+          outputRange: [10, 0],
+        }),
+      },
+    ],
+  };
 
   const getDobValidationMessage = (value: string) => {
     const digitsOnly = value.replace(/\D/g, "");
@@ -716,13 +747,14 @@ export function ProfileSetupScreen({
             </View>
           </View>
 
-          {isLoadingProfile ? (
-            <View style={styles.loadingCard}>
+          <Animated.View style={stepAnimatedStyle}>
+            {isLoadingProfile ? (
+              <View style={styles.loadingCard}>
               <ActivityIndicator size="small" color="#82F7A6" />
               <Text style={styles.loadingText}>Loading your profile...</Text>
-            </View>
-          ) : (
-            <View style={styles.questionCard}>
+              </View>
+            ) : (
+              <View style={styles.questionCard}>
               <Text style={styles.kicker}>Matching signal</Text>
               <Text style={styles.title}>{currentStep.title}</Text>
 
@@ -818,8 +850,9 @@ export function ProfileSetupScreen({
                   </Text>
                 </Pressable>
               </View>
-            </View>
-          )}
+              </View>
+            )}
+          </Animated.View>
 
           {screenError ? (
             <View style={styles.bannerError}>
