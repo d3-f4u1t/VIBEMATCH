@@ -24,6 +24,7 @@ import {
 import { getMatches, type MatchResult } from "../lib/matching";
 import {
   createSwipe,
+  type MutualMatch,
   getMutualMatches,
   getNextMatch,
   type SwipeAction,
@@ -146,6 +147,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [matchNotice, setMatchNotice] = useState("");
+  const [mutualMatches, setMutualMatches] = useState<MutualMatch[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [swipeCandidate, setSwipeCandidate] = useState<MatchResult | null>(null);
   const [swipeLoading, setSwipeLoading] = useState(false);
@@ -164,9 +166,10 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
         setLoading(true);
         setError("");
 
-        const [matchesResult, nextResult] = await Promise.allSettled([
+        const [matchesResult, nextResult, mutualResult] = await Promise.allSettled([
           getMatches(session.user.id),
           getNextMatch(session.user.id, session.access_token),
+          getMutualMatches(session.user.id, session.access_token),
         ]);
 
         if (isCancelled) {
@@ -188,6 +191,12 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
           setSwipeCandidate(nextResult.value);
         } else {
           setSwipeCandidate(null);
+        }
+
+        if (mutualResult.status === "fulfilled") {
+          setMutualMatches(mutualResult.value);
+        } else {
+          setMutualMatches([]);
         }
       } finally {
         if (!isCancelled) {
@@ -270,6 +279,30 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   const heroMatch = swipeCandidate ?? (usingPreviewData ? displayMatches[0] ?? null : null);
   const communityFeature = displayMatches[1] ?? heroMatch;
   const nearbyCards = displayMatches.slice(0, 2);
+  const mutualMatchCount = mutualMatches.length;
+
+  const getMatchFromMutual = (mutual: MutualMatch): MatchResult => {
+    const existing =
+      displayMatches.find((match) => match.userId === mutual.userId) ??
+      matches.find((match) => match.userId === mutual.userId);
+
+    if (existing) {
+      return existing;
+    }
+
+    return {
+      userId: mutual.userId,
+      name: mutual.name,
+      bio: mutual.bio,
+      locationCity: mutual.locationCity,
+      similarity: 0.82,
+      artistCount: 0,
+      trackCount: 0,
+      sharedArtists: [],
+      sharedTracks: [],
+      matchReason: "You both liked each other and unlocked a new match.",
+    };
+  };
 
   const handleOpenDetail = (match: MatchResult) => {
     setSelectedMatchId(match.userId);
@@ -293,24 +326,28 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
       );
 
       if (action === "like") {
-        const mutualMatches = await getMutualMatches(
-          session.user.id,
-          session.access_token
-        );
-
-        if (mutualMatches.some((match) => match.userId === heroMatch.userId)) {
-          setMatchNotice(`It's a match with ${heroMatch.name}.`);
-        }
+        setMatchNotice("");
       }
 
-      const [nextCandidate, refreshedMatches] = await Promise.all([
+      const [nextCandidate, refreshedMatches, refreshedMutualMatches] = await Promise.all([
         getNextMatch(session.user.id, session.access_token),
         getMatches(session.user.id).catch(() => matches),
+        getMutualMatches(session.user.id, session.access_token).catch(
+          () => mutualMatches
+        ),
       ]);
 
       setSwipeCandidate(nextCandidate);
       setMatches(refreshedMatches);
+      setMutualMatches(refreshedMutualMatches);
       setSelectedMatchId(nextCandidate?.userId ?? refreshedMatches[0]?.userId ?? null);
+
+      if (
+        action === "like" &&
+        refreshedMutualMatches.some((match) => match.userId === heroMatch.userId)
+      ) {
+        setMatchNotice(`It's a match with ${heroMatch.name}.`);
+      }
 
       if (activeTab === "detail") {
         setActiveTab("matches");
@@ -397,7 +434,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
     if (activeTab === "community") {
       return (
         <View style={styles.topSection}>
-          <Text style={styles.heroTitleSmaller}>Community</Text>
+          <Text style={styles.heroTitleSmaller}>Your matches</Text>
         </View>
       );
     }
@@ -613,25 +650,52 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   };
 
   const renderCommunityTab = () => {
+    if (mutualMatchCount > 0) {
+      return (
+        <View style={styles.sectionBody}>
+          <View style={styles.matchCountCard}>
+            <Text style={styles.matchCountTitle}>Mutual likes</Text>
+            <Text style={styles.matchCountBody}>
+              {mutualMatchCount} {mutualMatchCount === 1 ? "person wants to keep the vibe going." : "people want to keep the vibe going."}
+            </Text>
+          </View>
+
+          {mutualMatches.map((mutualMatch) => (
+            <Pressable
+              key={mutualMatch.userId}
+              style={styles.mutualMatchCard}
+              onPress={() => handleOpenDetail(getMatchFromMutual(mutualMatch))}
+            >
+              <View style={styles.mutualMatchAvatar}>
+                <Text style={styles.mutualMatchAvatarText}>
+                  {mutualMatch.name.slice(0, 1).toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.mutualMatchContent}>
+                <Text style={styles.mutualMatchName}>{mutualMatch.name}</Text>
+                <Text style={styles.mutualMatchMeta}>
+                  {mutualMatch.locationCity || "Location coming in soon"}
+                </Text>
+                <Text style={styles.mutualMatchBio} numberOfLines={2}>
+                  {mutualMatch.bio || "You both matched through shared music taste and energy."}
+                </Text>
+              </View>
+              <View style={styles.mutualMatchBadge}>
+                <Text style={styles.mutualMatchBadgeText}>Match</Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      );
+    }
+
     return (
       <View style={styles.sectionBody}>
-        <View style={styles.searchCard}>
-          <Text style={styles.searchPlaceholder}>
-            Search by vibe, artist, place
+        <View style={styles.emptyStateCard}>
+          <Text style={styles.emptyStateTitle}>No mutual matches yet</Text>
+          <Text style={styles.emptyStateBody}>
+            Keep swiping through the feed. When someone likes you back, they will show up here as a real match.
           </Text>
-          <Text style={styles.searchAccent}>Q</Text>
-        </View>
-
-        <View style={styles.communityChipRow}>
-          <View style={[styles.filterChip, styles.filterChipActive]}>
-            <Text style={styles.filterChipTextActive}>For you</Text>
-          </View>
-          <View style={styles.filterChip}>
-            <Text style={styles.filterChipText}>Nearby</Text>
-          </View>
-          <View style={styles.filterChip}>
-            <Text style={styles.filterChipText}>Playlists</Text>
-          </View>
         </View>
 
         <View style={styles.feedStageCard}>
@@ -1192,6 +1256,25 @@ const styles = StyleSheet.create({
   actionDisabled: {
     opacity: 0.55,
   },
+  matchCountCard: {
+    borderRadius: 24,
+    padding: 18,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  matchCountTitle: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 8,
+  },
+  matchCountBody: {
+    color: "rgba(255,248,251,0.76)",
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
   detailCard: {
     borderRadius: 0,
     overflow: "hidden",
@@ -1397,6 +1480,70 @@ const styles = StyleSheet.create({
   },
   communityStoryPill: {
     alignItems: "center",
+  },
+  mutualMatchCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 26,
+    padding: 16,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  mutualMatchAvatar: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "rgba(242,106,141,0.24)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  mutualMatchAvatarText: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  mutualMatchContent: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  mutualMatchName: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    lineHeight: 22,
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 4,
+  },
+  mutualMatchMeta: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 12,
+    fontFamily: "SpaceGrotesk_500Medium",
+    marginBottom: 6,
+  },
+  mutualMatchBio: {
+    color: "rgba(255,248,251,0.74)",
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  mutualMatchBadge: {
+    minWidth: 62,
+    height: 34,
+    borderRadius: 17,
+    paddingHorizontal: 12,
+    backgroundColor: "rgba(130,247,166,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(130,247,166,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mutualMatchBadgeText: {
+    color: "#82F7A6",
+    fontSize: 12,
+    fontFamily: "SpaceGrotesk_700Bold",
   },
   communityAvatar: {
     width: 52,
