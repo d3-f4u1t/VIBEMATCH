@@ -22,6 +22,12 @@ import {
 } from "@expo-google-fonts/space-grotesk";
 
 import { getMatches, type MatchResult } from "../lib/matching";
+import {
+  createSwipe,
+  getMutualMatches,
+  getNextMatch,
+  type SwipeAction,
+} from "../lib/swipe";
 import type { TokenResponse } from "../types/auth";
 
 type DiscoverScreenProps = {
@@ -139,28 +145,49 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [matchNotice, setMatchNotice] = useState("");
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+  const [swipeCandidate, setSwipeCandidate] = useState<MatchResult | null>(null);
+  const [swipeLoading, setSwipeLoading] = useState(false);
   const tabMotion = useRef(new Animated.Value(1)).current;
+
+  const fallbackMatches = useMemo(
+    () => buildFallbackMatches(session.user.name),
+    [session.user.name]
+  );
 
   useEffect(() => {
     let isCancelled = false;
 
-    const loadMatches = async () => {
+    const loadDiscoverData = async () => {
       try {
         setLoading(true);
         setError("");
-        const data = await getMatches(session.user.id);
 
-        if (!isCancelled) {
-          setMatches(data);
+        const [matchesResult, nextResult] = await Promise.allSettled([
+          getMatches(session.user.id),
+          getNextMatch(session.user.id, session.access_token),
+        ]);
+
+        if (isCancelled) {
+          return;
         }
-      } catch (loadError) {
-        if (!isCancelled) {
-          setError(
-            loadError instanceof Error
-              ? loadError.message
-              : "Could not load discover right now."
-          );
+
+        if (matchesResult.status === "fulfilled") {
+          setMatches(matchesResult.value);
+        } else {
+          setMatches([]);
+          const message =
+            matchesResult.reason instanceof Error
+              ? matchesResult.reason.message
+              : "Could not load discover right now.";
+          setError(message);
+        }
+
+        if (nextResult.status === "fulfilled") {
+          setSwipeCandidate(nextResult.value);
+        } else {
+          setSwipeCandidate(null);
         }
       } finally {
         if (!isCancelled) {
@@ -169,19 +196,31 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
       }
     };
 
-    loadMatches();
+    loadDiscoverData();
 
     return () => {
       isCancelled = true;
     };
-  }, [session.user.id]);
+  }, [session.access_token, session.user.id]);
 
-  const fallbackMatches = useMemo(
-    () => buildFallbackMatches(session.user.name),
-    [session.user.name]
-  );
-  const displayMatches = matches.length > 0 ? matches : fallbackMatches;
-  const usingPreviewData = matches.length === 0;
+  const displayMatches = useMemo(() => {
+    const liveMatches = matches.length > 0 ? matches : [];
+
+    if (swipeCandidate) {
+      return [
+        swipeCandidate,
+        ...liveMatches.filter((match) => match.userId !== swipeCandidate.userId),
+      ];
+    }
+
+    if (liveMatches.length > 0) {
+      return liveMatches;
+    }
+
+    return fallbackMatches;
+  }, [fallbackMatches, matches, swipeCandidate]);
+
+  const usingPreviewData = matches.length === 0 && !swipeCandidate;
 
   const selectedMatch =
     displayMatches.find((match) => match.userId === selectedMatchId) ??
@@ -228,7 +267,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   };
 
   const isDetailMode = activeTab === "detail";
-  const heroMatch = displayMatches[0] ?? null;
+  const heroMatch = swipeCandidate ?? (usingPreviewData ? displayMatches[0] ?? null : null);
   const communityFeature = displayMatches[1] ?? heroMatch;
   const nearbyCards = displayMatches.slice(0, 2);
 
@@ -237,16 +276,68 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
     setActiveTab("detail");
   };
 
+  const handleSwipeAction = async (action: SwipeAction) => {
+    if (!heroMatch || usingPreviewData || swipeLoading) {
+      return;
+    }
+
+    setSwipeLoading(true);
+    setError("");
+    setMatchNotice("");
+
+    try {
+      await createSwipe(
+        heroMatch.userId,
+        action,
+        session.access_token
+      );
+
+      if (action === "like") {
+        const mutualMatches = await getMutualMatches(
+          session.user.id,
+          session.access_token
+        );
+
+        if (mutualMatches.some((match) => match.userId === heroMatch.userId)) {
+          setMatchNotice(`It's a match with ${heroMatch.name}.`);
+        }
+      }
+
+      const [nextCandidate, refreshedMatches] = await Promise.all([
+        getNextMatch(session.user.id, session.access_token),
+        getMatches(session.user.id).catch(() => matches),
+      ]);
+
+      setSwipeCandidate(nextCandidate);
+      setMatches(refreshedMatches);
+      setSelectedMatchId(nextCandidate?.userId ?? refreshedMatches[0]?.userId ?? null);
+
+      if (activeTab === "detail") {
+        setActiveTab("matches");
+      }
+    } catch (swipeError) {
+      setError(
+        swipeError instanceof Error
+          ? swipeError.message
+          : "Could not save your swipe right now."
+      );
+    } finally {
+      setSwipeLoading(false);
+    }
+  };
+
   const renderInfoBanner = () => {
-    if (!usingPreviewData && !error) {
+    if (!usingPreviewData && !error && !matchNotice) {
       return null;
     }
 
     return (
       <View style={styles.infoBanner}>
         <Text style={styles.infoBannerText}>
-          {error
-            ? "Live matches could not load, so this screen is showing preview concepts."
+          {matchNotice
+            ? matchNotice
+            : error
+            ? error
             : "Live matches are still light, so this screen is using preview concept data for now."}
         </Text>
       </View>
@@ -322,9 +413,9 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
     if (!heroMatch) {
       return (
         <View style={styles.emptyStateCard}>
-          <Text style={styles.emptyStateTitle}>No matches yet</Text>
+          <Text style={styles.emptyStateTitle}>No more profiles right now</Text>
           <Text style={styles.emptyStateBody}>
-            Finish building more music signals and your discover feed will start to fill up here.
+            You have moved through the current stack. As more compatible users show up, the next profile will appear here.
           </Text>
         </View>
       );
@@ -384,14 +475,37 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
           </Pressable>
 
           <View style={styles.heroActionRow}>
-            <Pressable style={styles.roundActionGhost}>
+            <Pressable
+              style={[
+                styles.roundActionGhost,
+                swipeLoading && styles.actionDisabled,
+              ]}
+              onPress={() => handleSwipeAction("pass")}
+              disabled={swipeLoading || usingPreviewData}
+            >
               <Text style={styles.roundActionGhostLabel}>X</Text>
             </Pressable>
-            <Pressable style={styles.roundActionPrimary}>
-              <Text style={styles.roundActionPrimaryLabel}>Love</Text>
+            <Pressable
+              style={[
+                styles.roundActionPrimary,
+                swipeLoading && styles.actionDisabled,
+              ]}
+              onPress={() => handleSwipeAction("like")}
+              disabled={swipeLoading || usingPreviewData}
+            >
+              <Text style={styles.roundActionPrimaryLabel}>
+                {swipeLoading ? "..." : "Love"}
+              </Text>
             </Pressable>
-            <Pressable style={styles.roundActionGhost}>
-              <Text style={styles.roundActionGhostLabel}>Chat</Text>
+            <Pressable
+              style={[
+                styles.roundActionGhost,
+                swipeLoading && styles.actionDisabled,
+              ]}
+              onPress={() => handleSwipeAction("super_like")}
+              disabled={swipeLoading || usingPreviewData}
+            >
+              <Text style={styles.roundActionGhostLabel}>Boost</Text>
             </Pressable>
           </View>
         </View>
@@ -1074,6 +1188,9 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontFamily: "SpaceGrotesk_700Bold",
+  },
+  actionDisabled: {
+    opacity: 0.55,
   },
   detailCard: {
     borderRadius: 0,

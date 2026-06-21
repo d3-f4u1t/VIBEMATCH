@@ -3,6 +3,8 @@ import {API_BASE_URL} from "./config"
 export type MatchResult = {
   userId: string;
   name: string;
+  bio?: string;
+  locationCity?: string;
   similarity: number;
   artistCount: number;
   trackCount: number;
@@ -46,6 +48,8 @@ export async function getMatches(userId: string): Promise<MatchResult[]> {
   return (data.matches ?? []).map((match) => ({
     userId: match.user_id,
     name: match.name,
+    bio: "",
+    locationCity: "",
     similarity: match.similarity,
     artistCount: match.artist_count,
     trackCount: match.track_count,
