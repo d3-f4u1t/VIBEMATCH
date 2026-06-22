@@ -280,7 +280,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   const communityFeature = displayMatches[1] ?? heroMatch;
   const nearbyCards = displayMatches.slice(0, 2);
   const mutualMatchCount = mutualMatches.length;
-
+//this is for match found as here if we have comman factor matching we will have a match 
   const getMatchFromMutual = (mutual: MutualMatch): MatchResult => {
     const existing =
       displayMatches.find((match) => match.userId === mutual.userId) ??
