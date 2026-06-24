@@ -149,6 +149,9 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   const [error, setError] = useState("");
   const [matchNotice, setMatchNotice] = useState("");
   const [mutualMatches, setMutualMatches] = useState<MutualMatch[]>([]);
+  const [matchModalProfile, setMatchModalProfile] = useState<MatchResult | null>(
+    null
+  );
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [swipeCandidate, setSwipeCandidate] = useState<MatchResult | null>(null);
   const [swipeLoading, setSwipeLoading] = useState(false);
@@ -316,6 +319,11 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
     setActiveTab("detail");
   };
 
+  const closeMatchModal = () => {
+    setMatchModalProfile(null);
+    setMatchNotice("");
+  };
+
   const submitSwipeAction = async (
     action: SwipeAction,
     swipedMatch: MatchResult
@@ -352,6 +360,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
         refreshedMutualMatches.some((match) => match.userId === swipedMatch.userId)
       ) {
         setMatchNotice(`It's a match with ${swipedMatch.name}.`);
+        setMatchModalProfile(swipedMatch);
       }
 
       if (activeTab === "detail") {
@@ -496,6 +505,124 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
             ? error
             : "Live matches are still light, so this screen is using preview concept data for now."}
         </Text>
+      </View>
+    );
+  };
+
+  const renderMatchModal = () => {
+    if (!matchModalProfile) {
+      return null;
+    }
+
+    const sharedSignal =
+      matchModalProfile.sharedTracks.length > 0
+        ? `Matched on songs like ${matchModalProfile.sharedTracks
+            .slice(0, 2)
+            .join(" and ")}`
+        : matchModalProfile.sharedArtists.length > 0
+          ? `Matched on artists like ${matchModalProfile.sharedArtists
+              .slice(0, 2)
+              .join(" and ")}`
+          : "Matched on a strong music and energy overlap";
+
+    const matchChips =
+      matchModalProfile.sharedTracks.length > 0
+        ? matchModalProfile.sharedTracks.slice(0, 3)
+        : matchModalProfile.sharedArtists.slice(0, 3);
+
+    return (
+      <View style={styles.matchModalOverlay}>
+        <LinearGradient
+          colors={[
+            "rgba(11,8,16,0.96)",
+            "rgba(26,12,24,0.94)",
+            "rgba(10,8,14,0.98)",
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.matchModalCard}
+        >
+          <Pressable style={styles.matchModalClose} onPress={closeMatchModal}>
+            <Text style={styles.matchModalCloseText}>X</Text>
+          </Pressable>
+
+          <View style={styles.matchModalHaloOne} />
+          <View style={styles.matchModalHaloTwo} />
+
+          <Text style={styles.matchModalEyebrow}>You matched</Text>
+          <Text style={styles.matchModalTitle}>This one feels real.</Text>
+          <Text style={styles.matchModalSubtitle}>
+            You and {matchModalProfile.name} connected through the same kind of
+            music energy. This should feel less like endless swiping and more
+            like finding someone actually worth talking to.
+          </Text>
+
+          <View style={styles.matchModalAvatars}>
+            <LinearGradient
+              colors={["#F26A8D", "#FF7B59"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.matchModalAvatar}
+            >
+              <Text style={styles.matchModalAvatarText}>
+                {session.user.name.slice(0, 1).toUpperCase()}
+              </Text>
+            </LinearGradient>
+
+            <View style={styles.matchModalLink}>
+              <Text style={styles.matchModalLinkText}>+</Text>
+            </View>
+
+            <LinearGradient
+              colors={["#BFD6F3", "#7B9BC7"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.matchModalAvatar}
+            >
+              <Text style={styles.matchModalAvatarText}>
+                {matchModalProfile.name.slice(0, 1).toUpperCase()}
+              </Text>
+            </LinearGradient>
+          </View>
+
+          <View style={styles.matchModalSignalCard}>
+            <Text style={styles.matchModalSignalTitle}>{sharedSignal}</Text>
+            <Text style={styles.matchModalSignalBody}>
+              {matchModalProfile.matchReason}
+            </Text>
+          </View>
+
+          {matchChips.length > 0 ? (
+            <View style={styles.matchModalChipRow}>
+              {matchChips.map((chip) => (
+                <View key={chip} style={styles.matchModalChip}>
+                  <Text style={styles.matchModalChipText}>{chip}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          <View style={styles.matchModalActionRow}>
+            <Pressable
+              style={styles.matchModalSecondaryButton}
+              onPress={() => {
+                closeMatchModal();
+                setActiveTab("community");
+              }}
+            >
+              <Text style={styles.matchModalSecondaryText}>Open matches</Text>
+            </Pressable>
+            <Pressable
+              style={styles.matchModalPrimaryButton}
+              onPress={() => {
+                closeMatchModal();
+                handleOpenDetail(matchModalProfile);
+              }}
+            >
+              <Text style={styles.matchModalPrimaryText}>See the profile</Text>
+            </Pressable>
+          </View>
+        </LinearGradient>
       </View>
     );
   };
@@ -1074,6 +1201,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
           <Text style={styles.hiddenSignOutText}>sign out</Text>
         </Pressable>
       </View>
+      {renderMatchModal()}
     </View>
   );
 }
@@ -1468,6 +1596,193 @@ const styles = StyleSheet.create({
   },
   actionDisabled: {
     opacity: 0.55,
+  },
+  matchModalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 80,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 22,
+    backgroundColor: "rgba(8,8,11,0.48)",
+  },
+  matchModalCard: {
+    width: "100%",
+    maxWidth: 390,
+    borderRadius: 34,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 22,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  matchModalClose: {
+    alignSelf: "flex-end",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    marginBottom: 12,
+  },
+  matchModalCloseText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  matchModalHaloOne: {
+    position: "absolute",
+    top: 54,
+    left: -28,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: "rgba(242,106,141,0.18)",
+  },
+  matchModalHaloTwo: {
+    position: "absolute",
+    top: 108,
+    right: -34,
+    width: 162,
+    height: 162,
+    borderRadius: 81,
+    backgroundColor: "rgba(130,247,166,0.12)",
+  },
+  matchModalEyebrow: {
+    color: "#82F7A6",
+    fontSize: 12,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 10,
+  },
+  matchModalTitle: {
+    color: "#FFFFFF",
+    fontSize: 34,
+    lineHeight: 36,
+    letterSpacing: -1.2,
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 10,
+  },
+  matchModalSubtitle: {
+    color: "rgba(255,248,251,0.78)",
+    fontSize: 14,
+    lineHeight: 21,
+    fontFamily: "SpaceGrotesk_400Regular",
+    marginBottom: 22,
+    maxWidth: "92%",
+  },
+  matchModalAvatars: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  matchModalAvatar: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+  },
+  matchModalAvatarText: {
+    color: "#FFFFFF",
+    fontSize: 28,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  matchModalLink: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 14,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  matchModalLinkText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  matchModalSignalCard: {
+    borderRadius: 22,
+    padding: 16,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    marginBottom: 16,
+  },
+  matchModalSignalTitle: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    lineHeight: 22,
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 8,
+  },
+  matchModalSignalBody: {
+    color: "rgba(255,248,251,0.76)",
+    fontSize: 13,
+    lineHeight: 19,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  matchModalChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 22,
+  },
+  matchModalChip: {
+    height: 34,
+    borderRadius: 17,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  matchModalChipText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  matchModalActionRow: {
+    gap: 12,
+  },
+  matchModalSecondaryButton: {
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  matchModalSecondaryText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  matchModalPrimaryButton: {
+    height: 54,
+    borderRadius: 27,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F26A8D",
+    borderWidth: 1,
+    borderColor: "rgba(255,123,89,0.28)",
+  },
+  matchModalPrimaryText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: "SpaceGrotesk_700Bold",
   },
   matchCountCard: {
     borderRadius: 24,
