@@ -4,6 +4,7 @@ import {
   Animated,
   Dimensions,
   Easing,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -152,6 +153,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   const [swipeCandidate, setSwipeCandidate] = useState<MatchResult | null>(null);
   const [swipeLoading, setSwipeLoading] = useState(false);
   const tabMotion = useRef(new Animated.Value(1)).current;
+  const swipeTranslate = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
 
   const fallbackMatches = useMemo(
     () => buildFallbackMatches(session.user.name),
@@ -277,9 +279,14 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
 
   const isDetailMode = activeTab === "detail";
   const heroMatch = swipeCandidate ?? (usingPreviewData ? displayMatches[0] ?? null : null);
+  const nextStackMatch =
+    heroMatch
+      ? displayMatches.find((match) => match.userId !== heroMatch.userId) ?? null
+      : null;
   const communityFeature = displayMatches[1] ?? heroMatch;
   const nearbyCards = displayMatches.slice(0, 2);
   const mutualMatchCount = mutualMatches.length;
+  const swipeThreshold = Math.min(contentWidth * 0.24, 118);
 //this is for match found as here if we have comman factor matching we will have a match 
   const getMatchFromMutual = (mutual: MutualMatch): MatchResult => {
     const existing =
@@ -309,18 +316,16 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
     setActiveTab("detail");
   };
 
-  const handleSwipeAction = async (action: SwipeAction) => {
-    if (!heroMatch || usingPreviewData || swipeLoading) {
-      return;
-    }
-
-    setSwipeLoading(true);
+  const submitSwipeAction = async (
+    action: SwipeAction,
+    swipedMatch: MatchResult
+  ): Promise<boolean> => {
     setError("");
     setMatchNotice("");
 
     try {
       await createSwipe(
-        heroMatch.userId,
+        swipedMatch.userId,
         action,
         session.access_token
       );
@@ -344,24 +349,138 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
 
       if (
         action === "like" &&
-        refreshedMutualMatches.some((match) => match.userId === heroMatch.userId)
+        refreshedMutualMatches.some((match) => match.userId === swipedMatch.userId)
       ) {
-        setMatchNotice(`It's a match with ${heroMatch.name}.`);
+        setMatchNotice(`It's a match with ${swipedMatch.name}.`);
       }
 
       if (activeTab === "detail") {
         setActiveTab("matches");
       }
+      return true;
     } catch (swipeError) {
       setError(
         swipeError instanceof Error
           ? swipeError.message
           : "Could not save your swipe right now."
       );
-    } finally {
-      setSwipeLoading(false);
+      return false;
     }
   };
+
+  const resetSwipeCard = () => {
+    Animated.spring(swipeTranslate, {
+      toValue: { x: 0, y: 0 },
+      speed: 20,
+      bounciness: 8,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const triggerSwipeAction = (
+    action: SwipeAction,
+    direction: "left" | "right" | "up"
+  ) => {
+    if (!heroMatch || usingPreviewData || swipeLoading) {
+      return;
+    }
+
+    setSwipeLoading(true);
+
+    const target =
+      direction === "left"
+        ? { x: -width * 1.15, y: 20 }
+        : direction === "up"
+          ? { x: 0, y: -height * 0.55 }
+          : { x: width * 1.15, y: 20 };
+
+    Animated.timing(swipeTranslate, {
+      toValue: target,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(async ({ finished }) => {
+      if (!finished) {
+        setSwipeLoading(false);
+        return;
+      }
+
+      await submitSwipeAction(action, heroMatch);
+      swipeTranslate.setValue({ x: 0, y: 0 });
+      setSwipeLoading(false);
+    });
+  };
+
+  const swipeRotation = swipeTranslate.x.interpolate({
+    inputRange: [-width, 0, width],
+    outputRange: ["-14deg", "0deg", "14deg"],
+  });
+
+  const nextCardScale = swipeTranslate.x.interpolate({
+    inputRange: [-swipeThreshold, 0, swipeThreshold],
+    outputRange: [0.985, 0.94, 0.985],
+    extrapolate: "clamp",
+  });
+
+  const nextCardTranslateY = swipeTranslate.x.interpolate({
+    inputRange: [-swipeThreshold, 0, swipeThreshold],
+    outputRange: [8, 18, 8],
+    extrapolate: "clamp",
+  });
+
+  const likeBadgeOpacity = swipeTranslate.x.interpolate({
+    inputRange: [12, swipeThreshold],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const passBadgeOpacity = swipeTranslate.x.interpolate({
+    inputRange: [-swipeThreshold, -12],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const topCardAnimatedStyle = {
+    transform: [
+      ...swipeTranslate.getTranslateTransform(),
+      { rotate: swipeRotation },
+    ],
+  };
+
+  const nextCardAnimatedStyle = {
+    transform: [{ scale: nextCardScale }, { translateY: nextCardTranslateY }],
+  };
+
+  const swipePanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          !swipeLoading &&
+          !!heroMatch &&
+          !usingPreviewData &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) &&
+          Math.abs(gestureState.dx) > 8,
+        onPanResponderMove: Animated.event(
+          [null, { dx: swipeTranslate.x, dy: swipeTranslate.y }],
+          { useNativeDriver: false }
+        ),
+        onPanResponderRelease: (_, gestureState) => {
+          if (gestureState.dx > swipeThreshold) {
+            triggerSwipeAction("like", "right");
+            return;
+          }
+
+          if (gestureState.dx < -swipeThreshold) {
+            triggerSwipeAction("pass", "left");
+            return;
+          }
+
+          resetSwipeCard();
+        },
+        onPanResponderTerminate: resetSwipeCard,
+      }),
+    [heroMatch, swipeLoading, swipeThreshold, usingPreviewData]
+  );
 
   const renderInfoBanner = () => {
     if (!usingPreviewData && !error && !matchNotice) {
@@ -459,6 +578,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
     }
 
     const tone = useMatchTone(0);
+    const nextTone = useMatchTone(1);
 
     return (
       <View style={styles.sectionBody}>
@@ -480,36 +600,83 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
         </View>
 
         <View style={styles.feedStageCard}>
-          <Pressable
-            style={styles.heroCardWrap}
-            onPress={() => handleOpenDetail(heroMatch)}
-          >
-            <LinearGradient
-              colors={[tone.start, tone.end]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroCard}
-            >
-              <View style={styles.heroPhotoOrbLarge} />
-              <View
-                style={[
-                  styles.heroPhotoBody,
-                  { backgroundColor: tone.orb, borderColor: `${tone.accent}20` },
-                ]}
-              />
+          <View style={styles.heroDeck}>
+            {nextStackMatch ? (
+              <Animated.View
+                pointerEvents="none"
+                style={[styles.heroCardSecondaryWrap, nextCardAnimatedStyle]}
+              >
+                <LinearGradient
+                  colors={[nextTone.start, nextTone.end]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.heroCard, styles.heroCardSecondary]}
+                >
+                  <View style={styles.heroPhotoOrbLarge} />
+                  <View
+                    style={[
+                      styles.heroPhotoBody,
+                      {
+                        backgroundColor: nextTone.orb,
+                        borderColor: `${nextTone.accent}20`,
+                      },
+                    ]}
+                  />
+                </LinearGradient>
+              </Animated.View>
+            ) : null}
 
-              <View style={styles.heroOverlay}>
-                <Text style={styles.heroOnline}>Online</Text>
-                <View style={styles.heroNameRow}>
-                  <Text style={styles.heroName}>{heroMatch.name}</Text>
-                  <Text style={styles.heroAge}>
-                    {20 + (Math.round(heroMatch.similarity * 10) % 7)}
-                  </Text>
-                </View>
-                <Text style={styles.heroMeta}>USA, California</Text>
-              </View>
-            </LinearGradient>
-          </Pressable>
+            <Animated.View
+              style={[styles.heroCardTopWrap, topCardAnimatedStyle]}
+              {...swipePanResponder.panHandlers}
+            >
+              <Animated.View
+                pointerEvents="none"
+                style={[styles.swipeBadge, styles.swipeBadgeLike, { opacity: likeBadgeOpacity }]}
+              >
+                <Text style={styles.swipeBadgeText}>LIKE</Text>
+              </Animated.View>
+              <Animated.View
+                pointerEvents="none"
+                style={[styles.swipeBadge, styles.swipeBadgePass, { opacity: passBadgeOpacity }]}
+              >
+                <Text style={styles.swipeBadgeText}>PASS</Text>
+              </Animated.View>
+
+              <Pressable
+                style={styles.heroCardWrap}
+                onPress={() => handleOpenDetail(heroMatch)}
+              >
+                <LinearGradient
+                  colors={[tone.start, tone.end]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.heroCard}
+                >
+                  <View style={styles.heroPhotoOrbLarge} />
+                  <View
+                    style={[
+                      styles.heroPhotoBody,
+                      { backgroundColor: tone.orb, borderColor: `${tone.accent}20` },
+                    ]}
+                  />
+
+                  <View style={styles.heroOverlay}>
+                    <Text style={styles.heroOnline}>Online</Text>
+                    <View style={styles.heroNameRow}>
+                      <Text style={styles.heroName}>{heroMatch.name}</Text>
+                      <Text style={styles.heroAge}>
+                        {20 + (Math.round(heroMatch.similarity * 10) % 7)}
+                      </Text>
+                    </View>
+                    <Text style={styles.heroMeta}>
+                      {heroMatch.locationCity || "USA, California"}
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </Pressable>
+            </Animated.View>
+          </View>
 
           <View style={styles.heroActionRow}>
             <Pressable
@@ -517,7 +684,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
                 styles.roundActionGhost,
                 swipeLoading && styles.actionDisabled,
               ]}
-              onPress={() => handleSwipeAction("pass")}
+              onPress={() => triggerSwipeAction("pass", "left")}
               disabled={swipeLoading || usingPreviewData}
             >
               <Text style={styles.roundActionGhostLabel}>X</Text>
@@ -527,7 +694,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
                 styles.roundActionPrimary,
                 swipeLoading && styles.actionDisabled,
               ]}
-              onPress={() => handleSwipeAction("like")}
+              onPress={() => triggerSwipeAction("like", "right")}
               disabled={swipeLoading || usingPreviewData}
             >
               <Text style={styles.roundActionPrimaryLabel}>
@@ -539,7 +706,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
                 styles.roundActionGhost,
                 swipeLoading && styles.actionDisabled,
               ]}
-              onPress={() => handleSwipeAction("super_like")}
+              onPress={() => triggerSwipeAction("super_like", "up")}
               disabled={swipeLoading || usingPreviewData}
             >
               <Text style={styles.roundActionGhostLabel}>Boost</Text>
@@ -1153,11 +1320,29 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginTop: 2,
   },
+  heroDeck: {
+    position: "relative",
+    minHeight: 430,
+    justifyContent: "flex-start",
+  },
+  heroCardTopWrap: {
+    zIndex: 3,
+  },
+  heroCardSecondaryWrap: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1,
+  },
   heroCard: {
     height: 392,
     borderRadius: 30,
     overflow: "hidden",
     justifyContent: "flex-end",
+  },
+  heroCardSecondary: {
+    opacity: 0.82,
   },
   heroPhotoOrbLarge: {
     position: "absolute",
@@ -1182,6 +1367,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 14,
     paddingBottom: 16,
+  },
+  swipeBadge: {
+    position: "absolute",
+    top: 18,
+    zIndex: 5,
+    minWidth: 92,
+    height: 38,
+    borderRadius: 19,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+  },
+  swipeBadgeLike: {
+    right: 18,
+    backgroundColor: "rgba(130,247,166,0.18)",
+    borderColor: "#82F7A6",
+  },
+  swipeBadgePass: {
+    left: 18,
+    backgroundColor: "rgba(242,106,141,0.18)",
+    borderColor: "#F26A8D",
+  },
+  swipeBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    letterSpacing: 1.1,
+    fontFamily: "SpaceGrotesk_700Bold",
   },
   heroOnline: {
     color: "#82F7A6",
