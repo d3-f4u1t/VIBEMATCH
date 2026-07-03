@@ -38,6 +38,7 @@ class UserProfileResponse(UserResponse):
     sexuality: str | None
     ethnicity: str | None = None
     height: str | None = None
+    weight: str | None = None
     z_sign: str | None = None
     f_plan: str | None = None
     pets: str | None = None
@@ -60,6 +61,7 @@ class UserProfileUpdate(BaseModel):
     gender: str | None = None
     sexuality: str | None = None
     height: str  | None = None
+    weight: str | None = None
     ethnicity : str | None = None
     z_sign:  str | None =  None
     f_plan: str | None = None
@@ -102,4 +104,7 @@ class TokenResponse(BaseModel):
 class AccessTokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+
        

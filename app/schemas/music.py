@@ -15,8 +15,8 @@ class ArtistSearchItem(BaseModel):
     country: str | None = None
     type : str | None =  None
     disambiguation: str = ""
-    tags = list[str] = []
-    score =  int |None = None
+    tags: list[str] = []
+    score: int | None = None
 
 class ArtistSearchResponse(BaseModel):
     artist: list[ArtistSearchItem]

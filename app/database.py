@@ -20,6 +20,7 @@ def ensure_user_profile_columns():
         "sexuality": "TEXT",
         "ethnicity": "TEXT",
         "height": "TEXT",
+        "weight": "TEXT",
         "z_sign": "TEXT",
         "f_plan": "TEXT",
         "pets": "TEXT",

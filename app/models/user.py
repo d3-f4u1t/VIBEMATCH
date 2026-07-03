@@ -23,6 +23,7 @@ class User(Base):
     music_vector = Column(JSON, nullable = True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     height = Column(String, nullable= True)
+    weight = Column(String, nullable= True)
     z_sign= Column(String, nullable = True)
     f_plan = Column(String, nullable= True)
     pets = Column(String, nullable= True)
