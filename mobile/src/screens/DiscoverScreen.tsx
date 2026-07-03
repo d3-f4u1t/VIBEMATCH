@@ -11,6 +11,7 @@ import {
   StatusBar as NativeStatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -30,6 +31,13 @@ import {
   getNextMatch,
   type SwipeAction,
 } from "../lib/swipe";
+import {
+  getMessages,
+  openConversation,
+  sendMessage,
+  type ChatMessage,
+  type Conversation,
+} from "../lib/chat";
 import type { TokenResponse } from "../types/auth";
 
 type DiscoverScreenProps = {
@@ -37,7 +45,7 @@ type DiscoverScreenProps = {
   onSignOut: () => void;
 };
 
-type DiscoverTab = "matches" | "detail" | "community" | "nearby";
+type DiscoverTab = "matches" | "detail" | "community" | "nearby" | "chat";
 
 type FeedCardTone = {
   start: string;
@@ -152,6 +160,12 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   const [matchModalProfile, setMatchModalProfile] = useState<MatchResult | null>(
     null
   );
+  const [activeConversation, setActiveConversation] =
+    useState<Conversation | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatDraft, setChatDraft] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState("");
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [swipeCandidate, setSwipeCandidate] = useState<MatchResult | null>(null);
   const [swipeLoading, setSwipeLoading] = useState(false);
@@ -317,6 +331,62 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   const handleOpenDetail = (match: MatchResult) => {
     setSelectedMatchId(match.userId);
     setActiveTab("detail");
+  };
+
+  const handleOpenConversation = async (matchedUserId: string) => {
+    setChatLoading(true);
+    setChatError("");
+
+    try {
+      const conversation = await openConversation(
+        matchedUserId,
+        session.access_token
+      );
+      const messages = await getMessages(conversation.id, session.access_token);
+
+      setActiveConversation(conversation);
+      setChatMessages(messages);
+      setChatDraft("");
+      setActiveTab("chat");
+    } catch (chatOpenError) {
+      setChatError(
+        chatOpenError instanceof Error
+          ? chatOpenError.message
+          : "Could not open this conversation."
+      );
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const handleSendChatMessage = async () => {
+    const content = chatDraft.trim();
+
+    if (!activeConversation || !content || chatLoading) {
+      return;
+    }
+
+    setChatLoading(true);
+    setChatError("");
+
+    try {
+      const message = await sendMessage(
+        activeConversation.id,
+        content,
+        session.access_token
+      );
+
+      setChatMessages((currentMessages) => [...currentMessages, message]);
+      setChatDraft("");
+    } catch (sendError) {
+      setChatError(
+        sendError instanceof Error
+          ? sendError.message
+          : "Could not send this message."
+      );
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   const closeMatchModal = () => {
@@ -615,11 +685,12 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
             <Pressable
               style={styles.matchModalPrimaryButton}
               onPress={() => {
+                const matchedUserId = matchModalProfile.userId;
                 closeMatchModal();
-                handleOpenDetail(matchModalProfile);
+                handleOpenConversation(matchedUserId);
               }}
             >
-              <Text style={styles.matchModalPrimaryText}>See the profile</Text>
+              <Text style={styles.matchModalPrimaryText}>Message them</Text>
             </Pressable>
           </View>
         </LinearGradient>
@@ -681,6 +752,16 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
       return (
         <View style={styles.topSection}>
           <Text style={styles.heroTitleSmaller}>Your matches</Text>
+        </View>
+      );
+    }
+
+    if (activeTab === "chat") {
+      return (
+        <View style={styles.topSection}>
+          <Text style={styles.heroTitleSmaller}>
+            {activeConversation?.otherUserName ?? "Chat"}
+          </Text>
         </View>
       );
     }
@@ -958,7 +1039,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
             <Pressable
               key={mutualMatch.userId}
               style={styles.mutualMatchCard}
-              onPress={() => handleOpenDetail(getMatchFromMutual(mutualMatch))}
+              onPress={() => handleOpenConversation(mutualMatch.userId)}
             >
               <View style={styles.mutualMatchAvatar}>
                 <Text style={styles.mutualMatchAvatarText}>
@@ -1086,6 +1167,103 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
     );
   };
 
+  const renderChatTab = () => {
+    if (!activeConversation) {
+      return (
+        <View style={styles.emptyStateCard}>
+          <Text style={styles.emptyStateTitle}>No conversation open</Text>
+          <Text style={styles.emptyStateBody}>
+            Open a mutual match to start the conversation.
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.sectionBody}>
+        <View style={styles.chatHeaderCard}>
+          <Pressable
+            style={styles.chatBackButton}
+            onPress={() => setActiveTab("community")}
+          >
+            <Text style={styles.chatBackText}>{"<"}</Text>
+          </Pressable>
+          <View style={styles.chatHeaderCopy}>
+            <Text style={styles.chatHeaderTitle}>
+              {activeConversation.otherUserName}
+            </Text>
+            <Text style={styles.chatHeaderMeta}>
+              {activeConversation.otherUserLocationCity ||
+                "Matched through shared music"}
+            </Text>
+          </View>
+        </View>
+
+        {chatError ? (
+          <View style={styles.infoBanner}>
+            <Text style={styles.infoBannerText}>{chatError}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.chatMessagePanel}>
+          {chatMessages.length === 0 ? (
+            <View style={styles.chatEmptyState}>
+              <Text style={styles.chatEmptyTitle}>Say something real.</Text>
+              <Text style={styles.chatEmptyBody}>
+                Start with the song, artist, or energy that made this match feel
+                familiar.
+              </Text>
+            </View>
+          ) : (
+            chatMessages.map((message) => {
+              const isMine = message.senderId === session.user.id;
+
+              return (
+                <View
+                  key={message.id}
+                  style={[
+                    styles.chatBubble,
+                    isMine ? styles.chatBubbleMine : styles.chatBubbleTheirs,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.chatBubbleText,
+                      isMine && styles.chatBubbleTextMine,
+                    ]}
+                  >
+                    {message.content}
+                  </Text>
+                </View>
+              );
+            })
+          )}
+        </View>
+
+        <View style={styles.chatComposer}>
+          <TextInput
+            value={chatDraft}
+            onChangeText={setChatDraft}
+            placeholder="Message them..."
+            placeholderTextColor="rgba(255,255,255,0.42)"
+            style={styles.chatInput}
+            multiline
+          />
+          <Pressable
+            style={[
+              styles.chatSendButton,
+              (!chatDraft.trim() || chatLoading) && styles.actionDisabled,
+            ]}
+            onPress={handleSendChatMessage}
+            disabled={!chatDraft.trim() || chatLoading}
+          >
+            <Text style={styles.chatSendText}>{chatLoading ? "..." : "Send"}</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  };
+
   const renderContent = () => {
     if (loading && matches.length === 0) {
       return (
@@ -1105,12 +1283,14 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
         return renderCommunityTab();
       case "nearby":
         return renderNearbyTab();
+      case "chat":
+        return renderChatTab();
       default:
         return null;
     }
   };
 
-  const navItems: Array<{ key: DiscoverTab; icon: string }> = [
+  const navItems: Array<{ key: Exclude<DiscoverTab, "chat">; icon: string }> = [
     { key: "matches", icon: "Feed" },
     { key: "detail", icon: "View" },
     { key: "community", icon: "Club" },
@@ -1174,7 +1354,9 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
             ]}
           >
             {navItems.map((item) => {
-              const isActive = activeTab === item.key;
+              const isActive =
+                activeTab === item.key ||
+                (activeTab === "chat" && item.key === "community");
 
               return (
                 <Pressable
@@ -2071,6 +2253,139 @@ const styles = StyleSheet.create({
   mutualMatchBadgeText: {
     color: "#82F7A6",
     fontSize: 12,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  chatHeaderCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 24,
+    padding: 14,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  chatBackButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    marginRight: 12,
+  },
+  chatBackText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  chatHeaderCopy: {
+    flex: 1,
+  },
+  chatHeaderTitle: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    lineHeight: 22,
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 4,
+  },
+  chatHeaderMeta: {
+    color: "rgba(255,248,251,0.68)",
+    fontSize: 12,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  chatMessagePanel: {
+    minHeight: 340,
+    borderRadius: 28,
+    padding: 16,
+    backgroundColor: "rgba(10,8,12,0.30)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    gap: 10,
+  },
+  chatEmptyState: {
+    flex: 1,
+    minHeight: 260,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 18,
+  },
+  chatEmptyTitle: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    lineHeight: 26,
+    textAlign: "center",
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 10,
+  },
+  chatEmptyBody: {
+    color: "rgba(255,248,251,0.70)",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  chatBubble: {
+    maxWidth: "82%",
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+  },
+  chatBubbleMine: {
+    alignSelf: "flex-end",
+    backgroundColor: "#F26A8D",
+    borderColor: "rgba(255,123,89,0.28)",
+  },
+  chatBubbleTheirs: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  chatBubbleText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  chatBubbleTextMine: {
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  chatComposer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 10,
+    borderRadius: 28,
+    padding: 10,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  chatInput: {
+    flex: 1,
+    minHeight: 42,
+    maxHeight: 96,
+    color: "#FFFFFF",
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: "SpaceGrotesk_400Regular",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  chatSendButton: {
+    minWidth: 68,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F26A8D",
+    borderWidth: 1,
+    borderColor: "rgba(255,123,89,0.28)",
+  },
+  chatSendText: {
+    color: "#FFFFFF",
+    fontSize: 13,
     fontFamily: "SpaceGrotesk_700Bold",
   },
   communityAvatar: {

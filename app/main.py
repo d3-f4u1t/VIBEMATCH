@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.database import Base, engine, ensure_user_profile_columns
-from app.routes import users, artists, auth, matching, swipe
+from app.routes import users, artists, auth, matching, swipe, chat
 
 Base.metadata.create_all(bind= engine)
 ensure_user_profile_columns()
@@ -12,6 +12,7 @@ app.include_router(users.router)
 app.include_router(artists.router)
 app.include_router(matching.router)
 app.include_router(swipe.router)
+app.include_router(chat.router)
 
 @app.get("/")
 def home():

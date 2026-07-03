@@ -22,7 +22,6 @@ class User(Base):
     sexuality = Column(String, nullable=True)
     music_vector = Column(JSON, nullable = True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    ethnicity = Column(String, nullable= True)
     height = Column(String, nullable= True)
     z_sign= Column(String, nullable = True)
     f_plan = Column(String, nullable= True)
