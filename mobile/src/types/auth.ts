@@ -35,6 +35,7 @@ export type UserProfileResponse = UserResponse & {
   sexuality: string | null;
   ethnicity: string | null;
   height: string | null;
+  weight: string | null;
   z_sign: string | null;
   f_plan: string | null;
   pets: string | null;
@@ -52,6 +53,7 @@ export type UserProfileUpdatePayload = {
   sexuality?: string;
   ethnicity?: string;
   height?: string;
+  weight?: string;
   z_sign?: string;
   f_plan?: string;
   pets?: string;

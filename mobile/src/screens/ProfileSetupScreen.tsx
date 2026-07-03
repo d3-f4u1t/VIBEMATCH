@@ -42,6 +42,7 @@ type ProfileStepKey =
   | "location"
   | "bio"
   | "height"
+  | "weight"
   | "ethnicity"
   | "z_sign"
   | "f_plan"
@@ -60,6 +61,7 @@ type ProfileState = {
   location: string;
   bio: string;
   height: string;
+  weight: string;
   ethnicity: string;
   z_sign: string;
   f_plan: string;
@@ -214,6 +216,12 @@ const PROFILE_STEPS: StepConfig[] = [
     placeholder: `5'10" or 178 cm`,
   },
   {
+    key: "weight",
+    eyebrow: "Details",
+    title: "What is your weight?",
+    placeholder: "e.g., 70 kg",
+  },
+  {
     key: "ethnicity",
     eyebrow: "Details",
     title: "How do you describe your ethnicity?",
@@ -291,6 +299,7 @@ export function ProfileSetupScreen({
     location: session.user.location_city ?? "",
     bio: session.user.bio ?? "",
     height: "",
+    weight: "",
     ethnicity: "",
     z_sign: "",
     f_plan: "",
@@ -352,6 +361,7 @@ export function ProfileSetupScreen({
           location: data.location_city ?? "",
           bio: data.bio ?? "",
           height: data.height ?? "",
+          weight: data.weight ?? "",
           ethnicity: data.ethnicity ?? "",
           z_sign: data.z_sign ?? "",
           f_plan: data.f_plan ?? "",
@@ -609,6 +619,8 @@ export function ProfileSetupScreen({
         return { bio: profile.bio.trim() };
       case "height":
         return { height: profile.height.trim() };
+      case "weight":
+        return { weight: profile.weight.trim() };
       case "ethnicity":
         return { ethnicity: profile.ethnicity.trim() };
       case "z_sign":
@@ -645,6 +657,7 @@ export function ProfileSetupScreen({
       location: data.location_city ?? current.location,
       bio: data.bio ?? current.bio,
       height: data.height ?? current.height,
+      weight: data.weight ?? current.weight,
       ethnicity: data.ethnicity ?? current.ethnicity,
       z_sign: data.z_sign ?? current.z_sign,
       f_plan: data.f_plan ?? current.f_plan,
