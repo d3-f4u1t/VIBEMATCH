@@ -99,6 +99,19 @@ def get_matches(
             "shared_artists": shared_artists,
             "shared_tracks": shared_tracks,
             "match_reason": build_match_reason(shared_artists, shared_tracks, similarity),
+            "bio": other.bio or "",
+            "location_city": other.location_city or "",
+            "pronouns": other.pronouns or "",
+            "gender": other.gender or "",
+            "sexuality": other.sexuality or "",
+            "height": other.height or "",
+            "weight": other.weight or "",
+            "ethnicity": other.ethnicity or "",
+            "z_sign": other.z_sign or "",
+            "f_plan": other.f_plan or "",
+            "pets": other.pets or "",
+            "religion": other.religion or "",
+            "habit": other.habit or {},
         })
 
     matches.sort(key = lambda item: item["similarity"], reverse= True)

@@ -32,6 +32,7 @@ import {
   type SwipeAction,
 } from "../lib/swipe";
 import {
+  getConversations,
   getMessages,
   openConversation,
   sendMessage,
@@ -157,6 +158,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   const [error, setError] = useState("");
   const [matchNotice, setMatchNotice] = useState("");
   const [mutualMatches, setMutualMatches] = useState<MutualMatch[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [matchModalProfile, setMatchModalProfile] = useState<MatchResult | null>(
     null
   );
@@ -185,10 +187,11 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
         setLoading(true);
         setError("");
 
-        const [matchesResult, nextResult, mutualResult] = await Promise.allSettled([
+        const [matchesResult, nextResult, mutualResult, conversationsResult] = await Promise.allSettled([
           getMatches(session.user.id),
           getNextMatch(session.user.id, session.access_token),
           getMutualMatches(session.user.id, session.access_token),
+          getConversations(session.access_token),
         ]);
 
         if (isCancelled) {
@@ -216,6 +219,12 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
           setMutualMatches(mutualResult.value);
         } else {
           setMutualMatches([]);
+        }
+
+        if (conversationsResult.status === "fulfilled") {
+          setConversations(conversationsResult.value);
+        } else {
+          setConversations([]);
         }
       } finally {
         if (!isCancelled) {
@@ -378,6 +387,7 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
 
       setChatMessages((currentMessages) => [...currentMessages, message]);
       setChatDraft("");
+      getConversations(session.access_token).then(setConversations).catch(() => {});
     } catch (sendError) {
       setChatError(
         sendError instanceof Error
@@ -412,17 +422,19 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
         setMatchNotice("");
       }
 
-      const [nextCandidate, refreshedMatches, refreshedMutualMatches] = await Promise.all([
+      const [nextCandidate, refreshedMatches, refreshedMutualMatches, refreshedConversations] = await Promise.all([
         getNextMatch(session.user.id, session.access_token),
         getMatches(session.user.id).catch(() => matches),
         getMutualMatches(session.user.id, session.access_token).catch(
           () => mutualMatches
         ),
+        getConversations(session.access_token).catch(() => conversations),
       ]);
 
       setSwipeCandidate(nextCandidate);
       setMatches(refreshedMatches);
       setMutualMatches(refreshedMutualMatches);
+      setConversations(refreshedConversations);
       setSelectedMatchId(nextCandidate?.userId ?? refreshedMatches[0]?.userId ?? null);
 
       if (
@@ -982,9 +994,12 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
                   <Text style={styles.detailName}>{selectedMatch.name}</Text>
                   <Text style={styles.detailAge}>
                     {20 + (Math.round(selectedMatch.similarity * 10) % 7)}
+                    {selectedMatch.pronouns ? ` • ${selectedMatch.pronouns}` : ""}
                   </Text>
                 </View>
-                <Text style={styles.detailMeta}>USA, California</Text>
+                <Text style={styles.detailMeta}>
+                  {selectedMatch.locationCity || "USA, California"}
+                </Text>
 
                 <View style={styles.detailChipRow}>
                   {selectedMatch.sharedArtists.slice(0, 3).map((artist) => (
@@ -996,26 +1011,92 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
                   ))}
                 </View>
 
+                {/* Profile attributes pills row */}
+                <View style={styles.detailChipsContainer}>
+                  {selectedMatch.gender && (
+                    <View style={styles.detailPill}>
+                      <Text style={styles.detailPillText}>{selectedMatch.gender}</Text>
+                    </View>
+                  )}
+                  {selectedMatch.sexuality && (
+                    <View style={styles.detailPill}>
+                      <Text style={styles.detailPillText}>{selectedMatch.sexuality}</Text>
+                    </View>
+                  )}
+                  {selectedMatch.height && (
+                    <View style={styles.detailPill}>
+                      <Text style={styles.detailPillText}>📏 {selectedMatch.height}</Text>
+                    </View>
+                  )}
+                  {selectedMatch.weight && (
+                    <View style={styles.detailPill}>
+                      <Text style={styles.detailPillText}>⚖️ {selectedMatch.weight}</Text>
+                    </View>
+                  )}
+                  {selectedMatch.zSign && (
+                    <View style={styles.detailPill}>
+                      <Text style={styles.detailPillText}>✨ {selectedMatch.zSign}</Text>
+                    </View>
+                  )}
+                  {selectedMatch.fPlan && (
+                    <View style={styles.detailPill}>
+                      <Text style={styles.detailPillText}>👶 {selectedMatch.fPlan}</Text>
+                    </View>
+                  )}
+                  {selectedMatch.pets && (
+                    <View style={styles.detailPill}>
+                      <Text style={styles.detailPillText}>🐾 {selectedMatch.pets}</Text>
+                    </View>
+                  )}
+                  {selectedMatch.religion && (
+                    <View style={styles.detailPill}>
+                      <Text style={styles.detailPillText}>🙏 {selectedMatch.religion}</Text>
+                    </View>
+                  )}
+                </View>
+
                 <Text style={styles.detailBioLabel}>Why this match</Text>
                 <Text style={styles.detailBioText}>
                   {selectedMatch.matchReason}
                 </Text>
 
-                <View style={styles.detailPromptBlock}>
-                  <Text style={styles.detailPromptLabel}>Prompt</Text>
-                  <Text style={styles.detailPromptText}>
-                    A perfect first date for me starts with music, something spontaneous,
-                    and a place where the conversation can actually breathe.
-                  </Text>
-                </View>
+                {selectedMatch.bio ? (
+                  <View style={styles.detailPromptBlock}>
+                    <Text style={styles.detailPromptLabel}>Bio</Text>
+                    <Text style={styles.detailPromptText}>{selectedMatch.bio}</Text>
+                  </View>
+                ) : (
+                  <View style={styles.detailPromptBlock}>
+                    <Text style={styles.detailPromptLabel}>Vibe check</Text>
+                    <Text style={styles.detailPromptText}>
+                      A perfect first date starts with music, something spontaneous, and a place where the conversation can actually breathe.
+                    </Text>
+                  </View>
+                )}
 
-                <View style={styles.detailPromptBlock}>
-                  <Text style={styles.detailPromptLabel}>More vibe</Text>
-                  <Text style={styles.detailPromptText}>
-                    Usually into night drives, films with atmosphere, and people who
-                    feel easy to talk to after one song.
-                  </Text>
-                </View>
+                {/* Habits block */}
+                {selectedMatch.habit && (selectedMatch.habit.smoking || selectedMatch.habit.drinking || selectedMatch.habit.weed) ? (
+                  <View style={styles.detailPromptBlock}>
+                    <Text style={styles.detailPromptLabel}>Lifestyle Habits</Text>
+                    <View style={styles.detailHabitRow}>
+                      {selectedMatch.habit.smoking && (
+                        <View style={styles.detailHabitPill}>
+                          <Text style={styles.detailHabitPillText}>🚬 {selectedMatch.habit.smoking}</Text>
+                        </View>
+                      )}
+                      {selectedMatch.habit.drinking && (
+                        <View style={styles.detailHabitPill}>
+                          <Text style={styles.detailHabitPillText}>🍷 {selectedMatch.habit.drinking}</Text>
+                        </View>
+                      )}
+                      {selectedMatch.habit.weed && (
+                        <View style={styles.detailHabitPill}>
+                          <Text style={styles.detailHabitPillText}>🌿 {selectedMatch.habit.weed}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ) : null}
               </View>
             </View>
           </LinearGradient>
@@ -1025,41 +1106,115 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
   };
 
   const renderCommunityTab = () => {
-    if (mutualMatchCount > 0) {
+    // Separate matches that have no conversation opened yet from those that do
+    const newMatches = mutualMatches.filter(
+      (match) => !conversations.some((conv) => conv.otherUserId === match.userId)
+    );
+
+    if (newMatches.length > 0 || conversations.length > 0) {
       return (
         <View style={styles.sectionBody}>
-          <View style={styles.matchCountCard}>
-            <Text style={styles.matchCountTitle}>Mutual likes</Text>
-            <Text style={styles.matchCountBody}>
-              {mutualMatchCount} {mutualMatchCount === 1 ? "person wants to keep the vibe going." : "people want to keep the vibe going."}
-            </Text>
-          </View>
+          {newMatches.length > 0 ? (
+            <View style={styles.newMatchesSection}>
+              <Text style={styles.inboxSectionTitle}>New Matches</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.newMatchesScroll}
+                contentContainerStyle={styles.newMatchesScrollContent}
+              >
+                {newMatches.map((mutualMatch) => (
+                  <Pressable
+                    key={mutualMatch.userId}
+                    style={styles.newMatchBubble}
+                    onPress={() => handleOpenConversation(mutualMatch.userId)}
+                  >
+                    <LinearGradient
+                      colors={["#F26A8D", "#FF7B59"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.newMatchAvatarGlow}
+                    >
+                      <View style={styles.newMatchAvatarInside}>
+                        <Text style={styles.newMatchAvatarText}>
+                          {mutualMatch.name.slice(0, 1).toUpperCase()}
+                        </Text>
+                      </View>
+                    </LinearGradient>
+                    <Text style={styles.newMatchLabel} numberOfLines={1}>
+                      {mutualMatch.name.split(" ")[0]}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
 
-          {mutualMatches.map((mutualMatch) => (
-            <Pressable
-              key={mutualMatch.userId}
-              style={styles.mutualMatchCard}
-              onPress={() => handleOpenConversation(mutualMatch.userId)}
-            >
-              <View style={styles.mutualMatchAvatar}>
-                <Text style={styles.mutualMatchAvatarText}>
-                  {mutualMatch.name.slice(0, 1).toUpperCase()}
+          <View style={styles.conversationsSection}>
+            <Text style={styles.inboxSectionTitle}>Messages</Text>
+            {conversations.length === 0 ? (
+              <View style={styles.emptyConversationsCard}>
+                <Text style={styles.emptyConversationsTitle}>Send the first message</Text>
+                <Text style={styles.emptyConversationsBody}>
+                  Tap one of your new matches above to start a conversation.
                 </Text>
               </View>
-              <View style={styles.mutualMatchContent}>
-                <Text style={styles.mutualMatchName}>{mutualMatch.name}</Text>
-                <Text style={styles.mutualMatchMeta}>
-                  {mutualMatch.locationCity || "Location coming in soon"}
-                </Text>
-                <Text style={styles.mutualMatchBio} numberOfLines={2}>
-                  {mutualMatch.bio || "You both matched through shared music taste and energy."}
-                </Text>
-              </View>
-              <View style={styles.mutualMatchBadge}>
-                <Text style={styles.mutualMatchBadgeText}>Match</Text>
-              </View>
-            </Pressable>
-          ))}
+            ) : (
+              conversations.map((conv) => {
+                const formattedTime = conv.lastMessage
+                  ? new Date(conv.lastMessage.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "";
+
+                return (
+                  <Pressable
+                    key={conv.id}
+                    style={styles.conversationRow}
+                    onPress={() => {
+                      setActiveConversation(conv);
+                      setChatLoading(true);
+                      setChatError("");
+                      getMessages(conv.id, session.access_token)
+                        .then((msgs) => {
+                          setChatMessages(msgs);
+                          setActiveTab("chat");
+                        })
+                        .catch((err) => {
+                          setChatError(err.message || "Failed to load messages");
+                        })
+                        .finally(() => {
+                          setChatLoading(false);
+                        });
+                    }}
+                  >
+                    <LinearGradient
+                      colors={["#BFD6F3", "#7B9BC7"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.convAvatarGlow}
+                    >
+                      <View style={styles.convAvatarInside}>
+                        <Text style={styles.convAvatarText}>
+                          {conv.otherUserName.slice(0, 1).toUpperCase()}
+                        </Text>
+                      </View>
+                    </LinearGradient>
+                    <View style={styles.convDetails}>
+                      <View style={styles.convHeader}>
+                        <Text style={styles.convName}>{conv.otherUserName}</Text>
+                        <Text style={styles.convTime}>{formattedTime}</Text>
+                      </View>
+                      <Text style={styles.convLastMessage} numberOfLines={1}>
+                        {conv.lastMessage ? conv.lastMessage.content : "Vibe check! Send a message."}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })
+            )}
+          </View>
         </View>
       );
     }
@@ -2578,6 +2733,173 @@ const styles = StyleSheet.create({
   },
   bottomNavIconActive: {
     color: "#82F7A6",
+  },
+  newMatchesSection: {
+    marginBottom: 24,
+  },
+  inboxSectionTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "SpaceGrotesk_700Bold",
+    letterSpacing: -0.2,
+    marginBottom: 12,
+  },
+  newMatchesScroll: {
+    flexDirection: "row",
+  },
+  newMatchesScrollContent: {
+    gap: 16,
+    paddingRight: 16,
+  },
+  newMatchBubble: {
+    alignItems: "center",
+    width: 68,
+  },
+  newMatchAvatarGlow: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    padding: 1.8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+  },
+  newMatchAvatarInside: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 29,
+    backgroundColor: "#0F0B15",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  newMatchAvatarText: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  newMatchLabel: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 11,
+    fontFamily: "SpaceGrotesk_500Medium",
+    textAlign: "center",
+  },
+  conversationsSection: {
+    flex: 1,
+  },
+  emptyConversationsCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(255,255,255,0.03)",
+    paddingVertical: 32,
+    paddingHorizontal: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyConversationsTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 6,
+  },
+  emptyConversationsBody: {
+    color: "rgba(255,255,255,0.52)",
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: "SpaceGrotesk_400Regular",
+    textAlign: "center",
+  },
+  conversationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.04)",
+  },
+  convAvatarGlow: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    padding: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  convAvatarInside: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 24,
+    backgroundColor: "#161122",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  convAvatarText: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  convDetails: {
+    flex: 1,
+  },
+  convHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  convName: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  convTime: {
+    color: "rgba(255,255,255,0.44)",
+    fontSize: 11,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  convLastMessage: {
+    color: "rgba(255,255,255,0.64)",
+    fontSize: 13,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  detailChipsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  detailPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  detailPillText: {
+    color: "rgba(255,255,255,0.86)",
+    fontSize: 12,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  detailHabitRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+  },
+  detailHabitPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: "rgba(130,247,166,0.09)",
+    borderWidth: 1,
+    borderColor: "rgba(130,247,166,0.18)",
+  },
+  detailHabitPillText: {
+    color: "#82F7A6",
+    fontSize: 11,
+    fontFamily: "SpaceGrotesk_500Medium",
   },
   hiddenSignOutHit: {
     position: "absolute",

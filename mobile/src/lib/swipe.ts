@@ -14,6 +14,21 @@ type NextMatchApiResponse = {
   shared_artists: string[];
   shared_tracks: string[];
   match_reason: string;
+  pronouns?: string;
+  gender?: string;
+  sexuality?: string;
+  height?: string;
+  weight?: string;
+  ethnicity?: string;
+  z_sign?: string;
+  f_plan?: string;
+  pets?: string;
+  religion?: string;
+  habit?: {
+    smoking?: string;
+    drinking?: string;
+    weed?: string;
+  };
   detail?: string;
 };
 
@@ -27,6 +42,21 @@ type MutualMatchApiItem = {
   bio: string;
   location_city: string;
   matched_at: string;
+  pronouns?: string;
+  gender?: string;
+  sexuality?: string;
+  height?: string;
+  weight?: string;
+  ethnicity?: string;
+  z_sign?: string;
+  f_plan?: string;
+  pets?: string;
+  religion?: string;
+  habit?: {
+    smoking?: string;
+    drinking?: string;
+    weed?: string;
+  };
 };
 
 type MutualMatchesApiResponse = {
@@ -40,11 +70,26 @@ export type MutualMatch = {
   bio: string;
   locationCity: string;
   matchedAt: string;
+  pronouns?: string;
+  gender?: string;
+  sexuality?: string;
+  height?: string;
+  weight?: string;
+  ethnicity?: string;
+  zSign?: string;
+  fPlan?: string;
+  pets?: string;
+  religion?: string;
+  habit?: {
+    smoking?: string;
+    drinking?: string;
+    weed?: string;
+  };
 };
 
 function buildAuthHeaders(token: string) {
   return {
-    Authorization: `Bearer ${token}`,
+    Authorization: `Bearer {token}`,
     "Content-Type": "application/json",
   };
 }
@@ -74,6 +119,17 @@ function mapNextMatch(data: NextMatchApiResponse): MatchResult {
     sharedArtists: data.shared_artists ?? [],
     sharedTracks: data.shared_tracks ?? [],
     matchReason: data.match_reason,
+    pronouns: data.pronouns,
+    gender: data.gender,
+    sexuality: data.sexuality,
+    height: data.height,
+    weight: data.weight,
+    ethnicity: data.ethnicity,
+    zSign: data.z_sign,
+    fPlan: data.f_plan,
+    pets: data.pets,
+    religion: data.religion,
+    habit: data.habit,
   };
 }
 
@@ -85,7 +141,10 @@ export async function getNextMatch(
     `${API_BASE_URL}/swipe/next/${encodeURIComponent(userId)}`,
     {
       method: "GET",
-      headers: buildAuthHeaders(token),
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     }
   );
 
@@ -109,7 +168,10 @@ export async function createSwipe(
 ): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/swipe/`, {
     method: "POST",
-    headers: buildAuthHeaders(token),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       swiped_user_id: swipedUserId,
       action,
@@ -135,7 +197,10 @@ export async function getMutualMatches(
     `${API_BASE_URL}/swipe/mutual/${encodeURIComponent(userId)}`,
     {
       method: "GET",
-      headers: buildAuthHeaders(token),
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     }
   );
 
@@ -151,5 +216,16 @@ export async function getMutualMatches(
     bio: match.bio,
     locationCity: match.location_city,
     matchedAt: match.matched_at,
+    pronouns: match.pronouns,
+    gender: match.gender,
+    sexuality: match.sexuality,
+    height: match.height,
+    weight: match.weight,
+    ethnicity: match.ethnicity,
+    zSign: match.z_sign,
+    fPlan: match.f_plan,
+    pets: match.pets,
+    religion: match.religion,
+    habit: match.habit,
   }));
 }

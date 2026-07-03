@@ -139,6 +139,7 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
         other_user_artist_names = {artist.name for artist in other_user.artists if artist.name}
         other_user_track_titles = {track.title for track in other_user.tracks if track.title}
         
+        
         shared_artists = sorted(current_user_artist_names & other_user_artist_names)
         shared_tracks = sorted(current_user_track_titles & other_user_track_titles)
         
@@ -156,6 +157,17 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
             "shared_artists": shared_artists,
             "shared_tracks": shared_tracks,
             "match_reason": match_reason,
+            "pronouns": other_user.pronouns or "",
+            "gender": other_user.gender or "",
+            "sexuality": other_user.sexuality or "",
+            "height": other_user.height or "",
+            "weight": other_user.weight or "",
+            "ethnicity": other_user.ethnicity or "",
+            "z_sign": other_user.z_sign or "",
+            "f_plan": other_user.f_plan or "",
+            "pets": other_user.pets or "",
+            "religion": other_user.religion or "",
+            "habit": other_user.habit or {},
         })
     
     # Return highest similarity match
@@ -240,7 +252,18 @@ def get_mutual_likes(user_id: str, db: Session) -> list[dict]:
                 "name": swiper.name,
                 "bio": swiper.bio or "",
                 "location_city": swiper.location_city or "",
-                "matched_at": swipe_received.created_at
+                "matched_at": swipe_received.created_at,
+                "pronouns": swiper.pronouns or "",
+                "gender": swiper.gender or "",
+                "sexuality": swiper.sexuality or "",
+                "height": swiper.height or "",
+                "weight": swiper.weight or "",
+                "ethnicity": swiper.ethnicity or "",
+                "z_sign": swiper.z_sign or "",
+                "f_plan": swiper.f_plan or "",
+                "pets": swiper.pets or "",
+                "religion": swiper.religion or "",
+                "habit": swiper.habit or {},
             })
     
     return mutual_matches

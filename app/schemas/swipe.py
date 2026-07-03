@@ -50,6 +50,17 @@ class NextMatchResponse(BaseModel):
     shared_artists: list[str]
     shared_tracks: list[str]
     match_reason: str
+    pronouns: str | None = None
+    gender: str | None = None
+    sexuality: str | None = None
+    height: str | None = None
+    weight: str | None = None
+    ethnicity: str | None = None
+    z_sign: str | None = None
+    f_plan: str | None = None
+    pets: str | None = None
+    religion: str | None = None
+    habit: dict | None = None
 
 
 class MutualMatchItem(BaseModel):
@@ -58,6 +69,17 @@ class MutualMatchItem(BaseModel):
     bio: str
     location_city: str
     matched_at: datetime
+    pronouns: str | None = None
+    gender: str | None = None
+    sexuality: str | None = None
+    height: str | None = None
+    weight: str | None = None
+    ethnicity: str | None = None
+    z_sign: str | None = None
+    f_plan: str | None = None
+    pets: str | None = None
+    religion: str | None = None
+    habit: dict | None = None
 
 
 class MutualMatchesResponse(BaseModel):

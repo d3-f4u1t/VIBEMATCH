@@ -11,6 +11,21 @@ export type MatchResult = {
   sharedArtists: string[];
   sharedTracks: string[];
   matchReason: string;
+  pronouns?: string;
+  gender?: string;
+  sexuality?: string;
+  height?: string;
+  weight?: string;
+  ethnicity?: string;
+  zSign?: string;
+  fPlan?: string;
+  pets?: string;
+  religion?: string;
+  habit?: {
+    smoking?: string;
+    drinking?: string;
+    weed?: string;
+  };
 };
 
 type MatchApiResponse = {
@@ -23,6 +38,23 @@ type MatchApiResponse = {
     shared_artists: string[];
     shared_tracks: string[];
     match_reason: string;
+    bio?: string;
+    location_city?: string;
+    pronouns?: string;
+    gender?: string;
+    sexuality?: string;
+    height?: string;
+    weight?: string;
+    ethnicity?: string;
+    z_sign?: string;
+    f_plan?: string;
+    pets?: string;
+    religion?: string;
+    habit?: {
+      smoking?: string;
+      drinking?: string;
+      weed?: string;
+    };
   }>;
   detail?: string;
 };
@@ -48,13 +80,24 @@ export async function getMatches(userId: string): Promise<MatchResult[]> {
   return (data.matches ?? []).map((match) => ({
     userId: match.user_id,
     name: match.name,
-    bio: "",
-    locationCity: "",
+    bio: match.bio ?? "",
+    locationCity: match.location_city ?? "",
     similarity: match.similarity,
     artistCount: match.artist_count,
     trackCount: match.track_count,
     sharedArtists: match.shared_artists,
     sharedTracks: match.shared_tracks,
     matchReason: match.match_reason,
+    pronouns: match.pronouns,
+    gender: match.gender,
+    sexuality: match.sexuality,
+    height: match.height,
+    weight: match.weight,
+    ethnicity: match.ethnicity,
+    zSign: match.z_sign,
+    fPlan: match.f_plan,
+    pets: match.pets,
+    religion: match.religion,
+    habit: match.habit,
   }));
 }
