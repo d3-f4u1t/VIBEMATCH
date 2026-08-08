@@ -12,11 +12,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import type { TokenResponse } from "../types/auth";
 import { getMutualMatches, type MutualMatch } from "../lib/swipe";
 import { getConversations, type Conversation } from "../lib/chat";
-import type { MatchResult } from "../lib/matching";
 
 type InboxScreenProps = {
   session: TokenResponse;
   onOpenConversation: (conversation: Conversation) => void;
+  onOpenConversationForMatch: (matchedUserId: string) => Promise<void>;
+  onChatError: string;
 };
 
 // Dummy data from DiscoverScreen
@@ -30,11 +31,14 @@ const COMMUNITY_PEOPLE = [
 export function InboxScreen({
   session,
   onOpenConversation,
+  onOpenConversationForMatch,
+  onChatError,
 }: InboxScreenProps) {
   const [mutualMatches, setMutualMatches] = useState<MutualMatch[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [openingMatchId, setOpeningMatchId] = useState<string | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -52,12 +56,22 @@ export function InboxScreen({
           setMutualMatches(mutualResult.value);
         } else {
           setMutualMatches([]);
+          setError(
+            mutualResult.reason instanceof Error
+              ? mutualResult.reason.message
+              : "Could not load your matches."
+          );
         }
 
         if (conversationsResult.status === "fulfilled") {
           setConversations(conversationsResult.value);
         } else {
           setConversations([]);
+          setError(
+            conversationsResult.reason instanceof Error
+              ? conversationsResult.reason.message
+              : "Could not load your inbox."
+          );
         }
       } finally {
         if (!isCancelled) setLoading(false);
@@ -74,6 +88,22 @@ export function InboxScreen({
     (match) => !conversations.some((conv) => conv.otherUserId === match.userId)
   );
 
+  const handleOpenNewMatch = async (mutualMatch: MutualMatch) => {
+    try {
+      setOpeningMatchId(mutualMatch.userId);
+      setError("");
+      await onOpenConversationForMatch(mutualMatch.userId);
+    } catch (openError) {
+      setError(
+        openError instanceof Error
+          ? openError.message
+          : "Could not open this conversation."
+      );
+    } finally {
+      setOpeningMatchId(null);
+    }
+  };
+
   if (loading && mutualMatches.length === 0 && conversations.length === 0) {
     return (
       <View style={styles.centerStateCard}>
@@ -85,6 +115,12 @@ export function InboxScreen({
   if (newMatches.length > 0 || conversations.length > 0) {
     return (
       <View style={styles.sectionBody}>
+        {error || onChatError ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>{error || onChatError}</Text>
+          </View>
+        ) : null}
+
         {newMatches.length > 0 ? (
           <View style={styles.newMatchesSection}>
             <Text style={styles.inboxSectionTitle}>New Matches</Text>
@@ -98,19 +134,8 @@ export function InboxScreen({
                 <Pressable
                   key={mutualMatch.userId}
                   style={styles.newMatchBubble}
-                  onPress={() => {
-                    const newConv: Conversation = {
-                      id: "new_" + mutualMatch.userId,
-                      otherUserId: mutualMatch.userId,
-                      otherUserName: mutualMatch.name,
-                      otherUserBio: "",
-                      otherUserLocationCity: "",
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString(),
-                      lastMessage: null,
-                    };
-                    onOpenConversation(newConv);
-                  }}
+                  onPress={() => void handleOpenNewMatch(mutualMatch)}
+                  disabled={openingMatchId === mutualMatch.userId}
                 >
                   <LinearGradient
                     colors={["#F26A8D", "#FF7B59"]}
@@ -120,7 +145,9 @@ export function InboxScreen({
                   >
                     <View style={styles.newMatchAvatarInside}>
                       <Text style={styles.newMatchAvatarText}>
-                        {mutualMatch.name.slice(0, 1).toUpperCase()}
+                        {openingMatchId === mutualMatch.userId
+                          ? "..."
+                          : mutualMatch.name.slice(0, 1).toUpperCase()}
                       </Text>
                     </View>
                   </LinearGradient>
@@ -189,6 +216,12 @@ export function InboxScreen({
 
   return (
     <View style={styles.sectionBody}>
+      {error || onChatError ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>{error || onChatError}</Text>
+        </View>
+      ) : null}
+
       <View style={styles.emptyStateCard}>
         <Text style={styles.emptyStateTitle}>No mutual matches yet</Text>
         <Text style={styles.emptyStateBody}>
@@ -228,6 +261,22 @@ const styles = StyleSheet.create({
     minHeight: 200,
     alignItems: "center",
     justifyContent: "center",
+  },
+  errorBanner: {
+    backgroundColor: "rgba(242,106,141,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(242,106,141,0.2)",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  errorBannerText: {
+    color: "#FFB7BD",
+    fontSize: 13,
+    lineHeight: 19,
+    fontFamily: "SpaceGrotesk_500Medium",
+    textAlign: "center",
   },
   emptyStateCard: {
     backgroundColor: "rgba(255,255,255,0.03)",

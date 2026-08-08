@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ArtistCreate(BaseModel):
@@ -10,12 +10,11 @@ class ArtistCreate(BaseModel):
 
 
 class ArtistResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id : int
     mb_id : str
     name : str
     country : str | None
     tags : list[str]
     artist_type : str | None
-
-    class Config:
-        from_attributes = True

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from app.models.swipe import SwipeAction
 
@@ -11,15 +11,15 @@ class SwipeCreate(BaseModel):
 
 class SwipeResponse(BaseModel):
     """Response model for a single swipe"""
+
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     swiper_id: str
     swiped_user_id: str
     action: SwipeAction
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class SwipeHistoryItem(BaseModel):

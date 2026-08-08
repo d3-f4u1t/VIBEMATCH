@@ -20,7 +20,7 @@ import { DiscoverScreen } from "./DiscoverScreen";
 import { InboxScreen } from "./InboxScreen";
 import { ChatThreadScreen } from "./ChatThreadScreen";
 import { NearbyScreen } from "./NearbyScreen";
-import type { Conversation } from "../lib/chat";
+import { openConversation, type Conversation } from "../lib/chat";
 import type { MatchResult } from "../lib/matching";
 
 type MainScreenProps = {
@@ -41,6 +41,7 @@ export function MainScreen({ session, onSignOut }: MainScreenProps) {
   const [activeTab, setActiveTab] = useState<MainTab>("matches");
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [selectedMatch, setSelectedMatch] = useState<MatchResult | null>(null);
+  const [chatOpenError, setChatOpenError] = useState("");
 
   const scrollRef = useRef<ScrollView>(null);
   const { width, height } = useWindowDimensions();
@@ -82,9 +83,29 @@ export function MainScreen({ session, onSignOut }: MainScreenProps) {
   };
 
   const handleOpenConversation = (conversation: Conversation) => {
+    setChatOpenError("");
     setActiveConversation(conversation);
     setActiveTab("chat");
     scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
+  const handleOpenConversationForMatch = async (matchedUserId: string) => {
+    try {
+      setChatOpenError("");
+      const conversation = await openConversation(
+        matchedUserId,
+        session.access_token
+      );
+      handleOpenConversation(conversation);
+    } catch (error) {
+      setChatOpenError(
+        error instanceof Error
+          ? error.message
+          : "Could not open this conversation yet."
+      );
+      setActiveTab("community");
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    }
   };
 
   const renderContent = () => {
@@ -97,18 +118,8 @@ export function MainScreen({ session, onSignOut }: MainScreenProps) {
             isDetailMode={isDetailMode}
             selectedMatch={selectedMatch}
             onOpenDetail={handleOpenDetail}
-            onOpenChat={(matchedUserId, name) => {
-               const dummyConv: Conversation = {
-                  id: "new_" + matchedUserId,
-                  otherUserId: matchedUserId,
-                  otherUserName: name,
-                  otherUserBio: "",
-                  otherUserLocationCity: "",
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                  lastMessage: null,
-               };
-               handleOpenConversation(dummyConv);
+            onOpenChat={(matchedUserId) => {
+              void handleOpenConversationForMatch(matchedUserId);
             }}
             onCloseDetail={() => setActiveTab("matches")}
             onSignOut={onSignOut}
@@ -119,6 +130,8 @@ export function MainScreen({ session, onSignOut }: MainScreenProps) {
           <InboxScreen
             session={session}
             onOpenConversation={handleOpenConversation}
+            onChatError={chatOpenError}
+            onOpenConversationForMatch={handleOpenConversationForMatch}
           />
         );
       case "nearby":

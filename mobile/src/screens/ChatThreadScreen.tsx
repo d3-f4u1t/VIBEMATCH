@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -29,17 +31,22 @@ export function ChatThreadScreen({
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatDraft, setChatDraft] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [chatError, setChatError] = useState("");
+  const scrollRef = useRef<ScrollView | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
 
-    const loadMessages = async () => {
+    const loadMessages = async (showLoader = true) => {
       try {
-        setChatLoading(true);
+        if (showLoader) {
+          setChatLoading(true);
+        }
         const msgs = await getMessages(conversation.id, session.access_token);
         if (!isCancelled) {
           setChatMessages(msgs);
+          setChatError("");
         }
       } catch (err) {
         if (!isCancelled) {
@@ -53,17 +60,29 @@ export function ChatThreadScreen({
     };
 
     loadMessages();
+    const intervalId = setInterval(() => {
+      void loadMessages(false);
+    }, 6000);
 
     return () => {
       isCancelled = true;
+      clearInterval(intervalId);
     };
   }, [conversation.id, session.access_token]);
 
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 80);
+
+    return () => clearTimeout(timeoutId);
+  }, [chatMessages.length]);
+
   const handleSendChatMessage = async () => {
     const content = chatDraft.trim();
-    if (!content || chatLoading) return;
+    if (!content || sendingMessage) return;
 
-    setChatLoading(true);
+    setSendingMessage(true);
     setChatError("");
 
     try {
@@ -81,9 +100,15 @@ export function ChatThreadScreen({
           : "Could not send this message."
       );
     } finally {
-      setChatLoading(false);
+      setSendingMessage(false);
     }
   };
+
+  const formatMessageTime = (value: string) =>
+    new Date(value).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   return (
     <View style={styles.sectionBody}>
@@ -109,7 +134,11 @@ export function ChatThreadScreen({
       ) : null}
 
       <View style={styles.chatMessagePanel}>
-        {chatMessages.length === 0 ? (
+        {chatLoading ? (
+          <View style={styles.chatLoadingState}>
+            <ActivityIndicator size="small" color="#82F7A6" />
+          </View>
+        ) : chatMessages.length === 0 ? (
           <View style={styles.chatEmptyState}>
             <Text style={styles.chatEmptyTitle}>Say something real.</Text>
             <Text style={styles.chatEmptyBody}>
@@ -118,28 +147,42 @@ export function ChatThreadScreen({
             </Text>
           </View>
         ) : (
-          chatMessages.map((message) => {
-            const isMine = message.senderId === session.user.id;
+          <ScrollView
+            ref={scrollRef}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.chatMessageList}
+          >
+            {chatMessages.map((message) => {
+              const isMine = message.senderId === session.user.id;
 
-            return (
-              <View
-                key={message.id}
-                style={[
-                  styles.chatBubble,
-                  isMine ? styles.chatBubbleMine : styles.chatBubbleTheirs,
-                ]}
-              >
-                <Text
+              return (
+                <View
+                  key={message.id}
                   style={[
-                    styles.chatBubbleText,
-                    isMine && styles.chatBubbleTextMine,
+                    styles.chatBubble,
+                    isMine ? styles.chatBubbleMine : styles.chatBubbleTheirs,
                   ]}
                 >
-                  {message.content}
-                </Text>
-              </View>
-            );
-          })
+                  <Text
+                    style={[
+                      styles.chatBubbleText,
+                      isMine && styles.chatBubbleTextMine,
+                    ]}
+                  >
+                    {message.content}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.chatBubbleTime,
+                      isMine && styles.chatBubbleTimeMine,
+                    ]}
+                  >
+                    {formatMessageTime(message.createdAt)}
+                  </Text>
+                </View>
+              );
+            })}
+          </ScrollView>
         )}
       </View>
 
@@ -155,12 +198,12 @@ export function ChatThreadScreen({
         <Pressable
           style={[
             styles.chatSendButton,
-            (!chatDraft.trim() || chatLoading) && styles.actionDisabled,
+            (!chatDraft.trim() || sendingMessage) && styles.actionDisabled,
           ]}
           onPress={handleSendChatMessage}
-          disabled={!chatDraft.trim() || chatLoading}
+          disabled={!chatDraft.trim() || sendingMessage}
         >
-          <Text style={styles.chatSendText}>{chatLoading ? "..." : "Send"}</Text>
+          <Text style={styles.chatSendText}>{sendingMessage ? "..." : "Send"}</Text>
         </Pressable>
       </View>
     </View>
@@ -229,6 +272,17 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 8,
     paddingBottom: 24,
+    minHeight: 360,
+  },
+  chatMessageList: {
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  chatLoadingState: {
+    flex: 1,
+    minHeight: 260,
+    alignItems: "center",
+    justifyContent: "center",
   },
   chatEmptyState: {
     flex: 1,
@@ -275,6 +329,17 @@ const styles = StyleSheet.create({
   },
   chatBubbleTextMine: {
     color: "#08080B",
+  },
+  chatBubbleTime: {
+    color: "rgba(255,255,255,0.44)",
+    fontSize: 10,
+    lineHeight: 13,
+    fontFamily: "SpaceGrotesk_500Medium",
+    marginTop: 6,
+    alignSelf: "flex-end",
+  },
+  chatBubbleTimeMine: {
+    color: "rgba(8,8,11,0.55)",
   },
   chatComposer: {
     flexDirection: "row",
