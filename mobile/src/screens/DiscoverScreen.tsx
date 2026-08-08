@@ -5,48 +5,34 @@ import {
   Dimensions,
   Easing,
   PanResponder,
-  Platform,
   Pressable,
   ScrollView,
   StatusBar as NativeStatusBar,
   StyleSheet,
   Text,
-  TextInput,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFonts } from "expo-font";
-import {
-  SpaceGrotesk_400Regular,
-  SpaceGrotesk_500Medium,
-  SpaceGrotesk_700Bold,
-} from "@expo-google-fonts/space-grotesk";
 
 import { getMatches, type MatchResult } from "../lib/matching";
 import {
   createSwipe,
-  type MutualMatch,
-  getMutualMatches,
   getNextMatch,
+  getMutualMatches,
+  type MutualMatch,
   type SwipeAction,
 } from "../lib/swipe";
-import {
-  getConversations,
-  getMessages,
-  openConversation,
-  sendMessage,
-  type ChatMessage,
-  type Conversation,
-} from "../lib/chat";
 import type { TokenResponse } from "../types/auth";
 
 type DiscoverScreenProps = {
   session: TokenResponse;
+  isDetailMode: boolean;
+  selectedMatch: MatchResult | null;
+  onOpenDetail: (match: MatchResult) => void;
+  onOpenChat: (matchedUserId: string, name: string) => void;
+  onCloseDetail: () => void;
   onSignOut: () => void;
 };
-
-type DiscoverTab = "matches" | "detail" | "community" | "nearby" | "chat";
 
 type FeedCardTone = {
   start: string;
@@ -76,15 +62,6 @@ const FEED_TONES: FeedCardTone[] = [
   },
 ];
 
-const COMMUNITY_PEOPLE = [
-  { name: "Ava", color: "#F26A8D" },
-  { name: "Mae", color: "#82F7A6" },
-  { name: "Luna", color: "#BBB0F7" },
-  { name: "June", color: "#FF7B59" },
-];
-
-const NEARBY_DISTANCES = ["1.5 km", "1.2 km", "2.1 km", "900 m"];
-
 function buildFallbackMatches(currentUserName: string): MatchResult[] {
   return [
     {
@@ -108,17 +85,6 @@ function buildFallbackMatches(currentUserName: string): MatchResult[] {
       matchReason:
         "You both lean into high-energy rap and cinematic night-drive tracks, so the match score stays consistently high.",
     },
-    {
-      userId: "preview-3",
-      name: "Perthvi Laurence",
-      similarity: 0.84,
-      artistCount: 3,
-      trackCount: 4,
-      sharedArtists: ["FKA twigs", "James Blake", "Lorde"],
-      sharedTracks: ["Cellophane", "Retrograde"],
-      matchReason:
-        "The vibe overlap is calmer here: introspection, art-pop edges, and slower tracks that usually pair well in conversation-first matches.",
-    },
   ];
 }
 
@@ -126,53 +92,25 @@ function useMatchTone(index: number) {
   return FEED_TONES[index % FEED_TONES.length];
 }
 
-export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
-  const { width, height } = useWindowDimensions();
-  const contentWidth = Math.min(width - 32, 430);
-  const statusBarHeight = NativeStatusBar.currentHeight ?? 0;
-  const topInset =
-    Platform.OS === "android" ? statusBarHeight + 18 : 18;
-  const androidBottomInset = useMemo(() => {
-    if (Platform.OS !== "android") {
-      return 0;
-    }
-
-    const screenHeight = Dimensions.get("screen").height;
-    const rawInset = screenHeight - height - statusBarHeight;
-
-    return Math.max(rawInset, 0);
-  }, [height, statusBarHeight]);
-  const safeBottom = Platform.OS === "ios" ? 26 : Math.max(androidBottomInset + 8, 18);
-  const bottomNavHeight = 62;
-  const bottomNavOffset = safeBottom + 4;
-
-  const [fontsLoaded] = useFonts({
-    SpaceGrotesk_400Regular,
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_700Bold,
-  });
-
-  const [activeTab, setActiveTab] = useState<DiscoverTab>("matches");
+export function DiscoverScreen({
+  session,
+  isDetailMode,
+  selectedMatch,
+  onOpenDetail,
+  onOpenChat,
+  onCloseDetail,
+}: DiscoverScreenProps) {
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [matchNotice, setMatchNotice] = useState("");
-  const [mutualMatches, setMutualMatches] = useState<MutualMatch[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [matchModalProfile, setMatchModalProfile] = useState<MatchResult | null>(
-    null
-  );
-  const [activeConversation, setActiveConversation] =
-    useState<Conversation | null>(null);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatDraft, setChatDraft] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
-  const [chatError, setChatError] = useState("");
-  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+  const [matchModalProfile, setMatchModalProfile] = useState<MatchResult | null>(null);
   const [swipeCandidate, setSwipeCandidate] = useState<MatchResult | null>(null);
   const [swipeLoading, setSwipeLoading] = useState(false);
-  const tabMotion = useRef(new Animated.Value(1)).current;
+  
   const swipeTranslate = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const matchModalScale = useRef(new Animated.Value(0.7)).current;
+  const matchModalOpacity = useRef(new Animated.Value(0)).current;
 
   const fallbackMatches = useMemo(
     () => buildFallbackMatches(session.user.name),
@@ -187,26 +125,22 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
         setLoading(true);
         setError("");
 
-        const [matchesResult, nextResult, mutualResult, conversationsResult] = await Promise.allSettled([
+        const [matchesResult, nextResult] = await Promise.allSettled([
           getMatches(session.user.id),
           getNextMatch(session.user.id, session.access_token),
-          getMutualMatches(session.user.id, session.access_token),
-          getConversations(session.access_token),
         ]);
 
-        if (isCancelled) {
-          return;
-        }
+        if (isCancelled) return;
 
         if (matchesResult.status === "fulfilled") {
           setMatches(matchesResult.value);
         } else {
           setMatches([]);
-          const message =
+          setError(
             matchesResult.reason instanceof Error
               ? matchesResult.reason.message
-              : "Could not load discover right now.";
-          setError(message);
+              : "Could not load discover right now."
+          );
         }
 
         if (nextResult.status === "fulfilled") {
@@ -214,22 +148,8 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
         } else {
           setSwipeCandidate(null);
         }
-
-        if (mutualResult.status === "fulfilled") {
-          setMutualMatches(mutualResult.value);
-        } else {
-          setMutualMatches([]);
-        }
-
-        if (conversationsResult.status === "fulfilled") {
-          setConversations(conversationsResult.value);
-        } else {
-          setConversations([]);
-        }
       } finally {
-        if (!isCancelled) {
-          setLoading(false);
-        }
+        if (!isCancelled) setLoading(false);
       }
     };
 
@@ -240,2675 +160,905 @@ export function DiscoverScreen({ session, onSignOut }: DiscoverScreenProps) {
     };
   }, [session.access_token, session.user.id]);
 
-  const displayMatches = useMemo(() => {
-    const liveMatches = matches.length > 0 ? matches : [];
-
-    if (swipeCandidate) {
-      return [
-        swipeCandidate,
-        ...liveMatches.filter((match) => match.userId !== swipeCandidate.userId),
-      ];
-    }
-
-    if (liveMatches.length > 0) {
-      return liveMatches;
-    }
-
-    return fallbackMatches;
-  }, [fallbackMatches, matches, swipeCandidate]);
-
-  const usingPreviewData = matches.length === 0 && !swipeCandidate;
-
-  const selectedMatch =
-    displayMatches.find((match) => match.userId === selectedMatchId) ??
-    displayMatches[0] ??
-    null;
-
   useEffect(() => {
-    if (!selectedMatchId && displayMatches.length > 0) {
-      setSelectedMatchId(displayMatches[0].userId);
-    }
-  }, [displayMatches, selectedMatchId]);
-
-  useEffect(() => {
-    tabMotion.setValue(0);
-
-    Animated.timing(tabMotion, {
-      toValue: 1,
-      duration: 280,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [activeTab, selectedMatchId, tabMotion]);
-
-  if (!fontsLoaded) {
-    return null;
-  }
-
-  const tabAnimatedStyle = {
-    opacity: tabMotion,
-    transform: [
-      {
-        translateX: tabMotion.interpolate({
-          inputRange: [0, 1],
-          outputRange: [20, 0],
+    if (matchModalProfile) {
+      matchModalScale.setValue(0.75);
+      matchModalOpacity.setValue(0);
+      Animated.parallel([
+        Animated.spring(matchModalScale, {
+          toValue: 1,
+          friction: 6,
+          tension: 50,
+          useNativeDriver: true,
         }),
-      },
-      {
-        translateY: tabMotion.interpolate({
-          inputRange: [0, 1],
-          outputRange: [8, 0],
+        Animated.timing(matchModalOpacity, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
         }),
-      },
-    ],
-  };
-
-  const isDetailMode = activeTab === "detail";
-  const heroMatch = swipeCandidate ?? (usingPreviewData ? displayMatches[0] ?? null : null);
-  const nextStackMatch =
-    heroMatch
-      ? displayMatches.find((match) => match.userId !== heroMatch.userId) ?? null
-      : null;
-  const communityFeature = displayMatches[1] ?? heroMatch;
-  const nearbyCards = displayMatches.slice(0, 2);
-  const mutualMatchCount = mutualMatches.length;
-  const swipeThreshold = Math.min(contentWidth * 0.24, 118);
-//this is for match found as here if we have comman factor matching we will have a match 
-  const getMatchFromMutual = (mutual: MutualMatch): MatchResult => {
-    const existing =
-      displayMatches.find((match) => match.userId === mutual.userId) ??
-      matches.find((match) => match.userId === mutual.userId);
-
-    if (existing) {
-      return existing;
+      ]).start();
     }
+  }, [matchModalProfile, matchModalScale, matchModalOpacity]);
 
-    return {
-      userId: mutual.userId,
-      name: mutual.name,
-      bio: mutual.bio,
-      locationCity: mutual.locationCity,
-      similarity: 0.82,
-      artistCount: 0,
-      trackCount: 0,
-      sharedArtists: [],
-      sharedTracks: [],
-      matchReason: "You both liked each other and unlocked a new match.",
-    };
+  const closeMatchModal = (onComplete?: () => void) => {
+    Animated.parallel([
+      Animated.timing(matchModalScale, {
+        toValue: 0.82,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(matchModalOpacity, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setMatchModalProfile(null);
+      setMatchNotice("");
+      onComplete?.();
+    });
   };
 
-  const handleOpenDetail = (match: MatchResult) => {
-    setSelectedMatchId(match.userId);
-    setActiveTab("detail");
-  };
-
-  const handleOpenConversation = async (matchedUserId: string) => {
-    setChatLoading(true);
-    setChatError("");
-
-    try {
-      const conversation = await openConversation(
-        matchedUserId,
-        session.access_token
-      );
-      const messages = await getMessages(conversation.id, session.access_token);
-
-      setActiveConversation(conversation);
-      setChatMessages(messages);
-      setChatDraft("");
-      setActiveTab("chat");
-    } catch (chatOpenError) {
-      setChatError(
-        chatOpenError instanceof Error
-          ? chatOpenError.message
-          : "Could not open this conversation."
-      );
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
-  const handleSendChatMessage = async () => {
-    const content = chatDraft.trim();
-
-    if (!activeConversation || !content || chatLoading) {
-      return;
-    }
-
-    setChatLoading(true);
-    setChatError("");
-
-    try {
-      const message = await sendMessage(
-        activeConversation.id,
-        content,
-        session.access_token
-      );
-
-      setChatMessages((currentMessages) => [...currentMessages, message]);
-      setChatDraft("");
-      getConversations(session.access_token).then(setConversations).catch(() => {});
-    } catch (sendError) {
-      setChatError(
-        sendError instanceof Error
-          ? sendError.message
-          : "Could not send this message."
-      );
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
-  const closeMatchModal = () => {
-    setMatchModalProfile(null);
-    setMatchNotice("");
-  };
+  const displayMatches = matches.length > 0 ? matches : fallbackMatches;
 
   const submitSwipeAction = async (
     action: SwipeAction,
-    swipedMatch: MatchResult
-  ): Promise<boolean> => {
-    setError("");
-    setMatchNotice("");
+    profileToSwipe: MatchResult
+  ) => {
+    if (swipeLoading) return;
+    setSwipeLoading(true);
 
     try {
       await createSwipe(
-        swipedMatch.userId,
+        profileToSwipe.userId,
         action,
         session.access_token
       );
-
-      if (action === "like") {
-        setMatchNotice("");
-      }
-
-      const [nextCandidate, refreshedMatches, refreshedMutualMatches, refreshedConversations] = await Promise.all([
+      
+      const [nextOne, refreshedMutualMatches] = await Promise.all([
         getNextMatch(session.user.id, session.access_token),
-        getMatches(session.user.id).catch(() => matches),
-        getMutualMatches(session.user.id, session.access_token).catch(
-          () => mutualMatches
-        ),
-        getConversations(session.access_token).catch(() => conversations),
+        getMutualMatches(session.user.id, session.access_token).catch(() => []),
       ]);
-
-      setSwipeCandidate(nextCandidate);
-      setMatches(refreshedMatches);
-      setMutualMatches(refreshedMutualMatches);
-      setConversations(refreshedConversations);
-      setSelectedMatchId(nextCandidate?.userId ?? refreshedMatches[0]?.userId ?? null);
 
       if (
         action === "like" &&
-        refreshedMutualMatches.some((match) => match.userId === swipedMatch.userId)
+        refreshedMutualMatches.some((match) => match.userId === profileToSwipe.userId)
       ) {
-        setMatchNotice(`It's a match with ${swipedMatch.name}.`);
-        setMatchModalProfile(swipedMatch);
+        setMatchNotice(`It's a match with ${profileToSwipe.name}.`);
+        setMatchModalProfile(profileToSwipe);
       }
-
-      if (activeTab === "detail") {
-        setActiveTab("matches");
-      }
-      return true;
-    } catch (swipeError) {
-      setError(
-        swipeError instanceof Error
-          ? swipeError.message
-          : "Could not save your swipe right now."
-      );
-      return false;
+      
+      setSwipeCandidate(nextOne);
+    } catch (err) {
+      // Failed swipe
+    } finally {
+      setSwipeLoading(false);
     }
   };
 
-  const resetSwipeCard = () => {
-    Animated.spring(swipeTranslate, {
-      toValue: { x: 0, y: 0 },
-      speed: 20,
-      bounciness: 8,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const triggerSwipeAction = (
+  const triggerSwipeAnimation = (
     action: SwipeAction,
     direction: "left" | "right" | "up"
   ) => {
-    if (!heroMatch || usingPreviewData || swipeLoading) {
+    if (!swipeCandidate || swipeLoading) {
       return;
     }
 
     setSwipeLoading(true);
 
+    const { width, height } = Dimensions.get("window");
     const target =
       direction === "left"
-        ? { x: -width * 1.15, y: 20 }
+        ? { x: -width * 1.5, y: 20 }
         : direction === "up"
-          ? { x: 0, y: -height * 0.55 }
-          : { x: width * 1.15, y: 20 };
+          ? { x: 0, y: -height * 0.8 }
+          : { x: width * 1.5, y: 20 };
 
     Animated.timing(swipeTranslate, {
       toValue: target,
       duration: 220,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start(async ({ finished }) => {
+      useNativeDriver: false,
+    }).start(({ finished }) => {
       if (!finished) {
         setSwipeLoading(false);
         return;
       }
 
-      await submitSwipeAction(action, heroMatch);
-      swipeTranslate.setValue({ x: 0, y: 0 });
-      setSwipeLoading(false);
+      submitSwipeAction(action, swipeCandidate).then(() => {
+        swipeTranslate.setValue({ x: 0, y: 0 });
+      });
     });
   };
 
-  const swipeRotation = swipeTranslate.x.interpolate({
-    inputRange: [-width, 0, width],
-    outputRange: ["-14deg", "0deg", "14deg"],
-  });
-
-  const nextCardScale = swipeTranslate.x.interpolate({
-    inputRange: [-swipeThreshold, 0, swipeThreshold],
-    outputRange: [0.985, 0.94, 0.985],
-    extrapolate: "clamp",
-  });
-
-  const nextCardTranslateY = swipeTranslate.x.interpolate({
-    inputRange: [-swipeThreshold, 0, swipeThreshold],
-    outputRange: [8, 18, 8],
-    extrapolate: "clamp",
-  });
-
-  const likeBadgeOpacity = swipeTranslate.x.interpolate({
-    inputRange: [12, swipeThreshold],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
-  const passBadgeOpacity = swipeTranslate.x.interpolate({
-    inputRange: [-swipeThreshold, -12],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-
-  const topCardAnimatedStyle = {
-    transform: [
-      ...swipeTranslate.getTranslateTransform(),
-      { rotate: swipeRotation },
-    ],
+  const handleQuickSwipe = (action: SwipeAction) => {
+    triggerSwipeAnimation(action, action === "like" ? "right" : "left");
   };
 
-  const nextCardAnimatedStyle = {
-    transform: [{ scale: nextCardScale }, { translateY: nextCardTranslateY }],
-  };
+  const swipePanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        !swipeLoading &&
+        !!swipeCandidate &&
+        Math.abs(gestureState.dx) > Math.abs(gestureState.dy) &&
+        Math.abs(gestureState.dx) > 8,
+      onPanResponderMove: Animated.event(
+        [null, { dx: swipeTranslate.x, dy: swipeTranslate.y }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: (_, gestureState) => {
+        if (!swipeCandidate) {
+          Animated.spring(swipeTranslate, {
+            toValue: { x: 0, y: 0 },
+            useNativeDriver: false,
+          }).start();
+          return;
+        }
 
-  const swipePanResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) =>
-          !swipeLoading &&
-          !!heroMatch &&
-          !usingPreviewData &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) &&
-          Math.abs(gestureState.dx) > 8,
-        onPanResponderMove: Animated.event(
-          [null, { dx: swipeTranslate.x, dy: swipeTranslate.y }],
-          { useNativeDriver: false }
-        ),
-        onPanResponderRelease: (_, gestureState) => {
-          if (gestureState.dx > swipeThreshold) {
-            triggerSwipeAction("like", "right");
-            return;
-          }
-
-          if (gestureState.dx < -swipeThreshold) {
-            triggerSwipeAction("pass", "left");
-            return;
-          }
-
-          resetSwipeCard();
-        },
-        onPanResponderTerminate: resetSwipeCard,
-      }),
-    [heroMatch, swipeLoading, swipeThreshold, usingPreviewData]
-  );
-
-  const renderInfoBanner = () => {
-    if (!usingPreviewData && !error && !matchNotice) {
-      return null;
-    }
-
-    return (
-      <View style={styles.infoBanner}>
-        <Text style={styles.infoBannerText}>
-          {matchNotice
-            ? matchNotice
-            : error
-            ? error
-            : "Live matches are still light, so this screen is using preview concept data for now."}
-        </Text>
-      </View>
-    );
-  };
+        if (gestureState.dx > 120) {
+          triggerSwipeAnimation("like", "right");
+        } else if (gestureState.dx < -120) {
+          triggerSwipeAnimation("pass", "left");
+        } else {
+          Animated.spring(swipeTranslate, {
+            toValue: { x: 0, y: 0 },
+            useNativeDriver: false,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   const renderMatchModal = () => {
-    if (!matchModalProfile) {
-      return null;
-    }
-
-    const sharedSignal =
-      matchModalProfile.sharedTracks.length > 0
-        ? `Matched on songs like ${matchModalProfile.sharedTracks
-            .slice(0, 2)
-            .join(" and ")}`
-        : matchModalProfile.sharedArtists.length > 0
-          ? `Matched on artists like ${matchModalProfile.sharedArtists
-              .slice(0, 2)
-              .join(" and ")}`
-          : "Matched on a strong music and energy overlap";
-
-    const matchChips =
-      matchModalProfile.sharedTracks.length > 0
-        ? matchModalProfile.sharedTracks.slice(0, 3)
-        : matchModalProfile.sharedArtists.slice(0, 3);
+    if (!matchModalProfile) return null;
+    const tone = FEED_TONES[0];
 
     return (
-      <View style={styles.matchModalOverlay}>
+      <Animated.View
+        style={[styles.matchModalOverlay, { opacity: matchModalOpacity }]}
+      >
         <LinearGradient
-          colors={[
-            "rgba(11,8,16,0.96)",
-            "rgba(26,12,24,0.94)",
-            "rgba(10,8,14,0.98)",
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.matchModalCard}
-        >
-          <Pressable style={styles.matchModalClose} onPress={closeMatchModal}>
-            <Text style={styles.matchModalCloseText}>X</Text>
-          </Pressable>
-
-          <View style={styles.matchModalHaloOne} />
-          <View style={styles.matchModalHaloTwo} />
-
-          <Text style={styles.matchModalEyebrow}>You matched</Text>
-          <Text style={styles.matchModalTitle}>This one feels real.</Text>
-          <Text style={styles.matchModalSubtitle}>
-            You and {matchModalProfile.name} connected through the same kind of
-            music energy. This should feel less like endless swiping and more
-            like finding someone actually worth talking to.
-          </Text>
-
-          <View style={styles.matchModalAvatars}>
-            <LinearGradient
-              colors={["#F26A8D", "#FF7B59"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.matchModalAvatar}
-            >
-              <Text style={styles.matchModalAvatarText}>
-                {session.user.name.slice(0, 1).toUpperCase()}
-              </Text>
-            </LinearGradient>
-
-            <View style={styles.matchModalLink}>
-              <Text style={styles.matchModalLinkText}>+</Text>
-            </View>
-
-            <LinearGradient
-              colors={["#BFD6F3", "#7B9BC7"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.matchModalAvatar}
-            >
-              <Text style={styles.matchModalAvatarText}>
-                {matchModalProfile.name.slice(0, 1).toUpperCase()}
-              </Text>
-            </LinearGradient>
-          </View>
-
-          <View style={styles.matchModalSignalCard}>
-            <Text style={styles.matchModalSignalTitle}>{sharedSignal}</Text>
-            <Text style={styles.matchModalSignalBody}>
-              {matchModalProfile.matchReason}
-            </Text>
-          </View>
-
-          {matchChips.length > 0 ? (
-            <View style={styles.matchModalChipRow}>
-              {matchChips.map((chip) => (
-                <View key={chip} style={styles.matchModalChip}>
-                  <Text style={styles.matchModalChipText}>{chip}</Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-
-          <View style={styles.matchModalActionRow}>
-            <Pressable
-              style={styles.matchModalSecondaryButton}
-              onPress={() => {
-                closeMatchModal();
-                setActiveTab("community");
-              }}
-            >
-              <Text style={styles.matchModalSecondaryText}>Open matches</Text>
-            </Pressable>
-            <Pressable
-              style={styles.matchModalPrimaryButton}
-              onPress={() => {
-                const matchedUserId = matchModalProfile.userId;
-                closeMatchModal();
-                handleOpenConversation(matchedUserId);
-              }}
-            >
-              <Text style={styles.matchModalPrimaryText}>Message them</Text>
-            </Pressable>
-          </View>
-        </LinearGradient>
-      </View>
-    );
-  };
-
-  const renderTopSection = () => {
-    if (activeTab === "matches") {
-      return (
-        <View style={styles.topSection}>
-          <Text style={styles.heroTitle}>Matches</Text>
-
-          <View style={styles.topActionRow}>
-            <Pressable style={styles.topIconButton}>
-              <Text style={styles.topIconGlyph}>o</Text>
-              <View style={styles.badgeDot}>
-                <Text style={styles.badgeText}>3</Text>
-              </View>
-            </Pressable>
-          </View>
-        </View>
-      );
-    }
-
-    if (activeTab === "detail") {
-      return (
-        <View
+          colors={["rgba(9,7,13,0.85)", "rgba(9,7,13,0.98)"]}
+          style={StyleSheet.absoluteFill}
+        />
+        <Animated.View
           style={[
-            styles.topSection,
-            styles.detailTopSection,
-            { paddingTop: topInset - 4 },
-          ]}
-        >
-          <View style={styles.detailTopRow}>
-            <Pressable
-              style={styles.detailTopIconButton}
-              onPress={() => setActiveTab("matches")}
-            >
-              <Text style={styles.topIconGlyph}>{"<"}</Text>
-            </Pressable>
-
-            <View style={styles.detailProgressTrack}>
-              <View style={styles.detailProgressFill} />
-            </View>
-
-            <Pressable style={styles.detailTopIconButton}>
-              <Text style={styles.topIconGlyph}>o</Text>
-              <View style={styles.badgeDot}>
-                <Text style={styles.badgeText}>3</Text>
-              </View>
-            </Pressable>
-          </View>
-        </View>
-      );
-    }
-
-    if (activeTab === "community") {
-      return (
-        <View style={styles.topSection}>
-          <Text style={styles.heroTitleSmaller}>Your matches</Text>
-        </View>
-      );
-    }
-
-    if (activeTab === "chat") {
-      return (
-        <View style={styles.topSection}>
-          <Text style={styles.heroTitleSmaller}>
-            {activeConversation?.otherUserName ?? "Chat"}
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.topSection}>
-        <Text style={styles.heroTitleSmaller}>Nearby</Text>
-      </View>
-    );
-  };
-
-  const renderMatchesTab = () => {
-    if (!heroMatch) {
-      return (
-        <View style={styles.emptyStateCard}>
-          <Text style={styles.emptyStateTitle}>No more profiles right now</Text>
-          <Text style={styles.emptyStateBody}>
-            You have moved through the current stack. As more compatible users show up, the next profile will appear here.
-          </Text>
-        </View>
-      );
-    }
-
-    const tone = useMatchTone(0);
-    const nextTone = useMatchTone(1);
-
-    return (
-      <View style={styles.sectionBody}>
-        <View style={styles.filterRow}>
-          <Pressable style={styles.filterIconButton}>
-            <Text style={styles.filterIconGlyph}>=</Text>
-          </Pressable>
-          <View style={styles.filterChipRow}>
-            <View style={styles.filterChip}>
-              <Text style={styles.filterChipText}>All</Text>
-            </View>
-            <View style={[styles.filterChip, styles.filterChipActive]}>
-              <Text style={styles.filterChipTextActive}>New</Text>
-            </View>
-            <View style={styles.filterChip}>
-              <Text style={styles.filterChipText}>Nearby</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.feedStageCard}>
-          <View style={styles.heroDeck}>
-            {nextStackMatch ? (
-              <Animated.View
-                pointerEvents="none"
-                style={[styles.heroCardSecondaryWrap, nextCardAnimatedStyle]}
-              >
-                <LinearGradient
-                  colors={[nextTone.start, nextTone.end]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={[styles.heroCard, styles.heroCardSecondary]}
-                >
-                  <View style={styles.heroPhotoOrbLarge} />
-                  <View
-                    style={[
-                      styles.heroPhotoBody,
-                      {
-                        backgroundColor: nextTone.orb,
-                        borderColor: `${nextTone.accent}20`,
-                      },
-                    ]}
-                  />
-                </LinearGradient>
-              </Animated.View>
-            ) : null}
-
-            <Animated.View
-              style={[styles.heroCardTopWrap, topCardAnimatedStyle]}
-              {...swipePanResponder.panHandlers}
-            >
-              <Animated.View
-                pointerEvents="none"
-                style={[styles.swipeBadge, styles.swipeBadgeLike, { opacity: likeBadgeOpacity }]}
-              >
-                <Text style={styles.swipeBadgeText}>LIKE</Text>
-              </Animated.View>
-              <Animated.View
-                pointerEvents="none"
-                style={[styles.swipeBadge, styles.swipeBadgePass, { opacity: passBadgeOpacity }]}
-              >
-                <Text style={styles.swipeBadgeText}>PASS</Text>
-              </Animated.View>
-
-              <Pressable
-                style={styles.heroCardWrap}
-                onPress={() => handleOpenDetail(heroMatch)}
-              >
-                <LinearGradient
-                  colors={[tone.start, tone.end]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.heroCard}
-                >
-                  <View style={styles.heroPhotoOrbLarge} />
-                  <View
-                    style={[
-                      styles.heroPhotoBody,
-                      { backgroundColor: tone.orb, borderColor: `${tone.accent}20` },
-                    ]}
-                  />
-
-                  <View style={styles.heroOverlay}>
-                    <Text style={styles.heroOnline}>Online</Text>
-                    <View style={styles.heroNameRow}>
-                      <Text style={styles.heroName}>{heroMatch.name}</Text>
-                      <Text style={styles.heroAge}>
-                        {20 + (Math.round(heroMatch.similarity * 10) % 7)}
-                      </Text>
-                    </View>
-                    <Text style={styles.heroMeta}>
-                      {heroMatch.locationCity || "USA, California"}
-                    </Text>
-                  </View>
-                </LinearGradient>
-              </Pressable>
-            </Animated.View>
-          </View>
-
-          <View style={styles.heroActionRow}>
-            <Pressable
-              style={[
-                styles.roundActionGhost,
-                swipeLoading && styles.actionDisabled,
-              ]}
-              onPress={() => triggerSwipeAction("pass", "left")}
-              disabled={swipeLoading || usingPreviewData}
-            >
-              <Text style={styles.roundActionGhostLabel}>X</Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.roundActionPrimary,
-                swipeLoading && styles.actionDisabled,
-              ]}
-              onPress={() => triggerSwipeAction("like", "right")}
-              disabled={swipeLoading || usingPreviewData}
-            >
-              <Text style={styles.roundActionPrimaryLabel}>
-                {swipeLoading ? "..." : "Love"}
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.roundActionGhost,
-                swipeLoading && styles.actionDisabled,
-              ]}
-              onPress={() => triggerSwipeAction("super_like", "up")}
-              disabled={swipeLoading || usingPreviewData}
-            >
-              <Text style={styles.roundActionGhostLabel}>Boost</Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    );
-  };
-
-  const renderDetailTab = () => {
-    if (!selectedMatch) {
-      return null;
-    }
-
-    const tone = useMatchTone(
-      displayMatches.findIndex((match) => match.userId === selectedMatch.userId)
-    );
-
-    return (
-      <View style={styles.sectionBody}>
-        <View
-          style={[
-            styles.detailCard,
-            {
-              minHeight: height - topInset + safeBottom + 24,
-            },
+            styles.matchModalCardWrap,
+            { transform: [{ scale: matchModalScale }] },
           ]}
         >
           <LinearGradient
             colors={[tone.start, tone.end]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.detailPhoto}
+            style={styles.matchModalCard}
           >
-            <View style={styles.detailPhotoOrbLarge} />
-            <View
-              style={[
-                styles.detailPhotoAccentShape,
-                { backgroundColor: `${tone.accent}CC` },
-              ]}
-            />
-            <View style={styles.detailPhotoSubjectGlow} />
-            <LinearGradient
-              colors={[
-                "rgba(8,8,11,0.00)",
-                "rgba(8,8,11,0.08)",
-                "rgba(8,8,11,0.36)",
-                "rgba(8,8,11,0.78)",
-                "rgba(8,8,11,0.94)",
-              ]}
-              locations={[0, 0.3, 0.58, 0.82, 1]}
-              style={styles.detailImageShade}
-            />
+            <View style={styles.matchModalGlow} />
+            <Text style={styles.matchModalTitle}>It's a Vibe</Text>
+            <Text style={styles.matchModalSubtitle}>
+              You and {matchModalProfile.name.split(" ")[0]} both love{" "}
+              {matchModalProfile.sharedArtists[0] || "similar music"}.
+            </Text>
 
-            <View style={styles.detailOverlay}>
-              <View style={styles.detailOverlayTop}>
-                <View style={styles.detailIdentityLead}>
-                  <Text style={styles.detailOnline}>Online</Text>
-                </View>
+            {matchNotice ? (
+              <View style={styles.matchNoticeWrap}>
+                <Text style={styles.matchNoticeText}>{matchNotice}</Text>
               </View>
+            ) : null}
 
-              <View style={styles.detailOverlayBottom}>
-                <View style={styles.detailNameRow}>
-                  <Text style={styles.detailName}>{selectedMatch.name}</Text>
-                  <Text style={styles.detailAge}>
-                    {20 + (Math.round(selectedMatch.similarity * 10) % 7)}
-                    {selectedMatch.pronouns ? ` • ${selectedMatch.pronouns}` : ""}
-                  </Text>
-                </View>
-                <Text style={styles.detailMeta}>
-                  {selectedMatch.locationCity || "USA, California"}
-                </Text>
-
-                <View style={styles.detailChipRow}>
-                  {selectedMatch.sharedArtists.slice(0, 3).map((artist) => (
-                    <View key={artist} style={styles.detailInterestChip}>
-                      <Text style={styles.detailInterestChipText}>
-                        {artist.split(" ")[0]}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-
-                {/* Profile attributes pills row */}
-                <View style={styles.detailChipsContainer}>
-                  {selectedMatch.gender && (
-                    <View style={styles.detailPill}>
-                      <Text style={styles.detailPillText}>{selectedMatch.gender}</Text>
-                    </View>
-                  )}
-                  {selectedMatch.sexuality && (
-                    <View style={styles.detailPill}>
-                      <Text style={styles.detailPillText}>{selectedMatch.sexuality}</Text>
-                    </View>
-                  )}
-                  {selectedMatch.height && (
-                    <View style={styles.detailPill}>
-                      <Text style={styles.detailPillText}>📏 {selectedMatch.height}</Text>
-                    </View>
-                  )}
-                  {selectedMatch.weight && (
-                    <View style={styles.detailPill}>
-                      <Text style={styles.detailPillText}>⚖️ {selectedMatch.weight}</Text>
-                    </View>
-                  )}
-                  {selectedMatch.zSign && (
-                    <View style={styles.detailPill}>
-                      <Text style={styles.detailPillText}>✨ {selectedMatch.zSign}</Text>
-                    </View>
-                  )}
-                  {selectedMatch.fPlan && (
-                    <View style={styles.detailPill}>
-                      <Text style={styles.detailPillText}>👶 {selectedMatch.fPlan}</Text>
-                    </View>
-                  )}
-                  {selectedMatch.pets && (
-                    <View style={styles.detailPill}>
-                      <Text style={styles.detailPillText}>🐾 {selectedMatch.pets}</Text>
-                    </View>
-                  )}
-                  {selectedMatch.religion && (
-                    <View style={styles.detailPill}>
-                      <Text style={styles.detailPillText}>🙏 {selectedMatch.religion}</Text>
-                    </View>
-                  )}
-                </View>
-
-                <Text style={styles.detailBioLabel}>Why this match</Text>
-                <Text style={styles.detailBioText}>
-                  {selectedMatch.matchReason}
-                </Text>
-
-                {selectedMatch.bio ? (
-                  <View style={styles.detailPromptBlock}>
-                    <Text style={styles.detailPromptLabel}>Bio</Text>
-                    <Text style={styles.detailPromptText}>{selectedMatch.bio}</Text>
-                  </View>
-                ) : (
-                  <View style={styles.detailPromptBlock}>
-                    <Text style={styles.detailPromptLabel}>Vibe check</Text>
-                    <Text style={styles.detailPromptText}>
-                      A perfect first date starts with music, something spontaneous, and a place where the conversation can actually breathe.
-                    </Text>
-                  </View>
-                )}
-
-                {/* Habits block */}
-                {selectedMatch.habit && (selectedMatch.habit.smoking || selectedMatch.habit.drinking || selectedMatch.habit.weed) ? (
-                  <View style={styles.detailPromptBlock}>
-                    <Text style={styles.detailPromptLabel}>Lifestyle Habits</Text>
-                    <View style={styles.detailHabitRow}>
-                      {selectedMatch.habit.smoking && (
-                        <View style={styles.detailHabitPill}>
-                          <Text style={styles.detailHabitPillText}>🚬 {selectedMatch.habit.smoking}</Text>
-                        </View>
-                      )}
-                      {selectedMatch.habit.drinking && (
-                        <View style={styles.detailHabitPill}>
-                          <Text style={styles.detailHabitPillText}>🍷 {selectedMatch.habit.drinking}</Text>
-                        </View>
-                      )}
-                      {selectedMatch.habit.weed && (
-                        <View style={styles.detailHabitPill}>
-                          <Text style={styles.detailHabitPillText}>🌿 {selectedMatch.habit.weed}</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                ) : null}
-              </View>
+            <View style={styles.matchModalActions}>
+              <Pressable
+                style={styles.matchModalPrimaryButton}
+                onPress={() => {
+                  closeMatchModal(() => {
+                    onOpenChat(matchModalProfile.userId, matchModalProfile.name);
+                  });
+                }}
+              >
+                <Text style={styles.matchModalPrimaryText}>Message them</Text>
+              </Pressable>
+              <Pressable
+                style={styles.matchModalSecondaryButton}
+                onPress={() => closeMatchModal()}
+              >
+                <Text style={styles.matchModalSecondaryText}>Keep Swiping</Text>
+              </Pressable>
             </View>
           </LinearGradient>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     );
   };
 
-  const renderCommunityTab = () => {
-    // Separate matches that have no conversation opened yet from those that do
-    const newMatches = mutualMatches.filter(
-      (match) => !conversations.some((conv) => conv.otherUserId === match.userId)
-    );
+  const renderDetailMode = () => {
+    const detailMatch = selectedMatch ?? swipeCandidate ?? displayMatches[0] ?? null;
 
-    if (newMatches.length > 0 || conversations.length > 0) {
+    if (!detailMatch) {
       return (
-        <View style={styles.sectionBody}>
-          {newMatches.length > 0 ? (
-            <View style={styles.newMatchesSection}>
-              <Text style={styles.inboxSectionTitle}>New Matches</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.newMatchesScroll}
-                contentContainerStyle={styles.newMatchesScrollContent}
-              >
-                {newMatches.map((mutualMatch) => (
-                  <Pressable
-                    key={mutualMatch.userId}
-                    style={styles.newMatchBubble}
-                    onPress={() => handleOpenConversation(mutualMatch.userId)}
-                  >
-                    <LinearGradient
-                      colors={["#F26A8D", "#FF7B59"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.newMatchAvatarGlow}
-                    >
-                      <View style={styles.newMatchAvatarInside}>
-                        <Text style={styles.newMatchAvatarText}>
-                          {mutualMatch.name.slice(0, 1).toUpperCase()}
-                        </Text>
-                      </View>
-                    </LinearGradient>
-                    <Text style={styles.newMatchLabel} numberOfLines={1}>
-                      {mutualMatch.name.split(" ")[0]}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-          ) : null}
-
-          <View style={styles.conversationsSection}>
-            <Text style={styles.inboxSectionTitle}>Messages</Text>
-            {conversations.length === 0 ? (
-              <View style={styles.emptyConversationsCard}>
-                <Text style={styles.emptyConversationsTitle}>Send the first message</Text>
-                <Text style={styles.emptyConversationsBody}>
-                  Tap one of your new matches above to start a conversation.
-                </Text>
-              </View>
-            ) : (
-              conversations.map((conv) => {
-                const formattedTime = conv.lastMessage
-                  ? new Date(conv.lastMessage.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "";
-
-                return (
-                  <Pressable
-                    key={conv.id}
-                    style={styles.conversationRow}
-                    onPress={() => {
-                      setActiveConversation(conv);
-                      setChatLoading(true);
-                      setChatError("");
-                      getMessages(conv.id, session.access_token)
-                        .then((msgs) => {
-                          setChatMessages(msgs);
-                          setActiveTab("chat");
-                        })
-                        .catch((err) => {
-                          setChatError(err.message || "Failed to load messages");
-                        })
-                        .finally(() => {
-                          setChatLoading(false);
-                        });
-                    }}
-                  >
-                    <LinearGradient
-                      colors={["#BFD6F3", "#7B9BC7"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.convAvatarGlow}
-                    >
-                      <View style={styles.convAvatarInside}>
-                        <Text style={styles.convAvatarText}>
-                          {conv.otherUserName.slice(0, 1).toUpperCase()}
-                        </Text>
-                      </View>
-                    </LinearGradient>
-                    <View style={styles.convDetails}>
-                      <View style={styles.convHeader}>
-                        <Text style={styles.convName}>{conv.otherUserName}</Text>
-                        <Text style={styles.convTime}>{formattedTime}</Text>
-                      </View>
-                      <Text style={styles.convLastMessage} numberOfLines={1}>
-                        {conv.lastMessage ? conv.lastMessage.content : "Vibe check! Send a message."}
-                      </Text>
-                    </View>
-                  </Pressable>
-                );
-              })
-            )}
-          </View>
+        <View style={styles.detailEmptyState}>
+          <Text style={styles.detailEmptyTitle}>No profile selected</Text>
+          <Text style={styles.detailEmptyBody}>
+            Open a card first, or keep swiping until a profile is ready.
+          </Text>
         </View>
       );
     }
 
+    const details = [
+      { label: "Location", value: "New York, NY" },
+      { label: "Astrology", value: "Scorpio Sun" },
+      { label: "Height", value: "5'9\"" },
+      { label: "Looking for", value: "Short-term fun" },
+    ];
+
+    const habits = [
+      { label: "Drinking", value: "Socially" },
+      { label: "Smoking", value: "Never" },
+      { label: "Weed", value: "Sometimes" },
+    ];
+
     return (
-      <View style={styles.sectionBody}>
-        <View style={styles.emptyStateCard}>
-          <Text style={styles.emptyStateTitle}>No mutual matches yet</Text>
-          <Text style={styles.emptyStateBody}>
-            Keep swiping through the feed. When someone likes you back, they will show up here as a real match.
-          </Text>
+      <View style={styles.detailView}>
+        <View style={styles.detailHeroBox}>
+          <LinearGradient
+            colors={["#FF7B59", "#F26A8D"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.detailHeroGradient}
+          />
+          <Pressable style={styles.detailCloseButton} onPress={onCloseDetail}>
+            <Text style={styles.detailCloseText}>✕</Text>
+          </Pressable>
+          <View style={styles.detailHeroContent}>
+            <Text style={styles.detailHeroName}>{detailMatch.name}</Text>
+            <Text style={styles.detailHeroMeta}>
+              {Math.round(detailMatch.similarity * 100)}% Match
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.feedStageCard}>
-          <View style={styles.communityStoryCard}>
-            <Text style={styles.communityStoryTitle}>Shared energy right now</Text>
-            <View style={styles.communityStoryRow}>
-              {COMMUNITY_PEOPLE.map((person) => (
-                <View key={person.name} style={styles.communityStoryPill}>
-                  <View
-                    style={[
-                      styles.communityAvatar,
-                      { backgroundColor: person.color },
-                    ]}
-                  />
-                  <Text style={styles.communityAvatarLabel}>{person.name}</Text>
+        <View style={styles.detailSectionBody}>
+          <View style={styles.detailBioCard}>
+            <Text style={styles.detailSectionTitle}>About</Text>
+            <Text style={styles.detailBioText}>
+              {detailMatch.matchReason}
+            </Text>
+            <View style={styles.detailGridRow}>
+              {details.map((d) => (
+                <View key={d.label} style={styles.detailGridItem}>
+                  <Text style={styles.detailGridLabel}>{d.label}</Text>
+                  <Text style={styles.detailGridValue}>{d.value}</Text>
                 </View>
               ))}
             </View>
           </View>
 
-          {communityFeature ? (
-            <Pressable
-              style={styles.communityFeatureCard}
-              onPress={() => handleOpenDetail(communityFeature)}
-            >
-              <LinearGradient
-                colors={["#BFD6F3", "#7B9BC7"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.communityFeatureVisual}
-              >
-                <View style={styles.communityFeatureOverlay} />
-                <Pressable style={styles.communityHeartButton}>
-                  <Text style={styles.communityHeartGlyph}>Love</Text>
-                </Pressable>
-              </LinearGradient>
-              <Text style={styles.communityFeatureName}>{communityFeature.name}</Text>
-              <Text style={styles.communityFeatureMeta}>
-                {communityFeature.sharedArtists.slice(0, 3).join(" / ")}
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-      </View>
-    );
-  };
-
-  const renderNearbyTab = () => {
-    return (
-      <View style={styles.sectionBody}>
-        <View style={styles.feedStageCard}>
-          <View style={styles.mapCard}>
-            <View style={styles.mapLineOne} />
-            <View style={styles.mapLineTwo} />
-            <View style={styles.mapMarkerOne} />
-            <View style={styles.mapMarkerTwo} />
-            <Text style={styles.mapPlaceholder}>Map layer</Text>
-          </View>
-
-          <View style={styles.nearbyCardsRow}>
-            {nearbyCards.map((match, index) => {
-              const tone = useMatchTone(index);
-
-              return (
-                <Pressable
-                  key={match.userId}
-                  style={styles.nearbyMiniCardWrap}
-                  onPress={() => handleOpenDetail(match)}
-                >
-                  <LinearGradient
-                    colors={[tone.start, tone.end]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.nearbyMiniCard}
-                  />
-                  <Text style={styles.nearbyMiniName}>{match.name.split(" ")[0]}</Text>
-                  <Text style={styles.nearbyMiniDistance}>
-                    {NEARBY_DISTANCES[index] ?? "1.4 km"}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <View style={styles.contextCard}>
-            <Text style={styles.contextCardTitle}>Why these people?</Text>
-            <Text style={styles.contextCardBody}>
-              Shared late-night artists, city overlap, and matching listening pace
-              keep these profiles near the top of your discover stack.
-            </Text>
-          </View>
-        </View>
-      </View>
-    );
-  };
-
-  const renderChatTab = () => {
-    if (!activeConversation) {
-      return (
-        <View style={styles.emptyStateCard}>
-          <Text style={styles.emptyStateTitle}>No conversation open</Text>
-          <Text style={styles.emptyStateBody}>
-            Open a mutual match to start the conversation.
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.sectionBody}>
-        <View style={styles.chatHeaderCard}>
-          <Pressable
-            style={styles.chatBackButton}
-            onPress={() => setActiveTab("community")}
-          >
-            <Text style={styles.chatBackText}>{"<"}</Text>
-          </Pressable>
-          <View style={styles.chatHeaderCopy}>
-            <Text style={styles.chatHeaderTitle}>
-              {activeConversation.otherUserName}
-            </Text>
-            <Text style={styles.chatHeaderMeta}>
-              {activeConversation.otherUserLocationCity ||
-                "Matched through shared music"}
-            </Text>
-          </View>
-        </View>
-
-        {chatError ? (
-          <View style={styles.infoBanner}>
-            <Text style={styles.infoBannerText}>{chatError}</Text>
-          </View>
-        ) : null}
-
-        <View style={styles.chatMessagePanel}>
-          {chatMessages.length === 0 ? (
-            <View style={styles.chatEmptyState}>
-              <Text style={styles.chatEmptyTitle}>Say something real.</Text>
-              <Text style={styles.chatEmptyBody}>
-                Start with the song, artist, or energy that made this match feel
-                familiar.
-              </Text>
-            </View>
-          ) : (
-            chatMessages.map((message) => {
-              const isMine = message.senderId === session.user.id;
-
-              return (
-                <View
-                  key={message.id}
-                  style={[
-                    styles.chatBubble,
-                    isMine ? styles.chatBubbleMine : styles.chatBubbleTheirs,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.chatBubbleText,
-                      isMine && styles.chatBubbleTextMine,
-                    ]}
-                  >
-                    {message.content}
-                  </Text>
+          <View style={styles.detailHabitsCard}>
+            <Text style={styles.detailSectionTitle}>Habits</Text>
+            <View style={styles.detailHabitsRow}>
+              {habits.map((h) => (
+                <View key={h.label} style={styles.detailHabitPill}>
+                  <Text style={styles.detailHabitPillLabel}>{h.label}</Text>
+                  <Text style={styles.detailHabitPillText}>{h.value}</Text>
                 </View>
-              );
-            })
-          )}
-        </View>
-
-        <View style={styles.chatComposer}>
-          <TextInput
-            value={chatDraft}
-            onChangeText={setChatDraft}
-            placeholder="Message them..."
-            placeholderTextColor="rgba(255,255,255,0.42)"
-            style={styles.chatInput}
-            multiline
-          />
-          <Pressable
-            style={[
-              styles.chatSendButton,
-              (!chatDraft.trim() || chatLoading) && styles.actionDisabled,
-            ]}
-            onPress={handleSendChatMessage}
-            disabled={!chatDraft.trim() || chatLoading}
-          >
-            <Text style={styles.chatSendText}>{chatLoading ? "..." : "Send"}</Text>
-          </Pressable>
+              ))}
+            </View>
+          </View>
         </View>
       </View>
     );
   };
 
-  const renderContent = () => {
-    if (loading && matches.length === 0) {
-      return (
-        <View style={styles.centerStateCard}>
-          <ActivityIndicator size="small" color="#82F7A6" />
-          <Text style={styles.centerStateText}>Loading your discover feed...</Text>
-        </View>
-      );
-    }
-
-    switch (activeTab) {
-      case "matches":
-        return renderMatchesTab();
-      case "detail":
-        return renderDetailTab();
-      case "community":
-        return renderCommunityTab();
-      case "nearby":
-        return renderNearbyTab();
-      case "chat":
-        return renderChatTab();
-      default:
-        return null;
-    }
-  };
-
-  const navItems: Array<{ key: Exclude<DiscoverTab, "chat">; icon: string }> = [
-    { key: "matches", icon: "Feed" },
-    { key: "detail", icon: "View" },
-    { key: "community", icon: "Club" },
-    { key: "nearby", icon: "Near" },
-  ];
-
-  const pagePaddingTop = isDetailMode ? 0 : 96;
-  const pagePaddingBottom = isDetailMode ? safeBottom + 28 : bottomNavHeight + bottomNavOffset + 22;
-  const contentMinHeight = Math.max(
-    height - topInset - pagePaddingTop - pagePaddingBottom,
-    520
-  );
+  if (isDetailMode) {
+    return (
+      <View style={{ flex: 1 }}>
+        {renderDetailMode()}
+        {renderMatchModal()}
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.screen}>
-      <View
-        style={[
-          styles.phoneShell,
-          isDetailMode ? styles.phoneShellImmersive : null,
-          {
-            width: isDetailMode ? width : contentWidth,
-            marginTop: isDetailMode ? 0 : topInset,
-          },
-        ]}
-      >
-        {renderTopSection()}
-
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          bounces={isDetailMode}
-          contentContainerStyle={[
-            isDetailMode ? styles.scrollContentDetail : styles.scrollContent,
-            {
-              paddingTop: isDetailMode ? 0 : pagePaddingTop,
-              paddingBottom: pagePaddingBottom,
-              minHeight: isDetailMode
-                ? height + pagePaddingBottom
-                : contentMinHeight + pagePaddingTop + pagePaddingBottom,
-            },
-          ]}
-        >
-          <View style={styles.innerContent}>
-            {!isDetailMode ? renderInfoBanner() : null}
-            <Animated.View
-              key={isDetailMode ? `detail-${selectedMatchId ?? "none"}` : activeTab}
-              style={tabAnimatedStyle}
-            >
-              {renderContent()}
-            </Animated.View>
-          </View>
-        </ScrollView>
-
-        {!isDetailMode ? (
-          <View
+    <View style={styles.sectionBody}>
+      <View style={styles.heroDeck}>
+        {swipeCandidate ? (
+          <Animated.View
+            {...swipePanResponder.panHandlers}
             style={[
-              styles.bottomNav,
+              styles.heroCardTopWrap,
               {
-                bottom: bottomNavOffset,
-                height: bottomNavHeight,
+                transform: [
+                  { translateX: swipeTranslate.x },
+                  { translateY: swipeTranslate.y },
+                  {
+                    rotate: swipeTranslate.x.interpolate({
+                      inputRange: [-200, 0, 200],
+                      outputRange: ["-10deg", "0deg", "10deg"],
+                    }),
+                  },
+                ],
               },
             ]}
           >
-            {navItems.map((item) => {
-              const isActive =
-                activeTab === item.key ||
-                (activeTab === "chat" && item.key === "community");
-
-              return (
-                <Pressable
-                  key={item.key}
-                  style={styles.bottomNavItem}
-                  onPress={() => setActiveTab(item.key)}
-                >
-                  {isActive ? <View style={styles.bottomNavGlow} /> : null}
-                  <Text
-                    style={[
-                      styles.bottomNavIcon,
-                      isActive && styles.bottomNavIconActive,
-                    ]}
+            <View style={[styles.heroCard, { backgroundColor: "#0F0F0F" }]}>
+              <LinearGradient
+                colors={["#FFD166", "#FF7B59"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <LinearGradient
+                colors={["transparent", "rgba(0,0,0,0.85)"]}
+                style={styles.heroOverlay}
+              >
+                <View style={styles.heroCardHeader}>
+                  <Text style={styles.heroOnline}>Online now</Text>
+                  <View style={styles.heroCompatibilityBadge}>
+                    <Text style={styles.heroCompatibilityText}>
+                      {Math.round(swipeCandidate.similarity * 100)}% match
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.heroNameRow}>
+                  <Text style={styles.heroName}>{swipeCandidate.name}</Text>
+                  <Pressable
+                    style={styles.heroDetailIcon}
+                    onPress={() => onOpenDetail(swipeCandidate)}
                   >
-                    {item.icon}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text style={styles.heroDetailIconText}>i</Text>
+                  </Pressable>
+                </View>
+                <Text style={styles.heroMeta}>
+                  {swipeCandidate.artistCount} shared artists
+                </Text>
+                {swipeCandidate.sharedArtists.length > 0 ? (
+                  <View style={styles.heroSharedTaste}>
+                    <Text style={styles.heroSharedTasteLabel}>Both into</Text>
+                    <View style={styles.heroSharedTasteChips}>
+                      {swipeCandidate.sharedArtists.slice(0, 3).map((artist) => {
+                        const firstName = artist.split(" ")[0] || artist;
+                        return (
+                          <View key={artist} style={styles.heroSharedTasteChip}>
+                            <Text style={styles.heroSharedTasteChipText}>
+                              {firstName}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : null}
+              </LinearGradient>
+            </View>
+          </Animated.View>
+        ) : loading || swipeLoading ? (
+          <View style={[styles.heroCard, styles.heroCardEmpty]}>
+            <ActivityIndicator color="#FFFFFF" />
+            <Text style={styles.heroEmptyText}>Loading your next match...</Text>
           </View>
-        ) : null}
-
-        <Pressable style={styles.hiddenSignOutHit} onPress={onSignOut}>
-          <Text style={styles.hiddenSignOutText}>sign out</Text>
-        </Pressable>
+        ) : (
+          <View style={[styles.heroCard, styles.heroCardEmpty]}>
+            <Text style={styles.heroEmptyTitle}>Out of matches</Text>
+            <Text style={styles.heroEmptyText}>
+              Check back later for more people with your taste.
+            </Text>
+          </View>
+        )}
       </View>
+
+      {swipeCandidate ? (
+        <View style={styles.heroActionRow}>
+          <Pressable
+            style={[styles.heroActionButton, styles.heroActionButtonPass]}
+            onPress={() => handleQuickSwipe("pass")}
+            disabled={swipeLoading}
+          >
+            <Text style={styles.heroActionButtonText}>Pass</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.heroActionButton, styles.heroActionButtonLike]}
+            onPress={() => handleQuickSwipe("like")}
+            disabled={swipeLoading}
+          >
+            <Text style={styles.heroActionButtonText}>Like</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <Text style={styles.sectionTitle}>Recently Played</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.feedScroll}
+        contentContainerStyle={styles.feedScrollContent}
+      >
+        {displayMatches.map((match, index) => {
+          const tone = useMatchTone(index);
+          return (
+            <Pressable
+              key={match.userId}
+              style={styles.feedCard}
+              onPress={() => onOpenDetail(match)}
+            >
+              <LinearGradient
+                colors={[tone.start, tone.end]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View
+                style={[styles.feedCardOrb, { backgroundColor: tone.orb }]}
+              />
+              <View style={styles.feedCardContent}>
+                <View>
+                  <Text style={[styles.feedCardName, { color: tone.accent }]}>
+                    {match.name.split(" ")[0]}
+                  </Text>
+                  <Text style={styles.feedCardScore}>
+                    {Math.round(match.similarity * 100)}% match
+                  </Text>
+                </View>
+                <Text style={styles.feedCardSnippet} numberOfLines={2}>
+                  {match.matchReason}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
       {renderMatchModal()}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "transparent",
-    alignItems: "center",
-  },
-  phoneShell: {
-    flex: 1,
-    maxWidth: 430,
-    borderRadius: 34,
-    overflow: "hidden",
-    backgroundColor: "transparent",
-  },
-  phoneShellImmersive: {
-    maxWidth: "100%",
-    borderRadius: 0,
-  },
-  topSection: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    paddingHorizontal: 22,
-    paddingTop: 18,
-    backgroundColor: "transparent",
-  },
-  detailTopSection: {
-    backgroundColor: "transparent",
-    paddingHorizontal: 12,
-  },
-  heroTitle: {
-    color: "#FFFFFF",
-    fontSize: 42,
-    lineHeight: 42,
-    letterSpacing: -1.3,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  heroTitleSmaller: {
-    color: "#FFFFFF",
-    fontSize: 38,
-    lineHeight: 38,
-    letterSpacing: -1.1,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  topActionRow: {
-    position: "absolute",
-    right: 22,
-    top: 16,
-  },
-  topIconButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  detailTopIconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
-    backgroundColor: "rgba(255,255,255,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  topIconGlyph: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  badgeDot: {
-    position: "absolute",
-    top: -5,
-    right: -2,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badgeText: {
-    color: "#82F7A6",
-    fontSize: 11,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  detailTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  detailProgressTrack: {
-    flex: 1,
-    marginHorizontal: 14,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.22)",
-    overflow: "hidden",
-  },
-  detailProgressFill: {
-    width: "24%",
-    height: "100%",
-    borderRadius: 999,
-    backgroundColor: "#DFFF00",
-  },
-  scrollContent: {
-    paddingHorizontal: 22,
-  },
-  scrollContentDetail: {
-    paddingHorizontal: 0,
-  },
-  innerContent: {
-    flex: 1,
-  },
-  infoBanner: {
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    marginBottom: 16,
-  },
-  infoBannerText: {
-    color: "rgba(255,248,251,0.74)",
-    fontSize: 12,
-    lineHeight: 18,
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  centerStateCard: {
-    borderRadius: 24,
-    paddingVertical: 28,
-    paddingHorizontal: 18,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  centerStateText: {
-    marginTop: 12,
-    color: "rgba(255,248,251,0.74)",
-    fontSize: 14,
-    fontFamily: "SpaceGrotesk_500Medium",
-  },
-  emptyStateCard: {
-    borderRadius: 28,
-    padding: 18,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  emptyStateTitle: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    lineHeight: 22,
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 8,
-  },
-  emptyStateBody: {
-    color: "rgba(255,248,251,0.70)",
-    fontSize: 13,
-    lineHeight: 20,
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
   sectionBody: {
-    gap: 18,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
-  feedStageCard: {
-    borderRadius: 32,
-    padding: 16,
-    backgroundColor: "rgba(10,8,12,0.26)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    gap: 16,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.2,
-    shadowRadius: 28,
-    elevation: 10,
-  },
-  filterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 2,
-  },
-  filterIconButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  filterIconGlyph: {
+  sectionTitle: {
     color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: "SpaceGrotesk_700Bold",
-  },
-  filterChipRow: {
-    flexDirection: "row",
-    flex: 1,
-    gap: 10,
-  },
-  filterChip: {
-    flex: 1,
-    minWidth: 0,
-    height: 36,
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  filterChipActive: {
-    backgroundColor: "#F26A8D",
-    borderColor: "rgba(255,123,89,0.28)",
-  },
-  filterChipText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontFamily: "SpaceGrotesk_500Medium",
-  },
-  filterChipTextActive: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  heroCardWrap: {
-    borderRadius: 30,
-    overflow: "hidden",
-    marginTop: 2,
+    marginBottom: 16,
+    marginLeft: 8,
   },
   heroDeck: {
     position: "relative",
-    minHeight: 430,
+    minHeight: 456,
     justifyContent: "flex-start",
   },
-  heroCardTopWrap: {
-    zIndex: 3,
+  heroActionRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: -6,
+    marginBottom: 18,
   },
-  heroCardSecondaryWrap: {
+  heroActionButton: {
+    flex: 1,
+    height: 46,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  heroActionButtonPass: {
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  heroActionButtonLike: {
+    backgroundColor: "rgba(130,247,166,0.14)",
+    borderColor: "rgba(130,247,166,0.25)",
+  },
+  heroActionButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  heroCardTopWrap: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 1,
+    zIndex: 10,
   },
   heroCard: {
-    height: 392,
+    height: 420,
     borderRadius: 30,
     overflow: "hidden",
     justifyContent: "flex-end",
-  },
-  heroCardSecondary: {
-    opacity: 0.82,
-  },
-  heroPhotoOrbLarge: {
-    position: "absolute",
-    top: 108,
-    left: 96,
-    width: 138,
-    height: 138,
-    borderRadius: 69,
-    backgroundColor: "rgba(255,247,240,0.58)",
-  },
-  heroPhotoBody: {
-    position: "absolute",
-    left: 112,
-    top: 220,
-    width: 112,
-    height: 112,
-    borderRadius: 56,
+    marginBottom: 32,
     borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
   },
-  heroOverlay: {
-    backgroundColor: "rgba(8,8,11,0.48)",
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 16,
-  },
-  swipeBadge: {
-    position: "absolute",
-    top: 18,
-    zIndex: 5,
-    minWidth: 92,
-    height: 38,
-    borderRadius: 19,
-    paddingHorizontal: 16,
+  heroCardEmpty: {
+    backgroundColor: "rgba(255,255,255,0.03)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
+    padding: 24,
   },
-  swipeBadgeLike: {
-    right: 18,
-    backgroundColor: "rgba(130,247,166,0.18)",
-    borderColor: "#82F7A6",
-  },
-  swipeBadgePass: {
-    left: 18,
-    backgroundColor: "rgba(242,106,141,0.18)",
-    borderColor: "#F26A8D",
-  },
-  swipeBadgeText: {
+  heroEmptyTitle: {
     color: "#FFFFFF",
-    fontSize: 13,
-    letterSpacing: 1.1,
+    fontSize: 22,
     fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 8,
+  },
+  heroEmptyText: {
+    color: "rgba(255,255,255,0.4)",
+    fontSize: 15,
+    fontFamily: "SpaceGrotesk_500Medium",
+    textAlign: "center",
+    marginTop: 12,
+  },
+  heroOverlay: {
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    paddingBottom: 16,
+    justifyContent: "flex-end",
+  },
+  heroCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
   },
   heroOnline: {
     color: "#82F7A6",
     fontSize: 16,
     fontFamily: "SpaceGrotesk_500Medium",
-    marginBottom: 10,
+  },
+  heroCompatibilityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: "rgba(130,247,166,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(130,247,166,0.3)",
+  },
+  heroCompatibilityText: {
+    color: "#82F7A6",
+    fontSize: 11,
+    fontFamily: "SpaceGrotesk_700Bold",
   },
   heroNameRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "flex-end",
-    marginBottom: 8,
   },
   heroName: {
-    flex: 1,
     color: "#FFFFFF",
-    fontSize: 34,
-    lineHeight: 36,
-    letterSpacing: -1.1,
+    fontSize: 32,
     fontFamily: "SpaceGrotesk_700Bold",
-    marginRight: 12,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
-  heroAge: {
-    color: "rgba(255,255,255,0.86)",
-    fontSize: 30,
-    lineHeight: 32,
-    fontFamily: "SpaceGrotesk_400Regular",
+  heroDetailIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroDetailIconText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "SpaceGrotesk_700Bold",
   },
   heroMeta: {
-    color: "rgba(255,255,255,0.80)",
-    fontSize: 14,
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 16,
     fontFamily: "SpaceGrotesk_500Medium",
+    marginTop: 2,
   },
-  heroActionRow: {
+  heroSharedTaste: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.06)",
+  },
+  heroSharedTasteLabel: {
+    color: "rgba(255,255,255,0.48)",
+    fontSize: 10,
+    fontFamily: "SpaceGrotesk_700Bold",
+    textTransform: "uppercase",
+    marginBottom: 6,
+  },
+  heroSharedTasteChips: {
     flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 18,
+    gap: 6,
   },
-  roundActionGhost: {
-    minWidth: 58,
-    height: 44,
-    borderRadius: 22,
-    paddingHorizontal: 16,
+  heroSharedTasteChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
     backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
+    borderColor: "rgba(255,255,255,0.06)",
   },
-  roundActionGhostLabel: {
+  heroSharedTasteChipText: {
     color: "#FFFFFF",
-    fontSize: 14,
+    fontSize: 11,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  feedScroll: {
+    marginHorizontal: -16,
+    marginBottom: 32,
+  },
+  feedScrollContent: {
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+  feedCard: {
+    width: 260,
+    height: 300,
+    borderRadius: 24,
+    overflow: "hidden",
+    justifyContent: "flex-end",
+  },
+  feedCardOrb: {
+    position: "absolute",
+    top: -40,
+    right: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    transform: [{ scaleY: 0.8 }],
+  },
+  feedCardContent: {
+    padding: 20,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    gap: 12,
+  },
+  feedCardName: {
+    fontSize: 22,
     fontFamily: "SpaceGrotesk_700Bold",
+    textShadowColor: "rgba(0,0,0,0.2)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  roundActionPrimary: {
-    minWidth: 74,
-    height: 56,
-    borderRadius: 28,
-    paddingHorizontal: 18,
-    backgroundColor: "#F26A8D",
-    borderWidth: 1,
-    borderColor: "rgba(255,123,89,0.28)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  roundActionPrimaryLabel: {
+  feedCardScore: {
     color: "#FFFFFF",
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: "SpaceGrotesk_700Bold",
+    opacity: 0.8,
   },
-  actionDisabled: {
-    opacity: 0.55,
+  feedCardSnippet: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: "SpaceGrotesk_400Regular",
+    opacity: 0.9,
   },
   matchModalOverlay: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 80,
+    zIndex: 100,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 22,
-    backgroundColor: "rgba(8,8,11,0.48)",
+  },
+  matchModalCardWrap: {
+    width: "85%",
+    maxWidth: 340,
   },
   matchModalCard: {
-    width: "100%",
-    maxWidth: 390,
-    borderRadius: 34,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 22,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  matchModalClose: {
-    alignSelf: "flex-end",
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    borderRadius: 36,
+    padding: 32,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    marginBottom: 12,
+    overflow: "hidden",
   },
-  matchModalCloseText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  matchModalHaloOne: {
+  matchModalGlow: {
     position: "absolute",
-    top: 54,
-    left: -28,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: "rgba(242,106,141,0.18)",
-  },
-  matchModalHaloTwo: {
-    position: "absolute",
-    top: 108,
-    right: -34,
-    width: 162,
-    height: 162,
-    borderRadius: 81,
-    backgroundColor: "rgba(130,247,166,0.12)",
-  },
-  matchModalEyebrow: {
-    color: "#82F7A6",
-    fontSize: 12,
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 10,
+    top: -60,
+    left: -60,
+    right: -60,
+    height: 200,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 200,
+    transform: [{ scaleY: 0.5 }],
   },
   matchModalTitle: {
     color: "#FFFFFF",
-    fontSize: 34,
-    lineHeight: 36,
-    letterSpacing: -1.2,
+    fontSize: 32,
     fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 10,
+    marginBottom: 12,
+    textAlign: "center",
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   matchModalSubtitle: {
-    color: "rgba(255,248,251,0.78)",
-    fontSize: 14,
-    lineHeight: 21,
-    fontFamily: "SpaceGrotesk_400Regular",
-    marginBottom: 22,
-    maxWidth: "92%",
-  },
-  matchModalAvatars: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
-  },
-  matchModalAvatar: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
-  },
-  matchModalAvatarText: {
-    color: "#FFFFFF",
-    fontSize: 28,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  matchModalLink: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 14,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  matchModalLinkText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  matchModalSignalCard: {
-    borderRadius: 22,
-    padding: 16,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    marginBottom: 16,
-  },
-  matchModalSignalTitle: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    lineHeight: 22,
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 8,
-  },
-  matchModalSignalBody: {
-    color: "rgba(255,248,251,0.76)",
-    fontSize: 13,
-    lineHeight: 19,
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  matchModalChipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 22,
-  },
-  matchModalChip: {
-    height: 34,
-    borderRadius: 17,
-    paddingHorizontal: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  matchModalChipText: {
-    color: "#FFFFFF",
-    fontSize: 12,
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 16,
+    lineHeight: 24,
     fontFamily: "SpaceGrotesk_500Medium",
+    textAlign: "center",
+    marginBottom: 32,
   },
-  matchModalActionRow: {
+  matchNoticeWrap: {
+    backgroundColor: "rgba(0,0,0,0.2)",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    marginBottom: 24,
+    width: "100%",
+  },
+  matchNoticeText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontFamily: "SpaceGrotesk_500Medium",
+    textAlign: "center",
+  },
+  matchModalActions: {
+    width: "100%",
     gap: 12,
   },
-  matchModalSecondaryButton: {
-    height: 52,
-    borderRadius: 26,
+  matchModalPrimaryButton: {
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 16,
+    borderRadius: 20,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  matchModalPrimaryText: {
+    color: "#000000",
+    fontSize: 16,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  matchModalSecondaryButton: {
+    backgroundColor: "rgba(0,0,0,0.2)",
+    paddingVertical: 16,
+    borderRadius: 20,
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(255,255,255,0.1)",
   },
   matchModalSecondaryText: {
     color: "#FFFFFF",
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: "SpaceGrotesk_700Bold",
   },
-  matchModalPrimaryButton: {
-    height: 54,
-    borderRadius: 27,
+  detailView: {
+    flex: 1,
+  },
+  detailEmptyState: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F26A8D",
-    borderWidth: 1,
-    borderColor: "rgba(255,123,89,0.28)",
+    paddingHorizontal: 24,
   },
-  matchModalPrimaryText: {
+  detailEmptyTitle: {
     color: "#FFFFFF",
-    fontSize: 14,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  matchCountCard: {
-    borderRadius: 24,
-    padding: 18,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  matchCountTitle: {
-    color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: 24,
+    lineHeight: 28,
     fontFamily: "SpaceGrotesk_700Bold",
     marginBottom: 8,
+    textAlign: "center",
   },
-  matchCountBody: {
-    color: "rgba(255,248,251,0.76)",
-    fontSize: 14,
-    lineHeight: 20,
+  detailEmptyBody: {
+    color: "rgba(255,255,255,0.64)",
+    fontSize: 15,
+    lineHeight: 22,
     fontFamily: "SpaceGrotesk_400Regular",
+    textAlign: "center",
   },
-  detailCard: {
-    borderRadius: 0,
-    overflow: "hidden",
-    backgroundColor: "transparent",
-    marginHorizontal: 0,
+  detailHeroBox: {
+    height: 380,
+    justifyContent: "flex-end",
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
-  detailPhoto: {
-    flex: 1,
-    overflow: "hidden",
-    justifyContent: "space-between",
-  },
-  detailPhotoOrbLarge: {
-    position: "absolute",
-    top: 116,
-    left: -22,
-    width: 212,
-    height: 212,
-    borderRadius: 106,
-    backgroundColor: "rgba(255, 102, 156, 0.24)",
-  },
-  detailPhotoAccentShape: {
-    position: "absolute",
-    right: -22,
-    top: 96,
-    width: 168,
-    height: 338,
-    borderRadius: 74,
-  },
-  detailPhotoSubjectGlow: {
-    position: "absolute",
-    top: 128,
-    left: 48,
-    width: 278,
-    height: 386,
-    borderRadius: 140,
-    backgroundColor: "rgba(255, 255, 255, 0.18)",
-  },
-  detailImageShade: {
+  detailHeroGradient: {
     ...StyleSheet.absoluteFillObject,
   },
-  detailOverlay: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 86,
-    paddingBottom: 42,
-    justifyContent: "space-between",
-  },
-  detailOverlayTop: {
-    alignItems: "flex-start",
-  },
-  detailIdentityLead: {
-    paddingTop: 178,
-  },
-  detailOverlayBottom: {
-    paddingTop: 12,
-  },
-  detailOnline: {
-    color: "#E9FF48",
-    fontSize: 15,
-    fontFamily: "SpaceGrotesk_500Medium",
-    marginBottom: 10,
-    textShadowColor: "rgba(8,8,11,0.42)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 8,
-  },
-  detailNameRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 4,
-  },
-  detailName: {
-    flex: 1,
-    color: "#E9FF1A",
-    fontSize: 54,
-    lineHeight: 52,
-    fontFamily: "SpaceGrotesk_700Bold",
-    letterSpacing: -2.1,
-    marginRight: 10,
-    textShadowColor: "rgba(8,8,11,0.38)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 8,
-  },
-  detailAge: {
-    color: "rgba(233,255,26,0.28)",
-    fontSize: 44,
-    lineHeight: 44,
-    fontFamily: "SpaceGrotesk_700Bold",
-    letterSpacing: -1.2,
-    paddingTop: 8,
-  },
-  detailMeta: {
-    color: "#F4EFDA",
-    fontSize: 15,
-    fontFamily: "SpaceGrotesk_500Medium",
-    marginBottom: 14,
-    textShadowColor: "rgba(8,8,11,0.34)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 8,
-  },
-  detailChipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-  detailInterestChip: {
-    height: 34,
-    borderRadius: 17,
-    paddingHorizontal: 14,
+  detailCloseButton: {
+    position: "absolute",
+    top: 64,
+    right: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.3)",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    zIndex: 10,
   },
-  detailInterestChipText: {
+  detailCloseText: {
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 20,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  detailHeroContent: {
+    gap: 4,
+  },
+  detailHeroName: {
+    color: "#FFFFFF",
+    fontSize: 42,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  detailHeroMeta: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 18,
     fontFamily: "SpaceGrotesk_500Medium",
   },
-  detailBioLabel: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 6,
-  },
-  detailBioText: {
-    color: "rgba(255,248,251,0.92)",
-    fontSize: 14,
-    lineHeight: 19,
-    fontFamily: "SpaceGrotesk_400Regular",
-    maxWidth: "90%",
-    textShadowColor: "rgba(8,8,11,0.36)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 8,
-  },
-  detailPromptBlock: {
-    marginTop: 18,
+  detailSectionBody: {
+    paddingHorizontal: 16,
     paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.12)",
-    maxWidth: "92%",
-  },
-  detailPromptLabel: {
-    color: "rgba(255,255,255,0.62)",
-    fontSize: 11,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 8,
-  },
-  detailPromptText: {
-    color: "rgba(255,248,251,0.92)",
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: "SpaceGrotesk_400Regular",
-    textShadowColor: "rgba(8,8,11,0.36)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 8,
-  },
-  searchCard: {
-    height: 48,
-    borderRadius: 24,
-    paddingHorizontal: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  searchPlaceholder: {
-    color: "rgba(255,255,255,0.52)",
-    fontSize: 14,
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  searchAccent: {
-    color: "#82F7A6",
-    fontSize: 18,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  communityChipRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  communityStoryCard: {
-    borderRadius: 26,
-    padding: 18,
-    backgroundColor: "rgba(255,255,255,0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
-  },
-  communityStoryTitle: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 18,
-  },
-  communityStoryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  communityStoryPill: {
-    alignItems: "center",
-  },
-  mutualMatchCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 26,
-    padding: 16,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  mutualMatchAvatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(242,106,141,0.24)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 14,
-  },
-  mutualMatchAvatarText: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  mutualMatchContent: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  mutualMatchName: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    lineHeight: 22,
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 4,
-  },
-  mutualMatchMeta: {
-    color: "rgba(255,255,255,0.78)",
-    fontSize: 12,
-    fontFamily: "SpaceGrotesk_500Medium",
-    marginBottom: 6,
-  },
-  mutualMatchBio: {
-    color: "rgba(255,248,251,0.74)",
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  mutualMatchBadge: {
-    minWidth: 62,
-    height: 34,
-    borderRadius: 17,
-    paddingHorizontal: 12,
-    backgroundColor: "rgba(130,247,166,0.16)",
-    borderWidth: 1,
-    borderColor: "rgba(130,247,166,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  mutualMatchBadgeText: {
-    color: "#82F7A6",
-    fontSize: 12,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  chatHeaderCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 24,
-    padding: 14,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  chatBackButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    marginRight: 12,
-  },
-  chatBackText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  chatHeaderCopy: {
-    flex: 1,
-  },
-  chatHeaderTitle: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    lineHeight: 22,
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 4,
-  },
-  chatHeaderMeta: {
-    color: "rgba(255,248,251,0.68)",
-    fontSize: 12,
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  chatMessagePanel: {
-    minHeight: 340,
-    borderRadius: 28,
-    padding: 16,
-    backgroundColor: "rgba(10,8,12,0.30)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    gap: 10,
-  },
-  chatEmptyState: {
-    flex: 1,
-    minHeight: 260,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 18,
-  },
-  chatEmptyTitle: {
-    color: "#FFFFFF",
-    fontSize: 22,
-    lineHeight: 26,
-    textAlign: "center",
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 10,
-  },
-  chatEmptyBody: {
-    color: "rgba(255,248,251,0.70)",
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  chatBubble: {
-    maxWidth: "82%",
-    borderRadius: 22,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderWidth: 1,
-  },
-  chatBubbleMine: {
-    alignSelf: "flex-end",
-    backgroundColor: "#F26A8D",
-    borderColor: "rgba(255,123,89,0.28)",
-  },
-  chatBubbleTheirs: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  chatBubbleText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  chatBubbleTextMine: {
-    fontFamily: "SpaceGrotesk_500Medium",
-  },
-  chatComposer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 10,
-    borderRadius: 28,
-    padding: 10,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  chatInput: {
-    flex: 1,
-    minHeight: 42,
-    maxHeight: 96,
-    color: "#FFFFFF",
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: "SpaceGrotesk_400Regular",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  chatSendButton: {
-    minWidth: 68,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F26A8D",
-    borderWidth: 1,
-    borderColor: "rgba(255,123,89,0.28)",
-  },
-  chatSendText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  communityAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    marginBottom: 8,
-  },
-  communityAvatarLabel: {
-    color: "rgba(255,255,255,0.78)",
-    fontSize: 12,
-    fontFamily: "SpaceGrotesk_500Medium",
-  },
-  communityFeatureCard: {
-    borderRadius: 28,
-    overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  communityFeatureVisual: {
-    height: 210,
-    overflow: "hidden",
-  },
-  communityFeatureOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(8,8,11,0.16)",
-  },
-  communityHeartButton: {
-    position: "absolute",
-    top: 18,
-    right: 18,
-    minWidth: 50,
-    height: 34,
-    borderRadius: 17,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.18)",
-  },
-  communityHeartGlyph: {
-    color: "#82F7A6",
-    fontSize: 12,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  communityFeatureName: {
-    color: "#FFFFFF",
-    fontSize: 22,
-    lineHeight: 24,
-    fontFamily: "SpaceGrotesk_700Bold",
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    marginBottom: 8,
-  },
-  communityFeatureMeta: {
-    color: "rgba(255,255,255,0.80)",
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: "SpaceGrotesk_500Medium",
-    paddingHorizontal: 18,
-    paddingBottom: 18,
-  },
-  mapCard: {
-    height: 166,
-    borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
-    overflow: "hidden",
-    justifyContent: "center",
-  },
-  mapLineOne: {
-    position: "absolute",
-    top: 42,
-    left: 48,
-    width: 180,
-    height: 2,
-    backgroundColor: "rgba(169,217,255,0.48)",
-    transform: [{ rotate: "-12deg" }],
-  },
-  mapLineTwo: {
-    position: "absolute",
-    top: 78,
-    left: 104,
-    width: 170,
-    height: 2,
-    backgroundColor: "rgba(169,217,255,0.48)",
-    transform: [{ rotate: "14deg" }],
-  },
-  mapMarkerOne: {
-    position: "absolute",
-    top: 54,
-    left: 92,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#82F7A6",
-  },
-  mapMarkerTwo: {
-    position: "absolute",
-    top: 92,
-    right: 92,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#F26A8D",
-  },
-  mapPlaceholder: {
-    color: "rgba(255,255,255,0.48)",
-    fontSize: 16,
-    fontFamily: "SpaceGrotesk_500Medium",
-    textAlign: "center",
-  },
-  nearbyCardsRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  nearbyMiniCardWrap: {
-    flex: 1,
-    borderRadius: 22,
-    overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  nearbyMiniCard: {
-    height: 168,
-  },
-  nearbyMiniName: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "SpaceGrotesk_700Bold",
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    marginBottom: 4,
-  },
-  nearbyMiniDistance: {
-    color: "rgba(255,255,255,0.80)",
-    fontSize: 12,
-    fontFamily: "SpaceGrotesk_500Medium",
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-  },
-  contextCard: {
-    borderRadius: 28,
-    padding: 18,
-    backgroundColor: "rgba(255,255,255,0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
-  },
-  contextCardTitle: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 10,
-  },
-  contextCardBody: {
-    color: "rgba(255,255,255,0.74)",
-    fontSize: 14,
-    lineHeight: 21,
-    fontFamily: "SpaceGrotesk_400Regular",
-  },
-  bottomNav: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(10,8,12,0.92)",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 8,
-  },
-  bottomNavItem: {
-    flex: 1,
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  bottomNavGlow: {
-    position: "absolute",
-    width: 72,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(242,106,141,0.16)",
-  },
-  bottomNavIcon: {
-    color: "rgba(255,255,255,0.66)",
-    fontSize: 12,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  bottomNavIconActive: {
-    color: "#82F7A6",
-  },
-  newMatchesSection: {
-    marginBottom: 24,
-  },
-  inboxSectionTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "SpaceGrotesk_700Bold",
-    letterSpacing: -0.2,
-    marginBottom: 12,
-  },
-  newMatchesScroll: {
-    flexDirection: "row",
-  },
-  newMatchesScrollContent: {
     gap: 16,
-    paddingRight: 16,
   },
-  newMatchBubble: {
-    alignItems: "center",
-    width: 68,
-  },
-  newMatchAvatarGlow: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    padding: 1.8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 6,
-  },
-  newMatchAvatarInside: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 29,
-    backgroundColor: "#0F0B15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  newMatchAvatarText: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  newMatchLabel: {
-    color: "rgba(255,255,255,0.78)",
-    fontSize: 11,
-    fontFamily: "SpaceGrotesk_500Medium",
-    textAlign: "center",
-  },
-  conversationsSection: {
-    flex: 1,
-  },
-  emptyConversationsCard: {
-    borderRadius: 22,
+  detailBioCard: {
+    backgroundColor: "rgba(255,255,255,0.03)",
+    padding: 24,
+    borderRadius: 30,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
-    backgroundColor: "rgba(255,255,255,0.03)",
-    paddingVertical: 32,
-    paddingHorizontal: 22,
-    alignItems: "center",
-    justifyContent: "center",
   },
-  emptyConversationsTitle: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontFamily: "SpaceGrotesk_700Bold",
-    marginBottom: 6,
-  },
-  emptyConversationsBody: {
-    color: "rgba(255,255,255,0.52)",
-    fontSize: 12,
-    lineHeight: 18,
-    fontFamily: "SpaceGrotesk_400Regular",
-    textAlign: "center",
-  },
-  conversationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.04)",
-  },
-  convAvatarGlow: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    padding: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 14,
-  },
-  convAvatarInside: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 24,
-    backgroundColor: "#161122",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  convAvatarText: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  convDetails: {
-    flex: 1,
-  },
-  convHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  convName: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontFamily: "SpaceGrotesk_700Bold",
-  },
-  convTime: {
-    color: "rgba(255,255,255,0.44)",
-    fontSize: 11,
-    fontFamily: "SpaceGrotesk_500Medium",
-  },
-  convLastMessage: {
-    color: "rgba(255,255,255,0.64)",
+  detailSectionTitle: {
+    color: "rgba(255,255,255,0.4)",
     fontSize: 13,
-    fontFamily: "SpaceGrotesk_400Regular",
+    fontFamily: "SpaceGrotesk_700Bold",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    marginBottom: 16,
   },
-  detailChipsContainer: {
+  detailBioText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    lineHeight: 24,
+    fontFamily: "SpaceGrotesk_400Regular",
+    marginBottom: 24,
+  },
+  detailGridRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 12,
-    marginBottom: 8,
+    gap: 16,
   },
-  detailPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+  detailGridItem: {
+    width: "45%",
+    gap: 4,
   },
-  detailPillText: {
-    color: "rgba(255,255,255,0.86)",
+  detailGridLabel: {
+    color: "rgba(255,255,255,0.4)",
     fontSize: 12,
     fontFamily: "SpaceGrotesk_500Medium",
   },
-  detailHabitRow: {
+  detailGridValue: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "SpaceGrotesk_700Bold",
+  },
+  detailHabitsCard: {
+    backgroundColor: "rgba(255,255,255,0.03)",
+    padding: 24,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+    marginBottom: 40,
+  },
+  detailHabitsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 8,
+    gap: 12,
   },
   detailHabitPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-    backgroundColor: "rgba(130,247,166,0.09)",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(130,247,166,0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(130,247,166,0.18)",
+    borderColor: "rgba(130,247,166,0.2)",
+    gap: 8,
+  },
+  detailHabitPillLabel: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 11,
+    fontFamily: "SpaceGrotesk_700Bold",
+    textTransform: "uppercase",
   },
   detailHabitPillText: {
     color: "#82F7A6",
     fontSize: 11,
     fontFamily: "SpaceGrotesk_500Medium",
-  },
-  hiddenSignOutHit: {
-    position: "absolute",
-    top: 18,
-    left: 22,
-    opacity: 0.01,
-  },
-  hiddenSignOutText: {
-    color: "#FFFFFF",
-    fontSize: 12,
   },
 });

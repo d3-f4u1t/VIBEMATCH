@@ -15,6 +15,27 @@ SEED_FILE = Path("proxy_seed_data.json")
 def get_or_create_user(db, user_data: dict) -> User:
     user = db.query(User).filter(User.email == user_data["email"]).first()
     if user:
+        for field_name in (
+            "name",
+            "bio",
+            "location_city",
+            "date_of_birth",
+            "pronouns",
+            "gender",
+            "sexuality",
+            "height",
+            "weight",
+            "ethnicity",
+            "z_sign",
+            "f_plan",
+            "pets",
+            "religion",
+            "habit",
+        ):
+            if field_name in user_data:
+                setattr(user, field_name, user_data[field_name])
+        db.commit()
+        db.refresh(user)
         return user
 
     user = User(
@@ -23,6 +44,18 @@ def get_or_create_user(db, user_data: dict) -> User:
         password_hash=hash_password(user_data["password"]),
         bio=user_data.get("bio") or "",
         location_city=user_data.get("location_city") or "",
+        date_of_birth=user_data.get("date_of_birth"),
+        pronouns=user_data.get("pronouns"),
+        gender=user_data.get("gender"),
+        sexuality=user_data.get("sexuality"),
+        height=user_data.get("height"),
+        weight=user_data.get("weight"),
+        ethnicity=user_data.get("ethnicity"),
+        z_sign=user_data.get("z_sign"),
+        f_plan=user_data.get("f_plan"),
+        pets=user_data.get("pets"),
+        religion=user_data.get("religion"),
+        habit=user_data.get("habit"),
     )
     db.add(user)
     db.commit()

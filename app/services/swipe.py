@@ -108,22 +108,29 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
     
     if len(current_user.artists) < 3 or len(current_user.tracks) < 4:
         return None
-    
-    # Get users already swiped
-    already_swiped = get_users_already_swiped(user_id, db)
 
+    user_gender = (current_user.gender or "").strip().lower()
+    user_sexuality = (current_user.sexuality or "").strip().lower()
+    prefers_opposite_gender = any(
+        keyword in user_sexuality
+        for keyword in ("straight", "hetero", "heterosexual")
+    )
+    is_man = user_gender in {"man", "male", "m"}
+    is_woman = user_gender in {"woman", "female", "f"}
+    
     current_user_artist_names = {artist.name for artist in current_user.artists if artist.name}
     current_user_track_titles = {track.title for track in current_user.tracks if track.title}
     
     # Get all eligible candidates
     candidates = []
     all_users = db.query(User).filter(User.id != user_id).all()
+    already_swiped = get_users_already_swiped(user_id, db)
     
     for other_user in all_users:
         # Skip if already swiped
         if other_user.id in already_swiped:
-            continue
-        
+          continue
+
         # Skip if no vector
         if not other_user.music_vector:
             continue
@@ -131,6 +138,15 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
         # Skip if insufficient profile
         if len(other_user.artists) < 3 or len(other_user.tracks) < 4:
             continue
+
+        other_gender = (other_user.gender or "").strip().lower()
+        if prefers_opposite_gender:
+            if is_man and other_gender not in {"woman", "female", "w"}:
+                continue
+            if is_woman and other_gender not in {"man", "male", "m"}:
+                continue
+            if not is_man and not is_woman and not other_gender:
+                continue
         
         # Calculate similarity
         similarity = cosine_similarity(current_user.music_vector, other_user.music_vector)

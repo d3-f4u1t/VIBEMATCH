@@ -24,6 +24,7 @@ def home():
 # in the Terminal
 # cd C:\Users\hkpan\VIBEMATCH
 # uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# 
 # back end testing:   172.24.102.214
 # use this command for dev mode
 # and /docs for API documentation

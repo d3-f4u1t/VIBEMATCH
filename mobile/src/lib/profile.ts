@@ -54,3 +54,29 @@ export async function updateUserProfile(
 
   return parseJson<UserProfileResponse>(response);
 }
+
+type MusicProfileStatusResponse = {
+  user_id: string;
+  artist_count: number;
+  track_count: number;
+  artists_complete: boolean;
+  tracks_complete: boolean;
+  music_profile_complete: boolean;
+  artists_rem_to_min: number;
+  tracks_rem_to_min: number;
+};
+
+export async function getMusicProfileStatus(
+  userId: string,
+  token: string
+): Promise<MusicProfileStatusResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/user/${userId}/music-profile-status`,
+    {
+      method: "GET",
+      headers: buildAuthHeaders(token),
+    }
+  );
+
+  return parseJson<MusicProfileStatusResponse>(response);
+}

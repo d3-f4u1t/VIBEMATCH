@@ -11,7 +11,7 @@ SessionLoacl = sessionmaker(bind=engine, autoflush = False, autocommit = False)
 
 Base = declarative_base()
 
-
+#this ensures that the data is formated with proper catagory for each of the given data or data set
 def ensure_user_profile_columns():
     required_columns = {
         "date_of_birth": "DATE",

@@ -1,4 +1,3 @@
-
 {
   "users": [
     {
@@ -7,23 +6,25 @@
       "password": "hardik",
       "bio": "hello!!",
       "location_city": "Palampur",
+      "gender": "man",
+      "sexuality": "straight",
       "artists": [
         {
-          "mb_id": "164f0d73-1234-4e2c-8743-d77bf2191051",
+          "mb_id": "artist-ye",
           "name": "Ye",
           "country": "US",
           "tags": ["hip hop", "pop rap", "experimental hip hop"],
           "artist_type": "Person"
         },
         {
-          "mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+          "mb_id": "artist-drake",
           "name": "Drake",
           "country": "CA",
           "tags": ["hip hop", "pop rap", "r&b"],
           "artist_type": "Person"
         },
         {
-          "mb_id": "e4a51f17-a57b-47b1-b37b-f552d0f8e9e6",
+          "mb_id": "artist-travis",
           "name": "Travis Scott",
           "country": "US",
           "tags": ["hip hop", "trap"],
@@ -33,7 +34,7 @@
       "tracks": [
         {
           "mb_id": "seed-hardik-1",
-          "artist_mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+          "artist_mb_id": "artist-drake",
           "artist_name": "Drake",
           "title": "God's Plan",
           "release_title": "Scorpion",
@@ -41,7 +42,7 @@
         },
         {
           "mb_id": "seed-hardik-2",
-          "artist_mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+          "artist_mb_id": "artist-drake",
           "artist_name": "Drake",
           "title": "Hotline Bling",
           "release_title": "Views",
@@ -49,7 +50,7 @@
         },
         {
           "mb_id": "seed-hardik-3",
-          "artist_mb_id": "e4a51f17-a57b-47b1-b37b-f552d0f8e9e6",
+          "artist_mb_id": "artist-travis",
           "artist_name": "Travis Scott",
           "title": "SICKO MODE",
           "release_title": "ASTROWORLD",
@@ -57,7 +58,7 @@
         },
         {
           "mb_id": "seed-hardik-4",
-          "artist_mb_id": "164f0d73-1234-4e2c-8743-d77bf2191051",
+          "artist_mb_id": "artist-ye",
           "artist_name": "Ye",
           "title": "Stronger",
           "release_title": "Graduation",
@@ -71,23 +72,25 @@
       "password": "khsuhi",
       "bio": "heyy!!",
       "location_city": "kangra",
+      "gender": "woman",
+      "sexuality": "straight",
       "artists": [
         {
-          "mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+          "mb_id": "artist-drake",
           "name": "Drake",
           "country": "CA",
           "tags": ["hip hop", "pop rap", "r&b"],
           "artist_type": "Person"
         },
         {
-          "mb_id": "b0337af1-8d93-4671-b6c9-ba306bf942bf",
+          "mb_id": "artist-centralcee",
           "name": "Central Cee",
           "country": null,
-          "tags": [],
+          "tags": ["uk rap", "drill"],
           "artist_type": "Person"
         },
         {
-          "mb_id": "e4a51f17-a57b-47b1-b37b-f552d0f8e9e6",
+          "mb_id": "artist-travis",
           "name": "Travis Scott",
           "country": "US",
           "tags": ["hip hop", "trap"],
@@ -97,7 +100,7 @@
       "tracks": [
         {
           "mb_id": "seed-khushi-1",
-          "artist_mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+          "artist_mb_id": "artist-drake",
           "artist_name": "Drake",
           "title": "One Dance",
           "release_title": "Views",
@@ -105,7 +108,7 @@
         },
         {
           "mb_id": "seed-khushi-2",
-          "artist_mb_id": "b0337af1-8d93-4671-b6c9-ba306bf942bf",
+          "artist_mb_id": "artist-centralcee",
           "artist_name": "Central Cee",
           "title": "Doja",
           "release_title": "23",
@@ -113,7 +116,7 @@
         },
         {
           "mb_id": "seed-khushi-3",
-          "artist_mb_id": "e4a51f17-a57b-47b1-b37b-f552d0f8e9e6",
+          "artist_mb_id": "artist-travis",
           "artist_name": "Travis Scott",
           "title": "goosebumps",
           "release_title": "Birds in the Trap Sing McKnight",
@@ -121,11 +124,671 @@
         },
         {
           "mb_id": "seed-khushi-4",
-          "artist_mb_id": "9fff2f8a-21e6-47de-a2b8-7f449929d43f",
+          "artist_mb_id": "artist-drake",
           "artist_name": "Drake",
           "title": "Passionfruit",
           "release_title": "More Life",
           "length_ms": 298940
+        }
+      ]
+    },
+    {
+      "name": "Ayaan",
+      "email": "ayaan@example.com",
+      "password": "ayaan123",
+      "bio": "late-night playlists, rooftop talks, and long walks home.",
+      "location_city": "Dharamshala",
+      "gender": "man",
+      "sexuality": "straight",
+      "artists": [
+        {
+          "mb_id": "artist-frank",
+          "name": "Frank Ocean",
+          "country": "US",
+          "tags": ["r&b", "alternative r&b", "neo soul"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-sza",
+          "name": "SZA",
+          "country": "US",
+          "tags": ["r&b", "alt soul", "neo soul"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-weeknd",
+          "name": "The Weeknd",
+          "country": "CA",
+          "tags": ["pop", "r&b", "alt pop"],
+          "artist_type": "Person"
+        }
+      ],
+      "tracks": [
+        {
+          "mb_id": "seed-ayaan-1",
+          "artist_mb_id": "artist-frank",
+          "artist_name": "Frank Ocean",
+          "title": "Ivy",
+          "release_title": "Blonde",
+          "length_ms": 268800
+        },
+        {
+          "mb_id": "seed-ayaan-2",
+          "artist_mb_id": "artist-sza",
+          "artist_name": "SZA",
+          "title": "Good Days",
+          "release_title": "Ctrl",
+          "length_ms": 279773
+        },
+        {
+          "mb_id": "seed-ayaan-3",
+          "artist_mb_id": "artist-weeknd",
+          "artist_name": "The Weeknd",
+          "title": "After Hours",
+          "release_title": "After Hours",
+          "length_ms": 361026
+        },
+        {
+          "mb_id": "seed-ayaan-4",
+          "artist_mb_id": "artist-frank",
+          "artist_name": "Frank Ocean",
+          "title": "Nights",
+          "release_title": "Blonde",
+          "length_ms": 307000
+        }
+      ]
+    },
+    {
+      "name": "Mira",
+      "email": "mira@example.com",
+      "password": "mira123",
+      "bio": "creative chaos, soft songs, and coffee runs.",
+      "location_city": "Kangra",
+      "gender": "woman",
+      "sexuality": "straight",
+      "artists": [
+        {
+          "mb_id": "artist-billie",
+          "name": "Billie Eilish",
+          "country": "US",
+          "tags": ["pop", "alt pop", "electropop"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-lana",
+          "name": "Lana Del Rey",
+          "country": "US",
+          "tags": ["dream pop", "baroque pop", "alt pop"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-weeknd",
+          "name": "The Weeknd",
+          "country": "CA",
+          "tags": ["pop", "r&b", "alt pop"],
+          "artist_type": "Person"
+        }
+      ],
+      "tracks": [
+        {
+          "mb_id": "seed-mira-1",
+          "artist_mb_id": "artist-billie",
+          "artist_name": "Billie Eilish",
+          "title": "bad guy",
+          "release_title": "When We All Fall Asleep, Where Do We Go?",
+          "length_ms": 194088
+        },
+        {
+          "mb_id": "seed-mira-2",
+          "artist_mb_id": "artist-billie",
+          "artist_name": "Billie Eilish",
+          "title": "Ocean Eyes",
+          "release_title": "dont smile at me",
+          "length_ms": 200279
+        },
+        {
+          "mb_id": "seed-mira-3",
+          "artist_mb_id": "artist-lana",
+          "artist_name": "Lana Del Rey",
+          "title": "Summertime Sadness",
+          "release_title": "Born to Die",
+          "length_ms": 266080
+        },
+        {
+          "mb_id": "seed-mira-4",
+          "artist_mb_id": "artist-weeknd",
+          "artist_name": "The Weeknd",
+          "title": "Blinding Lights",
+          "release_title": "After Hours",
+          "length_ms": 200040
+        }
+      ]
+    },
+    {
+      "name": "Kabir",
+      "email": "kabir@example.com",
+      "password": "kabir123",
+      "bio": "gym in the day, bass-heavy playlists at night.",
+      "location_city": "Palampur",
+      "gender": "man",
+      "sexuality": "straight",
+      "artists": [
+        {
+          "mb_id": "artist-kendrick",
+          "name": "Kendrick Lamar",
+          "country": "US",
+          "tags": ["hip hop", "rap", "conscious rap"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-jcole",
+          "name": "J. Cole",
+          "country": "US",
+          "tags": ["hip hop", "rap", "boom bap"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-travis",
+          "name": "Travis Scott",
+          "country": "US",
+          "tags": ["hip hop", "trap"],
+          "artist_type": "Person"
+        }
+      ],
+      "tracks": [
+        {
+          "mb_id": "seed-kabir-1",
+          "artist_mb_id": "artist-kendrick",
+          "artist_name": "Kendrick Lamar",
+          "title": "HUMBLE.",
+          "release_title": "DAMN.",
+          "length_ms": 177000
+        },
+        {
+          "mb_id": "seed-kabir-2",
+          "artist_mb_id": "artist-kendrick",
+          "artist_name": "Kendrick Lamar",
+          "title": "DNA.",
+          "release_title": "DAMN.",
+          "length_ms": 185000
+        },
+        {
+          "mb_id": "seed-kabir-3",
+          "artist_mb_id": "artist-travis",
+          "artist_name": "Travis Scott",
+          "title": "SICKO MODE",
+          "release_title": "ASTROWORLD",
+          "length_ms": 312820
+        },
+        {
+          "mb_id": "seed-kabir-4",
+          "artist_mb_id": "artist-jcole",
+          "artist_name": "J. Cole",
+          "title": "No Role Modelz",
+          "release_title": "2014 Forest Hills Drive",
+          "length_ms": 292960
+        }
+      ]
+    },
+    {
+      "name": "Sara",
+      "email": "sara@example.com",
+      "password": "sara123",
+      "bio": "quiet books, loud chorus, clean playlist energy.",
+      "location_city": "Kullu",
+      "gender": "woman",
+      "sexuality": "straight",
+      "artists": [
+        {
+          "mb_id": "artist-arctic",
+          "name": "Arctic Monkeys",
+          "country": "UK",
+          "tags": ["indie rock", "alternative rock", "garage rock"],
+          "artist_type": "Group"
+        },
+        {
+          "mb_id": "artist-tame",
+          "name": "Tame Impala",
+          "country": "AU",
+          "tags": ["psych rock", "indie", "alt"],
+          "artist_type": "Group"
+        },
+        {
+          "mb_id": "artist-weeknd",
+          "name": "The Weeknd",
+          "country": "CA",
+          "tags": ["pop", "r&b", "alt pop"],
+          "artist_type": "Person"
+        }
+      ],
+      "tracks": [
+        {
+          "mb_id": "seed-sara-1",
+          "artist_mb_id": "artist-arctic",
+          "artist_name": "Arctic Monkeys",
+          "title": "Do I Wanna Know?",
+          "release_title": "AM",
+          "length_ms": 272394
+        },
+        {
+          "mb_id": "seed-sara-2",
+          "artist_mb_id": "artist-tame",
+          "artist_name": "Tame Impala",
+          "title": "The Less I Know The Better",
+          "release_title": "Currents",
+          "length_ms": 216320
+        },
+        {
+          "mb_id": "seed-sara-3",
+          "artist_mb_id": "artist-weeknd",
+          "artist_name": "The Weeknd",
+          "title": "Starboy",
+          "release_title": "Starboy",
+          "length_ms": 230453
+        },
+        {
+          "mb_id": "seed-sara-4",
+          "artist_mb_id": "artist-arctic",
+          "artist_name": "Arctic Monkeys",
+          "title": "505",
+          "release_title": "Favourite Worst Nightmare",
+          "length_ms": 253586
+        }
+      ]
+    },
+    {
+      "name": "Zoya",
+      "email": "zoya@example.com",
+      "password": "zoya123",
+      "bio": "rom-com energy with a messy desk and neat playlists.",
+      "location_city": "Mandi",
+      "gender": "woman",
+      "sexuality": "straight",
+      "artists": [
+        {
+          "mb_id": "artist-taylor",
+          "name": "Taylor Swift",
+          "country": "US",
+          "tags": ["pop", "country pop", "singer-songwriter"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-olivia",
+          "name": "Olivia Rodrigo",
+          "country": "US",
+          "tags": ["pop", "alt pop", "singer-songwriter"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-lorde",
+          "name": "Lorde",
+          "country": "NZ",
+          "tags": ["alt pop", "electropop", "art pop"],
+          "artist_type": "Person"
+        }
+      ],
+      "tracks": [
+        {
+          "mb_id": "seed-zoya-1",
+          "artist_mb_id": "artist-taylor",
+          "artist_name": "Taylor Swift",
+          "title": "Cruel Summer",
+          "release_title": "Lover",
+          "length_ms": 178426
+        },
+        {
+          "mb_id": "seed-zoya-2",
+          "artist_mb_id": "artist-olivia",
+          "artist_name": "Olivia Rodrigo",
+          "title": "good 4 u",
+          "release_title": "SOUR",
+          "length_ms": 178000
+        },
+        {
+          "mb_id": "seed-zoya-3",
+          "artist_mb_id": "artist-lorde",
+          "artist_name": "Lorde",
+          "title": "Green Light",
+          "release_title": "Melodrama",
+          "length_ms": 210000
+        },
+        {
+          "mb_id": "seed-zoya-4",
+          "artist_mb_id": "artist-taylor",
+          "artist_name": "Taylor Swift",
+          "title": "Style",
+          "release_title": "1989",
+          "length_ms": 231000
+        }
+      ]
+    },
+    {
+      "name": "Rohit",
+      "email": "rohit@example.com",
+      "password": "rohit123",
+      "bio": "night drive playlists and too many good ideas.",
+      "location_city": "Shimla",
+      "gender": "man",
+      "sexuality": "straight",
+      "artists": [
+        {
+          "mb_id": "artist-drake",
+          "name": "Drake",
+          "country": "CA",
+          "tags": ["hip hop", "pop rap", "r&b"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-ye",
+          "name": "Ye",
+          "country": "US",
+          "tags": ["hip hop", "pop rap", "experimental hip hop"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-travis",
+          "name": "Travis Scott",
+          "country": "US",
+          "tags": ["hip hop", "trap"],
+          "artist_type": "Person"
+        }
+      ],
+      "tracks": [
+        {
+          "mb_id": "seed-rohit-1",
+          "artist_mb_id": "artist-drake",
+          "artist_name": "Drake",
+          "title": "One Dance",
+          "release_title": "Views",
+          "length_ms": 173986
+        },
+        {
+          "mb_id": "seed-rohit-2",
+          "artist_mb_id": "artist-ye",
+          "artist_name": "Ye",
+          "title": "Flashing Lights",
+          "release_title": "Graduation",
+          "length_ms": 237000
+        },
+        {
+          "mb_id": "seed-rohit-3",
+          "artist_mb_id": "artist-travis",
+          "artist_name": "Travis Scott",
+          "title": "goosebumps",
+          "release_title": "Birds in the Trap Sing McKnight",
+          "length_ms": 243836
+        },
+        {
+          "mb_id": "seed-rohit-4",
+          "artist_mb_id": "artist-drake",
+          "artist_name": "Drake",
+          "title": "Hotline Bling",
+          "release_title": "Views",
+          "length_ms": 267066
+        }
+      ]
+    },
+    {
+      "name": "Ananya",
+      "email": "ananya@example.com",
+      "password": "ananya123",
+      "bio": "soft spoken, loud taste, always down for a real conversation.",
+      "location_city": "Solan",
+      "gender": "woman",
+      "sexuality": "straight",
+      "artists": [
+        {
+          "mb_id": "artist-frank",
+          "name": "Frank Ocean",
+          "country": "US",
+          "tags": ["r&b", "alternative r&b", "neo soul"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-sza",
+          "name": "SZA",
+          "country": "US",
+          "tags": ["r&b", "alt soul", "neo soul"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-tyler",
+          "name": "Tyler, The Creator",
+          "country": "US",
+          "tags": ["hip hop", "alternative hip hop", "neo soul"],
+          "artist_type": "Person"
+        }
+      ],
+      "tracks": [
+        {
+          "mb_id": "seed-ananya-1",
+          "artist_mb_id": "artist-frank",
+          "artist_name": "Frank Ocean",
+          "title": "Pink + White",
+          "release_title": "Blonde",
+          "length_ms": 184000
+        },
+        {
+          "mb_id": "seed-ananya-2",
+          "artist_mb_id": "artist-sza",
+          "artist_name": "SZA",
+          "title": "Kill Bill",
+          "release_title": "SOS",
+          "length_ms": 153000
+        },
+        {
+          "mb_id": "seed-ananya-3",
+          "artist_mb_id": "artist-tyler",
+          "artist_name": "Tyler, The Creator",
+          "title": "See You Again",
+          "release_title": "Flower Boy",
+          "length_ms": 180000
+        },
+        {
+          "mb_id": "seed-ananya-4",
+          "artist_mb_id": "artist-frank",
+          "artist_name": "Frank Ocean",
+          "title": "Self Control",
+          "release_title": "Blonde",
+          "length_ms": 258000
+        }
+      ]
+    },
+    {
+      "name": "Dev",
+      "email": "dev@example.com",
+      "password": "dev123",
+      "bio": "frontend by day, obscure albums by night.",
+      "location_city": "Dharamshala",
+      "gender": "man",
+      "sexuality": "straight",
+      "artists": [
+        {
+          "mb_id": "artist-brent",
+          "name": "Brent Faiyaz",
+          "country": "US",
+          "tags": ["r&b", "alt r&b", "soul"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-joji",
+          "name": "Joji",
+          "country": "JP",
+          "tags": ["lo-fi", "alt pop", "r&b"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-1975",
+          "name": "The 1975",
+          "country": "UK",
+          "tags": ["indie pop", "alt rock", "synth pop"],
+          "artist_type": "Group"
+        }
+      ],
+      "tracks": [
+        {
+          "mb_id": "seed-dev-1",
+          "artist_mb_id": "artist-brent",
+          "artist_name": "Brent Faiyaz",
+          "title": "Dead Man Walking",
+          "release_title": "Wasteland",
+          "length_ms": 208000
+        },
+        {
+          "mb_id": "seed-dev-2",
+          "artist_mb_id": "artist-joji",
+          "artist_name": "Joji",
+          "title": "Glimpse of Us",
+          "release_title": "SMITHEREENS",
+          "length_ms": 233000
+        },
+        {
+          "mb_id": "seed-dev-3",
+          "artist_mb_id": "artist-1975",
+          "artist_name": "The 1975",
+          "title": "About You",
+          "release_title": "Being Funny in a Foreign Language",
+          "length_ms": 348000
+        },
+        {
+          "mb_id": "seed-dev-4",
+          "artist_mb_id": "artist-brent",
+          "artist_name": "Brent Faiyaz",
+          "title": "Trust",
+          "release_title": "Fuck the World",
+          "length_ms": 199000
+        }
+      ]
+    },
+    {
+      "name": "Nia",
+      "email": "nia@example.com",
+      "password": "nia123",
+      "bio": "golden hour walks, basslines, and books that hurt a little.",
+      "location_city": "Mandi",
+      "gender": "woman",
+      "sexuality": "straight",
+      "artists": [
+        {
+          "mb_id": "artist-billie",
+          "name": "Billie Eilish",
+          "country": "US",
+          "tags": ["pop", "alt pop", "electropop"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-sza",
+          "name": "SZA",
+          "country": "US",
+          "tags": ["r&b", "alt soul", "neo soul"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-frank",
+          "name": "Frank Ocean",
+          "country": "US",
+          "tags": ["r&b", "alternative r&b", "neo soul"],
+          "artist_type": "Person"
+        }
+      ],
+      "tracks": [
+        {
+          "mb_id": "seed-nia-1",
+          "artist_mb_id": "artist-billie",
+          "artist_name": "Billie Eilish",
+          "title": "What Was I Made For?",
+          "release_title": "Barbie",
+          "length_ms": 222000
+        },
+        {
+          "mb_id": "seed-nia-2",
+          "artist_mb_id": "artist-sza",
+          "artist_name": "SZA",
+          "title": "Snooze",
+          "release_title": "SOS",
+          "length_ms": 201000
+        },
+        {
+          "mb_id": "seed-nia-3",
+          "artist_mb_id": "artist-frank",
+          "artist_name": "Frank Ocean",
+          "title": "White Ferrari",
+          "release_title": "Blonde",
+          "length_ms": 248000
+        },
+        {
+          "mb_id": "seed-nia-4",
+          "artist_mb_id": "artist-billie",
+          "artist_name": "Billie Eilish",
+          "title": "Therefore I Am",
+          "release_title": "Happier Than Ever",
+          "length_ms": 174000
+        }
+      ]
+    },
+    {
+      "name": "Arjun",
+      "email": "arjun@example.com",
+      "password": "arjun123",
+      "bio": "shared playlists, long replies, and real effort.",
+      "location_city": "Shimla",
+      "gender": "man",
+      "sexuality": "straight",
+      "artists": [
+        {
+          "mb_id": "artist-kendrick",
+          "name": "Kendrick Lamar",
+          "country": "US",
+          "tags": ["hip hop", "rap", "conscious rap"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-drake",
+          "name": "Drake",
+          "country": "CA",
+          "tags": ["hip hop", "pop rap", "r&b"],
+          "artist_type": "Person"
+        },
+        {
+          "mb_id": "artist-jcole",
+          "name": "J. Cole",
+          "country": "US",
+          "tags": ["hip hop", "rap", "boom bap"],
+          "artist_type": "Person"
+        }
+      ],
+      "tracks": [
+        {
+          "mb_id": "seed-arjun-1",
+          "artist_mb_id": "artist-kendrick",
+          "artist_name": "Kendrick Lamar",
+          "title": "Alright",
+          "release_title": "To Pimp a Butterfly",
+          "length_ms": 235000
+        },
+        {
+          "mb_id": "seed-arjun-2",
+          "artist_mb_id": "artist-drake",
+          "artist_name": "Drake",
+          "title": "Marvins Room",
+          "release_title": "Take Care",
+          "length_ms": 327000
+        },
+        {
+          "mb_id": "seed-arjun-3",
+          "artist_mb_id": "artist-jcole",
+          "artist_name": "J. Cole",
+          "title": "Middle Child",
+          "release_title": "Middle Child",
+          "length_ms": 214000
+        },
+        {
+          "mb_id": "seed-arjun-4",
+          "artist_mb_id": "artist-kendrick",
+          "artist_name": "Kendrick Lamar",
+          "title": "Money Trees",
+          "release_title": "good kid, m.A.A.d city",
+          "length_ms": 350000
         }
       ]
     }

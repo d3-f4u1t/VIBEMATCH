@@ -89,7 +89,7 @@ export type MutualMatch = {
 
 function buildAuthHeaders(token: string) {
   return {
-    Authorization: `Bearer {token}`,
+    Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
   };
 }
