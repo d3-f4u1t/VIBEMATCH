@@ -95,6 +95,9 @@ export function MusicSetupScreen({
   const [step, setStep] = useState<MusicStep>("artists");
   const [artistSearch, setArtistSearch] = useState("");
   const [trackSearch, setTrackSearch] = useState("");
+  const [trackArtistSearch, setTrackArtistSearch] = useState("");
+  const [submittedTrackSearch, setSubmittedTrackSearch] = useState("");
+  const [submittedTrackArtistSearch, setSubmittedTrackArtistSearch] = useState("");
   const [trackResultLimit, setTrackResultLimit] = useState(4);
   const [remoteArtists, setRemoteArtists] = useState<Artist[]>([]);
   const [remoteTracks, setRemoteTracks] = useState<Track[]>([]);
@@ -151,8 +154,15 @@ export function MusicSetupScreen({
     };
   }, [artistSearch]);
 
-  useEffect(() => {
+  const handleTrackSearchSubmit = () => {
     const trimmedTrackSearch = trackSearch.trim();
+    setSubmittedTrackSearch(trimmedTrackSearch);
+    setSubmittedTrackArtistSearch(trackArtistSearch.trim());
+    setTrackResultLimit(4);
+  };
+
+  useEffect(() => {
+    const trimmedTrackSearch = submittedTrackSearch.trim();
 
     if (trimmedTrackSearch.length < 2) {
       setRemoteTracks([]);
@@ -162,14 +172,15 @@ export function MusicSetupScreen({
     }
 
     let isCancelled = false;
-    const timeoutId = setTimeout(async () => {
+    const loadTracks = async () => {
       try {
         setTrackSearchLoading(true);
         setTrackSearchError("");
         const tracks = await searchTracks(
           session.user.id,
           trimmedTrackSearch,
-          trackResultLimit
+          trackResultLimit,
+          submittedTrackArtistSearch || undefined
         );
 
         if (!isCancelled) {
@@ -187,17 +198,18 @@ export function MusicSetupScreen({
           setTrackSearchLoading(false);
         }
       }
-    }, 350);
+    };
+
+    loadTracks();
 
     return () => {
       isCancelled = true;
-      clearTimeout(timeoutId);
     };
-  }, [session.user.id, trackResultLimit, trackSearch]);
+  }, [session.user.id, trackResultLimit, submittedTrackSearch, submittedTrackArtistSearch]);
 
   useEffect(() => {
     setTrackResultLimit(4);
-  }, [trackSearch]);
+  }, [submittedTrackSearch, submittedTrackArtistSearch]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -606,15 +618,42 @@ export function MusicSetupScreen({
                     style={styles.searchInput}
                     autoCapitalize="words"
                     autoCorrect={false}
+                    returnKeyType="search"
+                    onSubmitEditing={handleTrackSearchSubmit}
                   />
-                  <View style={styles.searchDot} />
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.searchButton,
+                      pressed && styles.searchButtonPressed,
+                    ]}
+                    onPress={handleTrackSearchSubmit}
+                  >
+                    <View style={styles.searchIconSmall}>
+                      <View style={styles.searchIconSmallCircle} />
+                      <View style={styles.searchIconSmallHandle} />
+                    </View>
+                  </Pressable>
+                </View>
+
+                <View style={styles.searchBarCompact}>
+                  <TextInput
+                    value={trackArtistSearch}
+                    onChangeText={setTrackArtistSearch}
+                    placeholder="Artist (optional)"
+                    placeholderTextColor="#9D97A5"
+                    style={styles.searchInput}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
                 </View>
 
                 <View style={styles.artistList}>
-                  {trackSearch.trim().length < 2 ? (
+                  {submittedTrackSearch.trim().length < 2 ? (
                     <View style={styles.emptyState}>
                       <Text style={styles.emptyStateText}>
-                        Search for a song title to get track matches.
+                        {trackSearch.trim().length >= 2
+                          ? "Press Enter or tap the search icon to run song search."
+                          : "Search for a song title to get track matches."}
                       </Text>
                     </View>
                   ) : trackSearchLoading ? (
@@ -851,6 +890,52 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.09)",
     marginTop: 14,
     marginBottom: 14,
+  },
+  searchButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchButtonPressed: {
+    opacity: 0.7,
+  },
+  searchIconSmall: {
+    width: 16,
+    height: 16,
+    position: "relative",
+  },
+  searchIconSmallCircle: {
+    position: "absolute",
+    top: 1,
+    left: 1,
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+  },
+  searchIconSmallHandle: {
+    position: "absolute",
+    right: 1,
+    bottom: 1,
+    width: 6,
+    height: 1.5,
+    backgroundColor: "#FFFFFF",
+    transform: [{ rotate: "45deg" }],
+    borderRadius: 999,
+  },
+  searchBarCompact: {
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.09)",
+    marginBottom: 14,
+    height: 48,
   },
   searchInput: {
     flex: 1,

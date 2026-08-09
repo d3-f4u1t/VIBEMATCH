@@ -93,6 +93,7 @@ export function MusicSetupScreen({
   const [step, setStep] = useState<MusicStep>("artists");
   const [artistSearch, setArtistSearch] = useState("");
   const [trackSearch, setTrackSearch] = useState("");
+  const [trackArtistSearch, setTrackArtistSearch] = useState("");
   const [trackResultLimit, setTrackResultLimit] = useState(4);
   const [remoteArtists, setRemoteArtists] = useState<Artist[]>([]);
   const [remoteTracks, setRemoteTracks] = useState<Track[]>([]);
@@ -160,6 +161,7 @@ export function MusicSetupScreen({
     }
 
     let isCancelled = false;
+    const trimmedArtistSearch = trackArtistSearch.trim();
     const timeoutId = setTimeout(async () => {
       try {
         setTrackSearchLoading(true);
@@ -167,7 +169,8 @@ export function MusicSetupScreen({
         const tracks = await searchTracks(
           session.user.id,
           trimmedTrackSearch,
-          trackResultLimit
+          trackResultLimit,
+          trimmedArtistSearch || undefined
         );
 
         if (!isCancelled) {
@@ -191,7 +194,7 @@ export function MusicSetupScreen({
       isCancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [session.user.id, trackResultLimit, trackSearch]);
+  }, [session.user.id, trackResultLimit, trackSearch, trackArtistSearch]);
 
   useEffect(() => {
     setTrackResultLimit(4);
@@ -608,6 +611,18 @@ export function MusicSetupScreen({
                   <View style={styles.searchDot} />
                 </View>
 
+                <View style={styles.searchBarCompact}>
+                  <TextInput
+                    value={trackArtistSearch}
+                    onChangeText={setTrackArtistSearch}
+                    placeholder="Artist (optional)"
+                    placeholderTextColor="#9D97A5"
+                    style={styles.searchInput}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
+                </View>
+
                 <View style={styles.artistList}>
                   {trackSearch.trim().length < 2 ? (
                     <View style={styles.emptyState}>
@@ -844,6 +859,17 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.09)",
     marginTop: 14,
     marginBottom: 14,
+  },
+  searchBarCompact: {
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.09)",
+    marginBottom: 14,
+    height: 48,
   },
   searchInput: {
     flex: 1,

@@ -1,10 +1,22 @@
 import requests as request
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import time
 import re
 
 base_url = "https://musicbrainz.org/ws/2/"
 
 session = request.Session()
+retry_strategy = Retry(
+    total=3,
+    backoff_factor=1,
+    status_forcelist=[429, 502, 503, 504],
+    allowed_methods=["GET", "HEAD", "OPTIONS"],
+    raise_on_status=False,
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
+session.mount("https://", adapter)
+session.mount("http://", adapter)
 session.headers.update({
     "User-Agent": "VibeMatch/1.0 (vibematch@gmailcom)"
 })
@@ -130,6 +142,11 @@ def _request_mb(path: str, params: dict) -> dict:
         params=params,
         timeout=15,
     )
+    if res.status_code == 503:
+        raise request.exceptions.HTTPError(
+            f"503 Service Unavailable: MusicBrainz returned 503",
+            response=res,
+        )
     res.raise_for_status()
     time.sleep(1)
     return res.json()
@@ -158,7 +175,11 @@ def search_artist(name):
 
         return {"artists": artists}
     except request.exceptions.Timeout:
-        return {"error" : "'musicbrainz API request timed out"}
+        return {"error" : "musicbrainz API request timed out"}
+    except request.exceptions.HTTPError as e:
+        if e.response is not None and e.response.status_code == 503:
+            return {"error": "MusicBrainz is temporarily unavailable (503). Please try again later."}
+        return {"error" : f"Request failed: {str(e)}"}
     except request.exceptions.RequestException as e:
         return {"error" : f"Request failed: {str(e)}"}
 
@@ -218,6 +239,10 @@ def search_artist_recordings(artist_mb_id: str, limit: int = 10):
         return {"tracks": tracks}
     except request.exceptions.Timeout:
         return {"error": "musicbrainz API request timed out"}
+    except request.exceptions.HTTPError as e:
+        if e.response is not None and e.response.status_code == 503:
+            return {"error": "MusicBrainz is temporarily unavailable (503). Please try again later."}
+        return {"error": f"Request failed: {str(e)}"}
     except request.exceptions.RequestException as e:
         return {"error": f"Request failed: {str(e)}"}
 
@@ -246,30 +271,30 @@ def search_tracks_by_title(
             scored_tracks.extend(
                 _collect_track_candidates(
                     direct_data.get("recordings", []),
-                    preferred_artist_mbids=preferred_artist_mbids,
-                    preferred_artist_names=preferred_artists,
+                    preferred_artist_mbids=set(),
+                    preferred_artist_names={},
                     base_score=12,
                     seen_titles=seen_titles,
                 )
             )
-
-        for artist_mb_id, artist_name in preferred_artists.items():
-            params = {
-                "query": f'recording:"{title}" AND artist:"{artist_name}"',
-                "fmt": "json",
-                "limit": max(limit * 2, 10),
-            }
-            data = _request_mb("recording/", params)
-            preferred_artist_name_map = {artist_mb_id: artist_name}
-            scored_tracks.extend(
-                _collect_track_candidates(
-                    data.get("recordings", []),
-                    preferred_artist_mbids=preferred_artist_mbids,
-                    preferred_artist_names=preferred_artist_name_map,
-                    base_score=10,
-                    seen_titles=seen_titles,
+        else:
+            for artist_mb_id, artist_name in preferred_artists.items():
+                params = {
+                    "query": f'recording:"{title}" AND artist:"{artist_name}"',
+                    "fmt": "json",
+                    "limit": max(limit * 2, 10),
+                }
+                data = _request_mb("recording/", params)
+                preferred_artist_name_map = {artist_mb_id: artist_name}
+                scored_tracks.extend(
+                    _collect_track_candidates(
+                        data.get("recordings", []),
+                        preferred_artist_mbids=preferred_artist_mbids,
+                        preferred_artist_names=preferred_artist_name_map,
+                        base_score=10,
+                        seen_titles=seen_titles,
+                    )
                 )
-            )
 
         global_params = {
             "query": f'recording:{title}',
@@ -280,8 +305,8 @@ def search_tracks_by_title(
         scored_tracks.extend(
             _collect_track_candidates(
                 global_data.get("recordings", []),
-                preferred_artist_mbids=preferred_artist_mbids,
-                preferred_artist_names=preferred_artists,
+                preferred_artist_mbids=set() if artist_name else preferred_artist_mbids,
+                preferred_artist_names={} if artist_name else preferred_artists,
                 base_score=0,
                 seen_titles=seen_titles,
             )
@@ -294,6 +319,9 @@ def search_tracks_by_title(
 
     except request.exceptions.Timeout:
         return {"error": "musicbrainz API request timed out"}
-
+    except request.exceptions.HTTPError as e:
+        if e.response is not None and e.response.status_code == 503:
+            return {"error": "MusicBrainz is temporarily unavailable (503). Please try again later."}
+        return {"error": f"Request failed: {str(e)}"}
     except request.exceptions.RequestException as e:
         return {"error": f"Request failed: {str(e)}"}

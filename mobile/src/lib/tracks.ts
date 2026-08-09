@@ -45,14 +45,20 @@ function normalizeTrack(
 export async function searchTracks(
   userId: string,
   title: string,
-  limit = 5
+  limit = 5,
+  artistName?: string
 ): Promise<TrackSearchResult[]> {
-  const response = await fetch(
-    `${API_BASE_URL}/tracks/search?title=${encodeURIComponent(title.trim())}&user_id=${encodeURIComponent(userId)}&limit=${encodeURIComponent(String(limit))}`,
-    {
-      method: "GET",
-    }
-  );
+  const trimmedTitle = title.trim();
+  const trimmedArtistName = artistName?.trim();
+  let url = `${API_BASE_URL}/tracks/search?title=${encodeURIComponent(trimmedTitle)}&user_id=${encodeURIComponent(userId)}&limit=${encodeURIComponent(String(limit))}`;
+
+  if (trimmedArtistName) {
+    url += `&artist_name=${encodeURIComponent(trimmedArtistName)}`;
+  }
+
+  const response = await fetch(url, {
+    method: "GET",
+  });
 
   const data = (await response.json()) as TracksApiResponse;
 
