@@ -14,6 +14,9 @@ export type Conversation = {
   otherUserName: string;
   otherUserBio: string;
   otherUserLocationCity: string;
+  sharedArtists: string[];
+  sharedTracks: string[];
+  matchReason: string;
   createdAt: string;
   updatedAt: string;
   lastMessage: ChatMessage | null;
@@ -33,6 +36,9 @@ type ApiConversation = {
   other_user_name: string;
   other_user_bio: string;
   other_user_location_city: string;
+  shared_artists?: string[];
+  shared_tracks?: string[];
+  match_reason?: string;
   created_at: string;
   updated_at: string;
   last_message: ApiMessage | null;
@@ -85,6 +91,9 @@ function mapConversation(conversation: ApiConversation): Conversation {
     otherUserName: conversation.other_user_name,
     otherUserBio: conversation.other_user_bio,
     otherUserLocationCity: conversation.other_user_location_city,
+    sharedArtists: conversation.shared_artists ?? [],
+    sharedTracks: conversation.shared_tracks ?? [],
+    matchReason: conversation.match_reason ?? "",
     createdAt: conversation.created_at,
     updatedAt: conversation.updated_at,
     lastMessage: conversation.last_message

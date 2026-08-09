@@ -39,12 +39,36 @@ def get_last_message(conversation: Conversation) -> Message | None:
     return conversation.messages[-1] if conversation.messages else None
 
 
+def build_match_context(current_user: User, other_user: User) -> tuple[list[str], list[str], str]:
+    current_artist_names = {artist.name for artist in current_user.artists if artist.name}
+    other_artist_names = {artist.name for artist in other_user.artists if artist.name}
+    current_track_titles = {track.title for track in current_user.tracks if track.title}
+    other_track_titles = {track.title for track in other_user.tracks if track.title}
+
+    shared_artists = sorted(current_artist_names & other_artist_names)
+    shared_tracks = sorted(current_track_titles & other_track_titles)
+
+    if shared_tracks:
+        reason = f"You both connect with songs like {', '.join(shared_tracks[:2])}"
+    elif shared_artists:
+        reason = f"You both have artists like {', '.join(shared_artists[:2])} in common"
+    else:
+        reason = "Matched through shared music energy"
+
+    return shared_artists, shared_tracks, reason
+
+
 def build_conversation_response(
     conversation: Conversation,
     current_user_id: str,
 ) -> ConversationResponse:
     other_user = get_other_user(conversation, current_user_id)
+    current_user = conversation.user_one if conversation.user_one_id == current_user_id else conversation.user_two
     last_message = get_last_message(conversation)
+    shared_artists, shared_tracks, match_reason = build_match_context(
+        current_user,
+        other_user,
+    )
 
     return ConversationResponse(
         id=conversation.id,
@@ -52,6 +76,9 @@ def build_conversation_response(
         other_user_name=other_user.name,
         other_user_bio=other_user.bio or "",
         other_user_location_city=other_user.location_city or "",
+        shared_artists=shared_artists,
+        shared_tracks=shared_tracks,
+        match_reason=match_reason,
         created_at=conversation.created_at,
         updated_at=conversation.updated_at,
         last_message=last_message,

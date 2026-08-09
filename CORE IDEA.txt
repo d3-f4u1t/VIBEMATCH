@@ -18,15 +18,15 @@ Key insight: Matching is a multi-dimensional optimization problem, not a simple 
 
 ## 2. FOUR LAYERS OF USER DATA
 
-### Layer 1: Music/Taste
-Vector representation of user preferences (384-dimensional semantic embeddings).
-Each user becomes a point in vector space. Similarity = compatibility.
+### Layer 1: Music/Taste (implemented the core idea of having each user's music data represented as a vector)
+Vector representation of user preferences (384-dimensional semantic embeddings). (to implement)
+Each user becomes a point in vector space. Similarity = compatibility. 
 
-### Layer 2: Identity/Demographics
+### Layer 2: Identity/Demographics (implemented)
 Structural data: sex, gender, sexuality, age, location.
 Used for coarse filtering and set assignment.
 
-### Layer 3: Behavioral/Personality
+### Layer 3: Behavioral/Personality (to do)
 Embeddings from user interactions: bio, prompts, swipes, conversations.
 Captures implicit preferences and attraction patterns.
 

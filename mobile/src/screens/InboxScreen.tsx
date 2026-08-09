@@ -202,7 +202,9 @@ export function InboxScreen({
                       <Text style={styles.convTime}>{formattedTime}</Text>
                     </View>
                     <Text style={styles.convLastMessage} numberOfLines={1}>
-                      {conv.lastMessage ? conv.lastMessage.content : "Vibe check! Send a message."}
+                      {conv.lastMessage
+                        ? conv.lastMessage.content
+                        : conv.matchReason || "Vibe check! Send a message."}
                     </Text>
                   </View>
                 </Pressable>

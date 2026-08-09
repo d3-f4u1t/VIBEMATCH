@@ -4,6 +4,11 @@ import re
 
 base_url = "https://musicbrainz.org/ws/2/"
 
+session = request.Session()
+session.headers.update({
+    "User-Agent": "VibeMatch/1.0 (vibematch@gmailcom)"
+})
+
 BLOCKED_TAGS = {
     "cotm candidate", "lesbian", "gay", "pedophilia",
     "relic inn", "rap us", "hardcore hip", "death by suicide",
@@ -120,13 +125,9 @@ def _collect_track_candidates(
 
 
 def _request_mb(path: str, params: dict) -> dict:
-    headers = {
-        "User-Agent": "VibeMatch/1.0 (vibematch@gmailcom)"
-    }
-    res = request.get(
+    res = session.get(
         f"{base_url}{path}",
         params=params,
-        headers=headers,
         timeout=15,
     )
     res.raise_for_status()

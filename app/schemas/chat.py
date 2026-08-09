@@ -23,6 +23,9 @@ class ConversationResponse(BaseModel):
     other_user_name: str
     other_user_bio: str
     other_user_location_city: str
+    shared_artists: list[str] = []
+    shared_tracks: list[str] = []
+    match_reason: str = ""
     created_at: datetime
     updated_at: datetime
     last_message: MessageResponse | None = None
