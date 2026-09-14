@@ -42,7 +42,7 @@ function SwipeDemo() {
         animate={{ opacity: 1, scale: 1 }}
         whileDrag={{ scale: 1.03, rotate: 2 }}
       >
-        <img src={p.img} alt={p.name} decoding="async" />
+        <img src={p.img} alt={p.name} />
         <div style={{ padding: 18 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <b style={{ fontSize: 20 }}>{p.name}</b>
@@ -99,7 +99,7 @@ export function Home() {
           <div className="float-card float-1"><BadgeCheck size={18} color="#82F7A6" /> <span><b>It&apos;s a Vibe</b><br /><span style={{ color: "var(--muted)", fontSize: 12.5 }}>You + Maya both love SZA</span></span></div>
           <div className="phone">
             <div className="phone-screen">
-              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop" alt="Concert crowd — find your crowd" fetchPriority="high" decoding="async" />
+              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop" alt="Concert crowd — find your crowd" />
               <div className="phone-body">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <b style={{ fontSize: 19 }}>Maya, 24</b>
@@ -124,7 +124,7 @@ export function Home() {
         <div className="wrap grid-2">
           <Reveal>
             <div className="img-card">
-              <img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1000&auto=format&fit=crop" alt="DJ decks — taste is a signal" loading="lazy" decoding="async" />
+              <img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1000&auto=format&fit=crop" alt="DJ decks — taste is a signal" />
               <div className="overlay">
                 <span className="eyebrow">Our approach</span>
                 <h2 className="h2" style={{ fontSize: 34 }}>Taste tells the truth photos can&apos;t.</h2>
@@ -198,7 +198,7 @@ export function Home() {
           </Reveal>
           <Reveal delay={120}>
             <div className="img-card">
-              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=1000&auto=format&fit=crop" alt="Listening session" loading="lazy" decoding="async" />
+              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=1000&auto=format&fit=crop" alt="Listening session" />
               <div className="overlay">
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <span className="chip"><MessagesSquare size={13} /> Behavioral signals</span>
