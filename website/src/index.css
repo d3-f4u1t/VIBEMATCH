@@ -271,11 +271,9 @@ footer { border-top: 1px solid var(--stroke); padding: 56px 0 32px; margin-top: 
 .socials a { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,0.06); border: 1px solid var(--stroke); }
 .socials a:hover { background: rgba(255,77,148,0.2); }
 
-/* swipe-up reveal on scroll */
-.reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.55s ease-out, transform 0.55s cubic-bezier(0.2, 0.7, 0.2, 1); will-change: opacity, transform; }
-.reveal.in { opacity: 1; transform: none; will-change: auto; }
+/* scroll reveal removed — sections render immediately */
+.reveal, .reveal.in { opacity: 1; transform: none; transition: none; will-change: auto; }
 @media (prefers-reduced-motion: reduce) {
-  .reveal { transition: none; opacity: 1; transform: none; }
   .float-1, .float-2, .marquee-track, .page-enter { animation: none; }
 }
 
