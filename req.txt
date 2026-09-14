@@ -1,10 +1,12 @@
 fastapi
 uvicorn
 sqlalchemy
-python-jose
-passlib
+python-jose[cryptography]
+passlib[bcrypt]
 python-multipart
 email-validator
 requests
 numpy
 sentence-transformers
+python-dotenv
+slowapi

@@ -9,6 +9,7 @@ type ArtistSearchApiResponse = {
     disambiguation?: string | null;
     tags?: string[];
     score?: number | string | null;
+    picture_medium?: string | null;
   }>;
   error?: string;
 };
@@ -22,6 +23,8 @@ export type ArtistSearchResult = {
   country?: string | null;
   tags?: string[];
   artistType?: string | null;
+  /** Artist photo URL from Deezer (250x250). May be null for older entries. */
+  pictureMedium?: string | null;
 };
 
 type UserArtistsResponse = {
@@ -121,6 +124,7 @@ export async function searchArtists(term: string): Promise<ArtistSearchResult[]>
     country: artist.country ?? null,
     tags: artist.tags ?? [],
     artistType: artist.type ?? null,
+    pictureMedium: artist.picture_medium ?? null,
     ...buildArtistGradient(index),
   }));
 }

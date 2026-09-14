@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
   Easing,
@@ -32,6 +33,8 @@ type DiscoverScreenProps = {
   onOpenChat: (matchedUserId: string, name: string) => void;
   onCloseDetail: () => void;
   onSignOut: () => void;
+  /** Optional callback to lift the loaded match list up to the parent (e.g. for NearbyScreen) */
+  onMatchesLoaded?: (matches: MatchResult[]) => void;
 };
 
 type FeedCardTone = {
@@ -99,6 +102,7 @@ export function DiscoverScreen({
   onOpenDetail,
   onOpenChat,
   onCloseDetail,
+  onMatchesLoaded,
 }: DiscoverScreenProps) {
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,6 +138,8 @@ export function DiscoverScreen({
 
         if (matchesResult.status === "fulfilled") {
           setMatches(matchesResult.value);
+          // Notify parent so NearbyScreen gets real data
+          onMatchesLoaded?.(matchesResult.value);
         } else {
           setMatches([]);
           setError(
@@ -217,7 +223,10 @@ export function DiscoverScreen({
       
       const [nextOne, refreshedMutualMatches] = await Promise.all([
         getNextMatch(session.user.id, session.access_token),
-        getMutualMatches(session.user.id, session.access_token).catch(() => []),
+        getMutualMatches(session.user.id, session.access_token).catch((err) => {
+          console.warn("[DiscoverScreen] getMutualMatches failed:", err);
+          return [];
+        }),
       ]);
 
       if (
@@ -227,10 +236,12 @@ export function DiscoverScreen({
         setMatchNotice(`It's a match with ${profileToSwipe.name}.`);
         setMatchModalProfile(profileToSwipe);
       }
-      
+
       setSwipeCandidate(nextOne);
     } catch (err) {
-      // Failed swipe
+      const message =
+        err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      Alert.alert("Swipe failed", message, [{ text: "OK" }]);
     } finally {
       setSwipeLoading(false);
     }
@@ -316,10 +327,6 @@ export function DiscoverScreen({
       <Animated.View
         style={[styles.matchModalOverlay, { opacity: matchModalOpacity }]}
       >
-        <LinearGradient
-          colors={["rgba(9,7,13,0.85)", "rgba(9,7,13,0.98)"]}
-          style={StyleSheet.absoluteFill}
-        />
         <Animated.View
           style={[
             styles.matchModalCardWrap,
@@ -836,6 +843,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "transparent",
   },
   matchModalCardWrap: {
     width: "85%",

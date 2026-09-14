@@ -1,5 +1,7 @@
 # app/routes/artists.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -11,16 +13,22 @@ from app.services.musicbrainz import (
 )
 
 router = APIRouter(tags=["artists"])
+limiter = Limiter(key_func=get_remote_address)
+
 
 @router.get("/search")
-def search(name: str):
+@limiter.limit("30/minute")
+def search(request: Request, name: str):
+    """Search artists via MusicBrainz. Rate-limited to 30/min per IP."""
     if not name or len(name.strip()) < 2:
         raise HTTPException(status_code=400, detail="Search term too short")
     return search_artist(name)
 
 
 @router.get("/artists/{artist_mb_id}/tracks")
-def get_artist_tracks(artist_mb_id: str, limit: int = 10):
+@limiter.limit("30/minute")
+def get_artist_tracks(request: Request, artist_mb_id: str, limit: int = 10):
+    """Get tracks for a given artist. Rate-limited to 30/min per IP."""
     if not artist_mb_id.strip():
         raise HTTPException(status_code=400, detail="Artist id is required")
     if limit < 1 or limit > 25:
@@ -29,13 +37,16 @@ def get_artist_tracks(artist_mb_id: str, limit: int = 10):
 
 
 @router.get("/tracks/search")
+@limiter.limit("30/minute")
 def search_tracks(
+    request: Request,
     title: str,
     user_id: str,
     artist_name: str | None = None,
     db: Session = Depends(get_db),
     limit: int = 10,
 ):
+    """Search tracks via MusicBrainz. Rate-limited to 30/min per IP."""
     if not title or len(title.strip()) < 2:
         raise HTTPException(status_code=400, detail="Track search term too short")
     if limit < 1 or limit > 25:
@@ -59,6 +70,3 @@ def search_tracks(
         preferred_artist_mbids=preferred_artist_mbids,
         limit=limit,
     )
-
-
-

@@ -3,6 +3,7 @@ import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import * as NavigationBar from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
 import {
+  Alert,
   Animated,
   Easing,
   Platform,
@@ -18,23 +19,48 @@ import { MainScreen } from "./src/screens/MainScreen";
 import { MusicSetupScreen } from "./src/screens/MusicFlowScreen";
 import { ProfileSetupScreen } from "./src/screens/ProfileSetupScreen";
 import { getMusicProfileStatus, getUserProfile } from "./src/lib/profile";
+import { saveSession, loadSession, clearSession } from "./src/lib/session";
 import type { TokenResponse } from "./src/types/auth";
 import type { UserProfileResponse } from "./src/types/auth";
 
-type AppStage = "auth" | "checking" | "profile" | "music" | "discover";
+type AppStage = "boot" | "auth" | "checking" | "profile" | "music" | "discover";
 
 export default function App() {
   const [session, setSession] = useState<TokenResponse | null>(null);
-  const [stage, setStage] = useState<AppStage>("auth");
+  // Start in "boot" so we can attempt to rehydrate from SecureStore first
+  const [stage, setStage] = useState<AppStage>("boot");
   const screenMotion = useRef(new Animated.Value(1)).current;
+
   const isAuthStage = !session || stage === "auth";
-  const isBooting = stage === "checking";
+  const isBooting = stage === "boot" || stage === "checking";
+
+  // ── Rehydrate session from SecureStore on first mount ──────────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    const rehydrate = async () => {
+      const cached = await loadSession();
+      if (cancelled) return;
+
+      if (cached) {
+        setSession(cached);
+        setStage("checking");
+      } else {
+        setStage("auth");
+      }
+    };
+
+    void rehydrate();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleAuthenticated = (result: TokenResponse) => {
     startTransition(() => {
       setSession(result);
       setStage("checking");
     });
+    // Persist session so user stays logged in across restarts
+    void saveSession(result);
   };
 
   const handleProfileComplete = () => {
@@ -42,6 +68,7 @@ export default function App() {
   };
 
   const handleSignOut = () => {
+    void clearSession();
     setSession(null);
     setStage("auth");
   };
@@ -79,6 +106,7 @@ export default function App() {
     );
   };
 
+  // ── Resolve onboarding stage after auth ───────────────────────────────────
   useEffect(() => {
     if (!session || stage !== "checking") {
       return;
@@ -90,9 +118,7 @@ export default function App() {
       try {
         const profile = await getUserProfile(session.user.id, session.access_token);
 
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
         if (!hasCompleteProfile(profile)) {
           setStage("profile");
@@ -104,19 +130,25 @@ export default function App() {
           session.access_token
         );
 
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
         setStage(musicStatus.music_profile_complete ? "discover" : "music");
-      } catch {
+      } catch (err) {
         if (!cancelled) {
-          setStage("profile");
+          // If session is stale/invalid, clear it and go back to auth
+          const message = err instanceof Error ? err.message : "";
+          if (message.toLowerCase().includes("401") || message.toLowerCase().includes("unauthorized")) {
+            void clearSession();
+            setSession(null);
+            setStage("auth");
+          } else {
+            setStage("profile");
+          }
         }
       }
     };
 
-    resolveStage();
+    void resolveStage();
 
     return () => {
       cancelled = true;
@@ -131,7 +163,7 @@ export default function App() {
         : "discover";
 
   const screenKey = useMemo(
-    () => (isAuthStage ? "auth" : stage),
+    () => (isAuthStage || stage === "boot" ? "auth" : stage),
     [isAuthStage, stage]
   );
 
@@ -190,9 +222,13 @@ export default function App() {
       <Animated.View style={[styles.content, screenAnimatedStyle]}>
         {isBooting ? (
           <View style={styles.bootScreen}>
-            <Text style={styles.bootTitle}>Checking your account...</Text>
+            <Text style={styles.bootTitle}>
+              {stage === "boot" ? "Loading…" : "Checking your account…"}
+            </Text>
             <Text style={styles.bootSubtext}>
-              Loading your saved profile and matching setup.
+              {stage === "boot"
+                ? "Starting VibeMatch"
+                : "Loading your saved profile and matching setup."}
             </Text>
           </View>
         ) : isAuthStage ? (

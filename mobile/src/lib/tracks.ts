@@ -7,6 +7,10 @@ export type TrackSearchResult = {
   title: string;
   releaseTitle: string | null;
   lengthMs: number | null;
+  /** 30-second audio preview URL from Deezer. */
+  previewUrl?: string | null;
+  /** Album cover image URL (264x264) from Deezer. */
+  coverMedium?: string | null;
 };
 
 type TracksApiResponse = {
@@ -17,6 +21,8 @@ type TracksApiResponse = {
     title: string;
     release_title?: string | null;
     length_ms?: number | null;
+    preview_url?: string | null;
+    cover_medium?: string | null;
   }>;
   detail?: string;
   error?: string;
@@ -39,6 +45,8 @@ function normalizeTrack(
     title: track.title,
     releaseTitle: track.release_title ?? null,
     lengthMs: track.length_ms ?? null,
+    previewUrl: track.preview_url ?? null,
+    coverMedium: track.cover_medium ?? null,
   };
 }
 

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends , HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+
 from app.database import get_db
 from app.models.user import User
 from app.models.artist import Artist
@@ -13,16 +14,14 @@ from app.services.behavior import build_behavior_summary, build_behavior_vector
 from app.services.vector import build_and_save_vector
 from app.schemas.behavior import BehaviorSummaryResponse, BehaviorVectorResponse
 
-router = APIRouter(tags= ["users"])
+router = APIRouter(tags=["users"])
 
 
-@router.post("/user", response_model=UserResponse,status_code = 201) #201 for created
-
-
+@router.post("/user", response_model=UserResponse, status_code=201)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == user.email).first()
     if existing:
-        raise HTTPException(status_code= 400, detail = "Email is already registered")
+        raise HTTPException(status_code=400, detail="Email is already registered")
     try:
         db_user = User(**user.model_dump())
         db.add(db_user)
@@ -35,13 +34,13 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"User creation failed: {str(e)}")
-    
-@router.get("/user/{user_id}",response_model= UserResponse)
 
+
+@router.get("/user/{user_id}", response_model=UserResponse)
 def get_user(user_id: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code= 404, detail= "User not found") #404 for not found
+        raise HTTPException(status_code=404, detail="User not found")
     return user
 
 
@@ -52,11 +51,11 @@ def get_user_profile(
     db: Session = Depends(get_db),
 ):
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="not allowed")
+        raise HTTPException(status_code=403, detail="Not allowed")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="user not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
     return user
 
@@ -69,11 +68,11 @@ def update_user_profile(
     db: Session = Depends(get_db),
 ):
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="not allowed")
+        raise HTTPException(status_code=403, detail="Not allowed")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="user not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
     updates = data.model_dump(exclude_unset=True)
 
@@ -84,21 +83,22 @@ def update_user_profile(
     db.refresh(user)
     return user
 
+
 @router.post("/user/{user_id}/add_artist", status_code=201)
-
-def add_artist_to_user(#this is used to add artist to user id for music vector
-    user_id : str,
+def add_artist_to_user(
+    user_id: str,
     data: ArtistCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user : User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
+    """Add an artist to the user's music profile.
+    Vector recalculation runs in the background so the API responds immediately.
+    """
     if current_user.id != user_id:
-        raise HTTPException(status_code= 403, detail="not allowed")
-    
-    
-    #check if artist is in db
-    '''if not we add em in the database '''
+        raise HTTPException(status_code=403, detail="Not allowed")
 
+    # Upsert artist into the shared artists table
     artist = db.query(Artist).filter(Artist.mb_id == data.mb_id).first()
     if not artist:
         artist = Artist(**data.model_dump())
@@ -106,54 +106,56 @@ def add_artist_to_user(#this is used to add artist to user id for music vector
         db.commit()
         db.refresh(artist)
 
-    #check if user already has that perticuler astist
     if artist in current_user.artists:
-        raise HTTPException(status_code= 400, detail= "artist already added to your account")
-    
-    #link artist to user/account
+        raise HTTPException(status_code=400, detail="Artist already added to your account")
 
     if len(current_user.artists) >= 5:
         raise HTTPException(
-            status_code= 400,
-            detail= "You can only select up to 5 artists"
+            status_code=400,
+            detail="You can only select up to 5 artists",
         )
-    
 
     current_user.artists.append(artist)
     db.commit()
-    build_and_save_vector(current_user, db)
 
-    return {"message": f"Artist {artist.name} added to user {current_user.name} and vector updated"}
+    # ── Vector rebuild is now async (background task) ──────────────────────────
+    background_tasks.add_task(build_and_save_vector, current_user, db)
+
+    return {
+        "message": f"Artist {artist.name} added to user {current_user.name}. Vector updating in background."
+    }
+
 
 @router.get("/user/{user_id}/artists")
-def get_user_artists(user_id: str, db: Session= Depends(get_db)):
-    user = db.query(User).filter(User.id ==  user_id).first()
+def get_user_artists(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
-        raise HTTPException(status_code= 404, detail= "user not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
-    #create artist if not already there 
-    return{
-        "user_id" : user_id,
-        "name" : user.name,
-        "artists" : [
-            {
-                "mb_id" : a.mb_id, "name" : a.name, "tags" : a.tags
-            }
+    return {
+        "user_id": user_id,
+        "name": user.name,
+        "artists": [
+            {"mb_id": a.mb_id, "name": a.name, "tags": a.tags}
             for a in user.artists
-        ]
+        ],
     }
 
 
 @router.post("/user/{user_id}/add_track", status_code=201)
-def add_track_to_user( #this is usedd to add to tracks to user id
+def add_track_to_user(
     user_id: str,
     data: TrackCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
+    """Add a track to the user's music profile.
+    Vector recalculation runs in the background so the API responds immediately.
+    """
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="not allowed")
+        raise HTTPException(status_code=403, detail="Not allowed")
 
     track = db.query(Track).filter(Track.mb_id == data.mb_id).first()
     if not track:
@@ -163,18 +165,22 @@ def add_track_to_user( #this is usedd to add to tracks to user id
         db.refresh(track)
 
     if track in current_user.tracks:
-        raise HTTPException(status_code=400, detail="track already added to your account")
+        raise HTTPException(status_code=400, detail="Track already added to your account")
     if len(current_user.tracks) >= 7:
         raise HTTPException(
-            status_code= 400,
-            detail= "you can only select up to 7 song"
+            status_code=400,
+            detail="You can only select up to 7 songs",
         )
 
     current_user.tracks.append(track)
     db.commit()
-    build_and_save_vector(current_user, db)
 
-    return {"message": f"Track {track.title} added to user {current_user.name} and vector updated"}
+    # ── Vector rebuild is now async (background task) ──────────────────────────
+    background_tasks.add_task(build_and_save_vector, current_user, db)
+
+    return {
+        "message": f"Track {track.title} added to user {current_user.name}. Vector updating in background."
+    }
 
 
 @router.get("/user/{user_id}/tracks")
@@ -182,7 +188,7 @@ def get_user_tracks(user_id: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="user not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
     return {
         "user_id": user_id,
@@ -206,12 +212,12 @@ def get_user_vector(user_id: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="user not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
     if not user.music_vector:
         raise HTTPException(
             status_code=404,
-            detail="No vector yet add artists and tracks first",
+            detail="No vector yet — add artists and tracks first",
         )
 
     return {
@@ -222,15 +228,13 @@ def get_user_vector(user_id: str, db: Session = Depends(get_db)):
     }
 
 
-#music profile code
-
 @router.get("/user/{user_id}/music-profile-status")
 def get_music_profile_status(user_id: str, db: Session = Depends(get_db)):
-    user= db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
-        raise HTTPException(status_code= 404, detail="user not found")
-    
+        raise HTTPException(status_code=404, detail="User not found")
+
     artist_count = len(user.artists)
     track_count = len(user.tracks)
 
@@ -240,23 +244,17 @@ def get_music_profile_status(user_id: str, db: Session = Depends(get_db)):
     max_tracks = 7
 
     return {
-        "user_id" : user_id,
+        "user_id": user_id,
         "artist_count": artist_count,
         "track_count": track_count,
-        "artist_rules": {
-            "min" : min_artists,
-            "max": max_artists,
-        },
-        "track_rules": {
-            "min": min_tracks,
-            "max": max_tracks
-        },
-        "artists_complete": artist_count >=min_artists,
-        "tracks_complete":track_count >= min_tracks,
+        "artist_rules": {"min": min_artists, "max": max_artists},
+        "track_rules": {"min": min_tracks, "max": max_tracks},
+        "artists_complete": artist_count >= min_artists,
+        "tracks_complete": track_count >= min_tracks,
         "music_profile_complete": artist_count >= min_artists and track_count >= min_tracks,
         "artists_rem_to_min": max(0, min_artists - artist_count),
-        "tracks_rem_to_min": max(0, min_tracks- track_count),
-        "artists_slots_left":max(0, max_artists - artist_count),
+        "tracks_rem_to_min": max(0, min_tracks - track_count),
+        "artists_slots_left": max(0, max_artists - artist_count),
         "track_slots_left": max(0, max_tracks - track_count),
     }
 
@@ -266,7 +264,7 @@ def can_complete_music_profile(user_id: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="user not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
     artist_count = len(user.artists)
     track_count = len(user.tracks)
@@ -298,7 +296,7 @@ def can_complete_music_profile(user_id: str, db: Session = Depends(get_db)):
         "track_count": track_count,
     }
 
-#to get behavioraly summary
+
 @router.get("/user/{user_id}/behavior-summary", response_model=BehaviorSummaryResponse)
 def get_behavior_summary(
     user_id: str,
@@ -306,11 +304,11 @@ def get_behavior_summary(
     db: Session = Depends(get_db),
 ):
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="not allowed")
+        raise HTTPException(status_code=403, detail="Not allowed")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="user not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
     return build_behavior_summary(user_id, db)
 
@@ -322,80 +320,66 @@ def get_behavior_vector(
     db: Session = Depends(get_db),
 ):
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="not allowed")
+        raise HTTPException(status_code=403, detail="Not allowed")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="user not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
     return build_behavior_vector(user_id, db)
 
 
-'''to remove the artist from the user'''
 @router.delete("/user/{user_id}/artists/{artist_mb_id}")
 def remove_artist_from_user(
-    user_id : str,
+    user_id: str,
     artist_mb_id: str,
-    db: Session= Depends(get_db),
-    current_user: User = Depends(get_current_user)
-
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if current_user.id != user_id:
-        raise HTTPException(status_code= 403,detail=" not allowed")
-    
-    #cross check if the artist is in the db
+        raise HTTPException(status_code=403, detail="Not allowed")
+
     artist = db.query(Artist).filter(Artist.mb_id == artist_mb_id).first()
     if not artist:
         raise HTTPException(status_code=404, detail="Artist not found")
-    
-    #to verify ifits linked to the user
 
     if artist not in current_user.artists:
-        raise HTTPException(status_code=400, detail="artist not associated with your account")
-    
-    #to remove that relationship
+        raise HTTPException(status_code=400, detail="Artist not associated with your account")
 
     current_user.artists.remove(artist)
     db.commit()
 
-    #now after that is removed to rebuld the vector from the new raw data
+    background_tasks.add_task(build_and_save_vector, current_user, db)
 
-    build_and_save_vector(current_user, db)
+    return {
+        "message": f"Artist {artist.name} removed from user {current_user.name}. Vector updating in background."
+    }
 
-    return {"message": f"Artist {artist.name} removed from user {current_user.name} and vector updated"}
 
-'''to remove the track fromthe user'''
 @router.delete("/user/{user_id}/tracks/{track_mb_id}")
-
 def remove_track_from_user(
     user_id: str,
     track_mb_id: str,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User =Depends(get_current_user)
-
+    current_user: User = Depends(get_current_user),
 ):
     if current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Not allowed")
-    
-    #find the track in the db
 
     track = db.query(Track).filter(Track.mb_id == track_mb_id).first()
-
     if not track:
         raise HTTPException(status_code=404, detail="Track not found")
-    
-    #to checl if it is linked to the user
+
     if track not in current_user.tracks:
-        raise HTTPException(status_code=400, detail="Track not associasted")
-    #remove the relationship
+        raise HTTPException(status_code=400, detail="Track not associated with your account")
+
     current_user.tracks.remove(track)
     db.commit()
 
-    #rebuild the vector
+    background_tasks.add_task(build_and_save_vector, current_user, db)
 
-    build_and_save_vector(current_user,db)
-
-    return {"message": f"Track {track.title} removed from the user {current_user.name} and vector updated"}
-
-
-    
+    return {
+        "message": f"Track {track.title} removed from user {current_user.name}. Vector updating in background."
+    }

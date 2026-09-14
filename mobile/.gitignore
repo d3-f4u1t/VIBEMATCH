@@ -30,7 +30,8 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files — NEVER commit these, they contain secrets / dev IPs
+.env
 .env*.local
 
 # typescript

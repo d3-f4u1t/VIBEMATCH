@@ -39,7 +39,7 @@ def get_last_message(conversation: Conversation) -> Message | None:
     return conversation.messages[-1] if conversation.messages else None
 
 
-def build_match_context(current_user: User, other_user: User) -> tuple[list[str], list[str], str]:
+def build_match_context(current_user: User, other_user: User) -> tuple[list[str], list[str], str]: #for building a reson for the match in terms of the song/artist context
     current_artist_names = {artist.name for artist in current_user.artists if artist.name}
     other_artist_names = {artist.name for artist in other_user.artists if artist.name}
     current_track_titles = {track.title for track in current_user.tracks if track.title}
@@ -70,7 +70,7 @@ def build_conversation_response(
         other_user,
     )
 
-    return ConversationResponse(
+    return ConversationResponse( #returning all the details as req
         id=conversation.id,
         other_user_id=other_user.id,
         other_user_name=other_user.name,
@@ -90,7 +90,7 @@ def build_conversation_response(
     response_model=ConversationResponse,
     status_code=201,
 )
-def open_conversation(
+def open_conversation(#error handeling
     matched_user_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -157,7 +157,7 @@ def get_conversations(
     "/conversations/{conversation_id}/messages",
     response_model=MessageListResponse,
 )
-def get_messages(
+def get_messages( #adding restriction to the chat (who are chats for and who can view the chats)
     conversation_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -191,7 +191,7 @@ def get_messages(
     response_model=MessageResponse,
     status_code=201,
 )
-def send_message(
+def send_message(       #sending the message ----
     conversation_id: str,
     data: MessageCreate,
     current_user: User = Depends(get_current_user),

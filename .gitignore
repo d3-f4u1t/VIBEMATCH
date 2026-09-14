@@ -1,0 +1,50 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+.Python
+
+# ── Environment & Secrets ─────────────────────────────────────────────────────
+# NEVER commit real secrets. .env holds the JWT secret key and DB credentials.
+.env
+.env.local
+.env.*.local
+*.env
+
+# ── Database ──────────────────────────────────────────────────────────────────
+# SQLite dev DB — do not commit actual data files
+*.db
+*.sqlite
+*.sqlite3
+
+# ── IDE / OS ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+uvicorn.*.log
+expo.*.log
+
+# ── Test / Coverage ───────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ── Node (mobile) ─────────────────────────────────────────────────────────────
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
