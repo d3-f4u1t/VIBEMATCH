@@ -7,9 +7,9 @@ export type TrackSearchResult = {
   title: string;
   releaseTitle: string | null;
   lengthMs: number | null;
-  /** 30-second audio preview URL from Deezer. */
+  /** 30-second audio preview URL (Deezer or iTunes). */
   previewUrl?: string | null;
-  /** Album cover image URL (264x264) from Deezer. */
+  /** Album cover image URL (Deezer or iTunes). */
   coverMedium?: string | null;
 };
 
@@ -85,6 +85,31 @@ export async function searchTracks(
   return (data.tracks ?? []).map(normalizeTrack);
 }
 
+/** Top tracks for an artist (Deezer primary, iTunes fallback server-side). */
+export async function getArtistTopTracks(
+  artistId: string,
+  limit = 10,
+  artistName?: string
+): Promise<TrackSearchResult[]> {
+  let url = `${API_BASE_URL}/artists/${encodeURIComponent(artistId)}/tracks?limit=${encodeURIComponent(String(limit))}`;
+  if (artistName?.trim()) {
+    url += `&artist_name=${encodeURIComponent(artistName.trim())}`;
+  }
+  const response = await fetch(url, { method: "GET" });
+  const data = (await response.json()) as TracksApiResponse;
+  if (!response.ok) {
+    throw new Error(
+      typeof data?.detail === "string"
+        ? data.detail
+        : "Unable to load artist songs right now."
+    );
+  }
+  if (typeof data?.error === "string") {
+    throw new Error(data.error);
+  }
+  return (data.tracks ?? []).map(normalizeTrack);
+}
+
 export async function getUserTracks(
   userId: string,
   token: string
@@ -143,7 +168,7 @@ export async function removeTrackFromUser(
   token: string,
   trackId: string
 ) {
-  const response = await fetch(`${API_BASE_URL}/user/${userId}/tracks/${trackId}`, {
+  const response = await fetch(`${API_BASE_URL}/user/${userId}/tracks/${encodeURIComponent(trackId)}`, {
     method: "DELETE",
     headers: buildAuthHeaders(token),
   });

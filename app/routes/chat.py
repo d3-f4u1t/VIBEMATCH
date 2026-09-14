@@ -17,6 +17,7 @@ from app.schemas.chat import (
     MessageResponse,
 )
 from app.services.swipe import check_mutual_like
+from app.services.vector import shared_display_names
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -40,13 +41,13 @@ def get_last_message(conversation: Conversation) -> Message | None:
 
 
 def build_match_context(current_user: User, other_user: User) -> tuple[list[str], list[str], str]: #for building a reson for the match in terms of the song/artist context
-    current_artist_names = {artist.name for artist in current_user.artists if artist.name}
-    other_artist_names = {artist.name for artist in other_user.artists if artist.name}
-    current_track_titles = {track.title for track in current_user.tracks if track.title}
-    other_track_titles = {track.title for track in other_user.tracks if track.title}
+    current_artist_names = [artist.name for artist in current_user.artists]
+    other_artist_names = [artist.name for artist in other_user.artists]
+    current_track_titles = [track.title for track in current_user.tracks]
+    other_track_titles = [track.title for track in other_user.tracks]
 
-    shared_artists = sorted(current_artist_names & other_artist_names)
-    shared_tracks = sorted(current_track_titles & other_track_titles)
+    shared_artists = shared_display_names(current_artist_names, other_artist_names)
+    shared_tracks = shared_display_names(current_track_titles, other_track_titles)
 
     if shared_tracks:
         reason = f"You both connect with songs like {', '.join(shared_tracks[:2])}"

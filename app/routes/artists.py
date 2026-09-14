@@ -19,7 +19,7 @@ limiter = Limiter(key_func=get_remote_address)
 @router.get("/search")
 @limiter.limit("30/minute")
 def search(request: Request, name: str):
-    """Search artists via MusicBrainz. Rate-limited to 30/min per IP."""
+    """Search artists (Deezer primary, iTunes fallback). Rate-limited to 30/min per IP."""
     if not name or len(name.strip()) < 2:
         raise HTTPException(status_code=400, detail="Search term too short")
     return search_artist(name)
@@ -27,13 +27,22 @@ def search(request: Request, name: str):
 
 @router.get("/artists/{artist_mb_id}/tracks")
 @limiter.limit("30/minute")
-def get_artist_tracks(request: Request, artist_mb_id: str, limit: int = 10):
-    """Get tracks for a given artist. Rate-limited to 30/min per IP."""
+def get_artist_tracks(
+    request: Request,
+    artist_mb_id: str,
+    limit: int = 10,
+    artist_name: str | None = None,
+):
+    """Get top tracks for an artist (Deezer primary, iTunes fallback). Rate-limited to 30/min per IP."""
     if not artist_mb_id.strip():
         raise HTTPException(status_code=400, detail="Artist id is required")
     if limit < 1 or limit > 25:
         raise HTTPException(status_code=400, detail="Limit must be between 1 and 25")
-    return search_artist_recordings(artist_mb_id, limit=limit)
+    return search_artist_recordings(
+        artist_mb_id,
+        limit=limit,
+        artist_name=artist_name.strip() if artist_name else None,
+    )
 
 
 @router.get("/tracks/search")
@@ -46,7 +55,7 @@ def search_tracks(
     db: Session = Depends(get_db),
     limit: int = 10,
 ):
-    """Search tracks via MusicBrainz. Rate-limited to 30/min per IP."""
+    """Search tracks (Deezer primary, iTunes fallback). Rate-limited to 30/min per IP."""
     if not title or len(title.strip()) < 2:
         raise HTTPException(status_code=400, detail="Track search term too short")
     if limit < 1 or limit > 25:
@@ -62,6 +71,13 @@ def search_tracks(
         if artist.mb_id and artist.name
     }
     preferred_artist_mbids = set(preferred_artists.keys())
+
+    # Release the DB connection before the slow upstream music lookup.
+    # The search can take seconds (Deezer retries + iTunes fallback) and
+    # holding a pooled connection across it exhausts the pool under
+    # concurrent load. Nothing below needs the session (get_db closes
+    # again afterwards — Session.close() is idempotent).
+    db.close()
 
     return search_tracks_by_title(
         title=title.strip(),

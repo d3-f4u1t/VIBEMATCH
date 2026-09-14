@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from app.models.swipe import Swipe, SwipeAction
 from app.models.user import User
-from app.services.vector import cosine_similarity
+from app.services.vector import cosine_similarity, shared_display_names
 from app.schemas.swipe import SwipeHistoryItem, NextMatchResponse
 
 
@@ -118,8 +118,8 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
     is_man = user_gender in {"man", "male", "m"}
     is_woman = user_gender in {"woman", "female", "f"}
     
-    current_user_artist_names = {artist.name for artist in current_user.artists if artist.name}
-    current_user_track_titles = {track.title for track in current_user.tracks if track.title}
+    current_user_artist_names = [artist.name for artist in current_user.artists]
+    current_user_track_titles = [track.title for track in current_user.tracks]
     
     # Get all eligible candidates
     candidates = []
@@ -151,13 +151,13 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
         # Calculate similarity
         similarity = cosine_similarity(current_user.music_vector, other_user.music_vector)
 
-        # Get shared data
-        other_user_artist_names = {artist.name for artist in other_user.artists if artist.name}
-        other_user_track_titles = {track.title for track in other_user.tracks if track.title}
-        
-        
-        shared_artists = sorted(current_user_artist_names & other_user_artist_names)
-        shared_tracks = sorted(current_user_track_titles & other_user_track_titles)
+        # Get shared data (case-insensitive — old and new API data differ in casing)
+        other_user_artist_names = [artist.name for artist in other_user.artists]
+        other_user_track_titles = [track.title for track in other_user.tracks]
+
+
+        shared_artists = shared_display_names(current_user_artist_names, other_user_artist_names)
+        shared_tracks = shared_display_names(current_user_track_titles, other_user_track_titles)
         
         # Build match reason
         match_reason = _build_match_reason(shared_artists, shared_tracks, similarity)

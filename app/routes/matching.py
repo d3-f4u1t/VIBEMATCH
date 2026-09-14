@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.schemas.matching import MatchResponse
-from app.services.vector import cosine_similarity
+from app.services.vector import cosine_similarity, shared_display_names
 from app.services.swipe import get_users_already_swiped
 
 router = APIRouter(tags=["matching"])
@@ -63,8 +63,8 @@ def get_matches(
         .all()
     )
 
-    user_artist_names = {artist.name for artist in user.artists if artist.name}
-    user_track_titles = {track.title for track in user.tracks if track.title}
+    user_artist_names = [artist.name for artist in user.artists]
+    user_track_titles = [track.title for track in user.tracks]
 
     # Get already swiped users if requested
     already_swiped = set()
@@ -84,11 +84,11 @@ def get_matches(
             continue
 
         similarity= cosine_similarity(user.music_vector, other.music_vector)
-        other_artist_names = {artist.name for artist in other.artists if artist.name}
-        other_track_titles = {track.title for track in other.tracks if track.title}
+        other_artist_names = [artist.name for artist in other.artists]
+        other_track_titles = [track.title for track in other.tracks]
 
-        shared_artists = sorted(user_artist_names & other_artist_names)
-        shared_tracks = sorted(user_track_titles & other_track_titles)
+        shared_artists = shared_display_names(user_artist_names, other_artist_names)
+        shared_tracks = shared_display_names(user_track_titles, other_track_titles)
 
         matches.append({
             "user_id": other.id,

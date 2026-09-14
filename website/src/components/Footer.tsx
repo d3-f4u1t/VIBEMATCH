@@ -26,7 +26,6 @@ export function Footer() {
             <Link to="/about">Our mission</Link>
             <Link to="/how-it-works">How we match</Link>
             <a href="/#labs">Vibe Lab</a>
-            <a href="/#stories">Success stories</a>
             <a href="#careers">Careers</a>
           </div>
           <div>

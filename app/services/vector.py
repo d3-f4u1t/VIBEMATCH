@@ -89,3 +89,31 @@ def cosine_similarity(vec_a: list, vec_b: list) -> float:
     a = np.array(vec_a)
     b = np.array(vec_b)
     return float(np.dot(a, b))
+
+
+def shared_display_names(own_items: list[str | None], other_items: list[str | None]) -> list[str]:
+    """
+    Case-insensitive intersection of two name/title lists.
+
+    IDs are never compared in matching — only names and titles — but old
+    seed data ("SICKO MODE", "goosebumps") and new API data ("Sicko Mode",
+    "Goosebumps") differ in casing. Comparing exact strings would miss
+    real overlap, so match on stripped-lowercase keys while displaying
+    the viewer's own original casing.
+    """
+    other_by_key: dict[str, str] = {}
+    for item in other_items:
+        if item and item.strip():
+            other_by_key.setdefault(item.strip().lower(), item)
+
+    shared: list[str] = []
+    seen: set[str] = set()
+    for item in own_items:
+        if not item or not item.strip():
+            continue
+        key = item.strip().lower()
+        if key in other_by_key and key not in seen:
+            seen.add(key)
+            shared.append(item.strip())
+
+    return sorted(shared)

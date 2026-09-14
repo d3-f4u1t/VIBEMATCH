@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import {
   Music2, Fingerprint, Activity, HeartHandshake, ArrowRight, Play,
-  Disc3, Sparkles, MessagesSquare, ShieldCheck, MapPin, BadgeCheck, X, Heart, Star,
+  Disc3, Sparkles, MessagesSquare, ShieldCheck, MapPin, BadgeCheck, X, Heart,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -184,34 +184,6 @@ export function Home() {
               <span className="chip">Cosine similarity</span><span className="chip">Shared tracks</span><span className="chip mint">Mutual-only chat</span>
             </div>
           </Reveal>
-        </div>
-      </section>
-
-      {/* ── STORIES (Hinge: What our users say) ── */}
-      <section className="section" id="stories" style={{ paddingTop: 0 }}>
-        <div className="wrap">
-          <Reveal>
-            <div className="kicker">What our beta daters say</div>
-            <h2 className="h2">Playlists turned into first dates.</h2>
-          </Reveal>
-          <div className="grid-3" style={{ marginTop: 26 }}>
-            {[
-              { q: "Other apps felt like shooting in the dark. On VibeMatch we matched at 91% over SZA and talked for three hours straight. Together a year now.", n: "Maya & Jordan", img: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=800&auto=format&fit=crop" },
-              { q: "The prompts plus shared tracks made it so easy to open. I knew his vibe before I said hi — no small talk needed.", n: "Sofia V.", img: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=800&auto=format&fit=crop" },
-              { q: "We found out we were at the same Frank Ocean show two years apart. VibeMatch just… knew.", n: "Dev & Priya", img: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=800&auto=format&fit=crop" },
-            ].map((s, i) => (
-              <Reveal key={s.n} delay={i * 100}>
-                <div className="card quote">
-                  <div style={{ display: "flex", gap: 4 }}>{[...Array(5)].map((_, k) => <Star key={k} size={15} fill="#FF4D94" color="#FF4D94" />)}</div>
-                  <p>“{s.q}”</p>
-                  <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                    <img src={s.img} alt={s.n} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} />
-                    <footer>{s.n} • Matched on music</footer>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
         </div>
       </section>
 

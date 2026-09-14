@@ -32,7 +32,6 @@ export function Navbar() {
           <NavLink to="/how-it-works" className={({ isActive }) => (isActive ? "active" : "")}>
             How it works
           </NavLink>
-          <a href="/#stories">Stories</a>
           <a href="/#labs">Vibe Lab</a>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -50,7 +49,6 @@ export function Navbar() {
         <Link to="/" onClick={() => setOpen(false)}>Home</Link>
         <Link to="/about" onClick={() => setOpen(false)}>About</Link>
         <Link to="/how-it-works" onClick={() => setOpen(false)}>How it works</Link>
-        <a href="/#stories" onClick={() => setOpen(false)}>Stories</a>
         <a href="/#labs" onClick={() => setOpen(false)}>Vibe Lab</a>
         <button className="btn btn-primary" onClick={goWaitlist} style={{ marginTop: 8 }}>
           Join waitlist <ArrowRight size={15} />

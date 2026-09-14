@@ -86,7 +86,7 @@ That larger system is the direction, not the current state.
 - TypeScript
 
 ### Data / Matching
-- MusicBrainz API
+- Deezer API (primary) + iTunes Search API (track fallback) + vector pipeline
 - vector generation pipeline
 - swipe and behavioral foundations
 

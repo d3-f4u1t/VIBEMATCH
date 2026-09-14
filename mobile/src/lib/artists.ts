@@ -23,7 +23,7 @@ export type ArtistSearchResult = {
   country?: string | null;
   tags?: string[];
   artistType?: string | null;
-  /** Artist photo URL from Deezer (250x250). May be null for older entries. */
+  /** Artist photo URL from Deezer (250x250). Null for iTunes-sourced entries. */
   pictureMedium?: string | null;
 };
 
@@ -186,7 +186,7 @@ export async function removeArtistFromUser(
   token: string,
   artistId: string
 ) {
-  const response = await fetch(`${API_BASE_URL}/user/${userId}/artists/${artistId}`, {
+  const response = await fetch(`${API_BASE_URL}/user/${userId}/artists/${encodeURIComponent(artistId)}`, {
     method: "DELETE",
     headers: buildAuthHeaders(token),
   });
