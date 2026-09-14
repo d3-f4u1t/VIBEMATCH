@@ -1,11 +1,11 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from app.models.swipe import SwipeAction
 
 
 class SwipeCreate(BaseModel):
     """Request body for creating a swipe"""
-    swiped_user_id: str
+    swiped_user_id: str = Field(..., min_length=1, max_length=64)
     action: SwipeAction
 
 

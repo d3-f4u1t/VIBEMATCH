@@ -1,4 +1,4 @@
-import { AudioWaveform, Camera, AtSign, ShieldCheck, Heart } from "lucide-react";
+import { Camera, AtSign, ShieldCheck, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function Footer() {
@@ -8,7 +8,7 @@ export function Footer() {
         <div className="foot-grid">
           <div>
             <Link to="/" style={{ display: "flex", gap: 10, alignItems: "center", textDecoration: "none", fontWeight: 700, fontSize: 19 }}>
-              <span className="brand-mark"><AudioWaveform size={19} color="#fff" /></span>
+              <span className="brand-mark" aria-hidden="true">V</span>
               VibeMatch
             </Link>
             <p style={{ color: "var(--muted)", fontSize: 14.5, lineHeight: 1.6, maxWidth: 34 * 10 }}>

@@ -4,6 +4,7 @@ from app.models.track import Track
 from app.models.swipe import Swipe, SwipeAction
 from app.models.conversation import Conversation
 from app.models.message import Message
+from app.models.safety import Block, Report
 
 __all__ = [
     "User",
@@ -13,4 +14,6 @@ __all__ = [
     "SwipeAction",
     "Conversation",
     "Message",
+    "Block",
+    "Report",
 ]

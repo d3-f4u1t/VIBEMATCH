@@ -95,11 +95,12 @@ function normalizeSavedArtist(artist: UserArtistsResponse["artists"][number]): A
   };
 }
 
-export async function searchArtists(term: string): Promise<ArtistSearchResult[]> {
+export async function searchArtists(term: string, token: string): Promise<ArtistSearchResult[]> {
   const response = await fetch(
     `${API_BASE_URL}/search?name=${encodeURIComponent(term.trim())}`,
     {
       method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
     }
   );
 

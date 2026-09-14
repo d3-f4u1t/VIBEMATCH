@@ -6,7 +6,10 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "build:preview": "eas build --profile preview --platform all",
+    "build:production": "eas build --profile production --platform all"
   },
   "dependencies": {
     "@expo-google-fonts/space-grotesk": "^0.4.1",

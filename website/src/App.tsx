@@ -16,20 +16,27 @@ function ScrollToTop() {
   return null;
 }
 
+function PageFade() {
+  const { pathname } = useLocation();
+  return (
+    <main key={pathname} className="page-enter">
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="*" element={<Home />} />
+      </Routes>
+    </main>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <FluidBackground />
       <ScrollToTop />
       <Navbar />
-      <main>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="*" element={<Home />} />
-        </Routes>
-      </main>
+      <PageFade />
       <Footer />
     </BrowserRouter>
   );

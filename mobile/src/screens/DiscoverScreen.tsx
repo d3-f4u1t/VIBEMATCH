@@ -130,7 +130,7 @@ export function DiscoverScreen({
         setError("");
 
         const [matchesResult, nextResult] = await Promise.allSettled([
-          getMatches(session.user.id),
+          getMatches(session.user.id, session.access_token),
           getNextMatch(session.user.id, session.access_token),
         ]);
 

@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 #app IMPORTS
+from app.auth import get_current_user
 from app.database import get_db
+from app.limiter import limiter
+from app.models.safety import Block
 from app.models.user import User
 from app.schemas.matching import MatchResponse
 from app.services.vector import cosine_similarity, shared_display_names
@@ -26,19 +29,24 @@ def build_match_reason(shared_artists: list[str], shared_tracks: list[str], simi
 
 
 @router.get("/match/{user_id}", response_model=MatchResponse)
+@limiter.limit("60/minute")
 def get_matches(
+    request: Request,
     user_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    limit: int = 10,
-    exclude_swiped: bool = False
+    limit: int = Query(default=10, ge=1, le=25),
+    exclude_swiped: bool = False,
 ):
     """
     Get matches for a user based on music vector similarity.
     
-    - **user_id**: User to find matches for
-    - **limit**: Maximum number of matches to return (default 10)
+    - **user_id**: User to find matches for (must be yourself)
+    - **limit**: Maximum number of matches to return (1-25, default 10)
     - **exclude_swiped**: If True, excludes users already swiped on (default False)
     """
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="not allowed")
 
     user = db.query(User).filter(User.id == user_id).first()
 
@@ -57,9 +65,22 @@ def get_matches(
             detail="User must complete the music profile before matching"
         )
     
+    # Exclude users blocked in either direction
+    blocked_rows = (
+        db.query(Block)
+        .filter((Block.blocker_id == user_id) | (Block.blocked_user_id == user_id))
+        .all()
+    )
+    blocked_ids: set[str] = set()
+    for b in blocked_rows:
+        blocked_ids.add(b.blocker_id)
+        blocked_ids.add(b.blocked_user_id)
+    blocked_ids.discard(user_id)
+
     other_users = (
         db.query(User)
         .filter(User.id != user_id)
+        .limit(500)
         .all()
     )
 
@@ -74,6 +95,8 @@ def get_matches(
     matches = []
 
     for other in other_users:
+        if other.id in blocked_ids:
+            continue
         # Skip if already swiped (if requested)
         if exclude_swiped and other.id in already_swiped:
             continue

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import {
   Music2, Fingerprint, Activity, HeartHandshake, ArrowRight, Play,
-  Disc3, Sparkles, MessagesSquare, ShieldCheck, MapPin, BadgeCheck, X, Heart,
+  Disc3, MessagesSquare, ShieldCheck, MapPin, BadgeCheck, X, Heart,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -42,11 +42,10 @@ function SwipeDemo() {
         animate={{ opacity: 1, scale: 1 }}
         whileDrag={{ scale: 1.03, rotate: 2 }}
       >
-        <img src={p.img} alt={p.name} />
+        <img src={p.img} alt={p.name} decoding="async" />
         <div style={{ padding: 18 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <b style={{ fontSize: 20 }}>{p.name}</b>
-            <span className="chip mint">{p.score}% match</span>
           </div>
           <div style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>{p.reason}</div>
           <div className="chip-row">{p.shared.map((s) => <span key={s} className="chip">{s}</span>)}</div>
@@ -75,7 +74,7 @@ export function Home() {
       <div className="wrap hero">
         <div>
           <motion.div variants={fadeUp} initial="hidden" animate="show" custom={0}>
-            <span className="eyebrow"><Sparkles size={14} /> Music-first dating • Coming soon</span>
+            <span className="eyebrow">Coming soon</span>
             <h1>Find someone on your <span className="grad">wavelength.</span></h1>
             <p className="lead">
               VibeMatch matches you on music taste, energy and vibe — not just photos.
@@ -100,10 +99,10 @@ export function Home() {
           <div className="float-card float-1"><BadgeCheck size={18} color="#82F7A6" /> <span><b>It&apos;s a Vibe</b><br /><span style={{ color: "var(--muted)", fontSize: 12.5 }}>You + Maya both love SZA</span></span></div>
           <div className="phone">
             <div className="phone-screen">
-              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop" alt="Concert crowd — find your crowd" />
+              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop" alt="Concert crowd — find your crowd" fetchPriority="high" decoding="async" />
               <div className="phone-body">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <b style={{ fontSize: 19 }}>Maya, 24</b><span className="chip mint">91% match</span>
+                  <b style={{ fontSize: 19 }}>Maya, 24</b>
                 </div>
                 <div style={{ color: "var(--muted)", fontSize: 13.5, marginTop: 4 }}>Both love late-night R&amp;B • 2 min away in vibe</div>
                 <div className="chip-row"><span className="chip">SZA</span><span className="chip">Frank Ocean</span><span className="chip mint">God&apos;s Plan</span></div>
@@ -125,7 +124,7 @@ export function Home() {
         <div className="wrap grid-2">
           <Reveal>
             <div className="img-card">
-              <img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1000&auto=format&fit=crop" alt="DJ decks — taste is a signal" />
+              <img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1000&auto=format&fit=crop" alt="DJ decks — taste is a signal" loading="lazy" decoding="async" />
               <div className="overlay">
                 <span className="eyebrow">Our approach</span>
                 <h2 className="h2" style={{ fontSize: 34 }}>Taste tells the truth photos can&apos;t.</h2>
@@ -180,9 +179,6 @@ export function Home() {
             <div className="kicker">Try the feeling</div>
             <h2 className="h2">Swipe on vibe, not just selfies.</h2>
             <p className="sub">Every profile shows a compatibility score, shared artists and tracks, and <i>why</i> you matched — “You both love late-night R&amp;B” beats “You both like pizza.” Chat only unlocks on mutual like.</p>
-            <div style={{ display: "flex", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
-              <span className="chip">Cosine similarity</span><span className="chip">Shared tracks</span><span className="chip mint">Mutual-only chat</span>
-            </div>
           </Reveal>
         </div>
       </section>
@@ -202,7 +198,7 @@ export function Home() {
           </Reveal>
           <Reveal delay={120}>
             <div className="img-card">
-              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=1000&auto=format&fit=crop" alt="Listening session" />
+              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=1000&auto=format&fit=crop" alt="Listening session" loading="lazy" decoding="async" />
               <div className="overlay">
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <span className="chip"><MessagesSquare size={13} /> Behavioral signals</span>

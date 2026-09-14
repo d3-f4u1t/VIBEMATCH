@@ -59,11 +59,12 @@ type MatchApiResponse = {
   detail?: string;
 };
 
-export async function getMatches(userId: string): Promise<MatchResult[]> {
+export async function getMatches(userId: string, token: string): Promise<MatchResult[]> {
   const response = await fetch(
     `${API_BASE_URL}/match/${encodeURIComponent(userId)}?limit=8`,
     {
       method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
     }
   );
 

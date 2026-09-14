@@ -54,11 +54,12 @@ export async function searchTracks(
   userId: string,
   title: string,
   limit = 5,
-  artistName?: string
+  artistName?: string,
+  token?: string,
 ): Promise<TrackSearchResult[]> {
   const trimmedTitle = title.trim();
   const trimmedArtistName = artistName?.trim();
-  let url = `${API_BASE_URL}/tracks/search?title=${encodeURIComponent(trimmedTitle)}&user_id=${encodeURIComponent(userId)}&limit=${encodeURIComponent(String(limit))}`;
+  let url = `${API_BASE_URL}/tracks/search?title=${encodeURIComponent(trimmedTitle)}&limit=${encodeURIComponent(String(limit))}`;
 
   if (trimmedArtistName) {
     url += `&artist_name=${encodeURIComponent(trimmedArtistName)}`;
@@ -66,6 +67,7 @@ export async function searchTracks(
 
   const response = await fetch(url, {
     method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 
   const data = (await response.json()) as TracksApiResponse;
@@ -89,13 +91,17 @@ export async function searchTracks(
 export async function getArtistTopTracks(
   artistId: string,
   limit = 10,
-  artistName?: string
+  artistName?: string,
+  token?: string,
 ): Promise<TrackSearchResult[]> {
   let url = `${API_BASE_URL}/artists/${encodeURIComponent(artistId)}/tracks?limit=${encodeURIComponent(String(limit))}`;
   if (artistName?.trim()) {
     url += `&artist_name=${encodeURIComponent(artistName.trim())}`;
   }
-  const response = await fetch(url, { method: "GET" });
+  const response = await fetch(url, {
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
   const data = (await response.json()) as TracksApiResponse;
   if (!response.ok) {
     throw new Error(

@@ -125,7 +125,7 @@ export function MusicSetupScreen({
       try {
         setArtistSearchLoading(true);
         setArtistSearchError("");
-        const artists = await searchArtists(trimmedSearch);
+        const artists = await searchArtists(trimmedSearch, session.access_token);
 
         if (!isCancelled) {
           setRemoteArtists(artists);
@@ -170,7 +170,8 @@ export function MusicSetupScreen({
           session.user.id,
           trimmedTrackSearch,
           trackResultLimit,
-          trimmedArtistSearch || undefined
+          trimmedArtistSearch || undefined,
+          session.access_token
         );
 
         if (!isCancelled) {

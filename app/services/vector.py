@@ -1,9 +1,16 @@
+import logging
+
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from sqlalchemy.orm import Session
 
+from app.database import SessionLocal
+
+logger = logging.getLogger("vibematch.vector")
+
 _model = None
 MODEL_NAME = "all-MiniLM-L6-v2"
+VECTOR_DIM = 384  # all-MiniLM-L6-v2 output size
 
 
 def get_model():
@@ -82,13 +89,42 @@ def build_and_save_vector(user, db: Session) -> list[float]:
     return vector
 
 
+def rebuild_vector_for_user_id(user_id: str) -> None:
+    """Background-task entrypoint: uses its own session + re-fetches the user.
+
+    Never pass a request-scoped Session or detached ORM object into
+    BackgroundTasks — the request session may be closed by the time the
+    task runs, and sharing sessions across threads is unsafe.
+    """
+    from app.models.user import User
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return
+        build_and_save_vector(user, db)
+    except Exception:
+        logger.exception("vector rebuild failed for user %s", user_id)
+    finally:
+        db.close()
+
+
 def cosine_similarity(vec_a: list, vec_b: list) -> float:
     if not vec_a or not vec_b:
         return 0.0
 
-    a = np.array(vec_a)
-    b = np.array(vec_b)
-    return float(np.dot(a, b))
+    try:
+        a = np.array(vec_a, dtype=float)
+        b = np.array(vec_b, dtype=float)
+    except (TypeError, ValueError):
+        return 0.0
+    if a.shape != b.shape or a.ndim != 1 or a.shape[0] == 0:
+        return 0.0
+    denom = float(np.linalg.norm(a) * np.linalg.norm(b))
+    if not denom:
+        return 0.0
+    return float(np.dot(a, b) / denom)
 
 
 def shared_display_names(own_items: list[str | None], other_items: list[str | None]) -> list[str]:

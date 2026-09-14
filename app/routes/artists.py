@@ -1,10 +1,10 @@
 # app/routes/artists.py
-from fastapi import APIRouter, Depends, HTTPException, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.database import get_db
+from app.limiter import limiter
 from app.models.user import User
 from app.services.musicbrainz import (
     search_artist,
@@ -13,16 +13,17 @@ from app.services.musicbrainz import (
 )
 
 router = APIRouter(tags=["artists"])
-limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/search")
 @limiter.limit("30/minute")
-def search(request: Request, name: str):
+def search(
+    request: Request,
+    name: str = Query(..., min_length=2, max_length=200),
+    _user: User = Depends(get_current_user),
+):
     """Search artists (Deezer primary, iTunes fallback). Rate-limited to 30/min per IP."""
-    if not name or len(name.strip()) < 2:
-        raise HTTPException(status_code=400, detail="Search term too short")
-    return search_artist(name)
+    return search_artist(name.strip())
 
 
 @router.get("/artists/{artist_mb_id}/tracks")
@@ -30,16 +31,15 @@ def search(request: Request, name: str):
 def get_artist_tracks(
     request: Request,
     artist_mb_id: str,
-    limit: int = 10,
-    artist_name: str | None = None,
+    limit: int = Query(default=10, ge=1, le=25),
+    artist_name: str | None = Query(default=None, max_length=200),
+    _user: User = Depends(get_current_user),
 ):
     """Get top tracks for an artist (Deezer primary, iTunes fallback). Rate-limited to 30/min per IP."""
     if not artist_mb_id.strip():
         raise HTTPException(status_code=400, detail="Artist id is required")
-    if limit < 1 or limit > 25:
-        raise HTTPException(status_code=400, detail="Limit must be between 1 and 25")
     return search_artist_recordings(
-        artist_mb_id,
+        artist_mb_id.strip(),
         limit=limit,
         artist_name=artist_name.strip() if artist_name else None,
     )
@@ -49,19 +49,17 @@ def get_artist_tracks(
 @limiter.limit("30/minute")
 def search_tracks(
     request: Request,
-    title: str,
-    user_id: str,
-    artist_name: str | None = None,
+    title: str = Query(..., min_length=2, max_length=300),
+    artist_name: str | None = Query(default=None, max_length=200),
     db: Session = Depends(get_db),
-    limit: int = 10,
+    limit: int = Query(default=10, ge=1, le=25),
+    current_user: User = Depends(get_current_user),
+    user_id: str | None = Query(default=None, description="Deprecated, ignored. Uses your own profile."),
 ):
     """Search tracks (Deezer primary, iTunes fallback). Rate-limited to 30/min per IP."""
-    if not title or len(title.strip()) < 2:
-        raise HTTPException(status_code=400, detail="Track search term too short")
-    if limit < 1 or limit > 25:
-        raise HTTPException(status_code=400, detail="Limit must be between 1 and 25")
-
-    user = db.query(User).filter(User.id == user_id).first()
+    # user_id is intentionally ignored: preferred artists always come from
+    # the authenticated user to prevent enumerating other users' libraries.
+    user = db.query(User).filter(User.id == current_user.id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 

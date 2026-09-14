@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
+from app.limiter import limiter
 from app.models.conversation import Conversation
 from app.models.message import Message
 from app.models.user import User
@@ -91,7 +92,9 @@ def build_conversation_response(
     response_model=ConversationResponse,
     status_code=201,
 )
+@limiter.limit("60/minute")
 def open_conversation(#error handeling
+    request: Request,
     matched_user_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -129,7 +132,9 @@ def open_conversation(#error handeling
 
 
 @router.get("/conversations", response_model=ConversationListResponse)
+@limiter.limit("120/minute")
 def get_conversations(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -158,11 +163,14 @@ def get_conversations(
     "/conversations/{conversation_id}/messages",
     response_model=MessageListResponse,
 )
+@limiter.limit("120/minute")
 def get_messages( #adding restriction to the chat (who are chats for and who can view the chats)
     conversation_id: str,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    limit: int = 50,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=10000),
 ):
     conversation = (
         db.query(Conversation).filter(Conversation.id == conversation_id).first()
@@ -175,10 +183,12 @@ def get_messages( #adding restriction to the chat (who are chats for and who can
     messages = (
         db.query(Message)
         .filter(Message.conversation_id == conversation_id)
-        .order_by(Message.created_at.asc())
+        .order_by(Message.created_at.desc())
+        .offset(offset)
         .limit(limit)
         .all()
     )
+    messages = list(reversed(messages))
 
     return {
         "conversation_id": conversation_id,
@@ -192,9 +202,11 @@ def get_messages( #adding restriction to the chat (who are chats for and who can
     response_model=MessageResponse,
     status_code=201,
 )
+@limiter.limit("60/minute")
 def send_message(       #sending the message ----
     conversation_id: str,
     data: MessageCreate,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

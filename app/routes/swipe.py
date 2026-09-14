@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
+from app.limiter import limiter
 from app.models.user import User
 from app.auth import get_current_user
 from app.schemas.swipe import (
@@ -21,7 +22,9 @@ router = APIRouter(prefix="/swipe", tags=["swipe"])
 
 
 @router.post("/", response_model=SwipeResponse, status_code=201)
+@limiter.limit("120/minute")
 def create_swipe(
+    request: Request,
     swipe_data: SwipeCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -79,12 +82,14 @@ def create_swipe(
 
 
 @router.get("/history/{user_id}", response_model=SwipeHistoryResponse)
+@limiter.limit("60/minute")
 def get_history(
 
+    request: Request,
     user_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    limit: int = 50
+    limit: int = Query(default=50, ge=1, le=100),
 ):
     """
     Get swipe history for a user
@@ -108,7 +113,9 @@ def get_history(
 
 
 @router.get("/next/{user_id}", response_model=NextMatchResponse)
+@limiter.limit("120/minute")
 def get_next(
+    request: Request,
     user_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -157,7 +164,9 @@ def get_next(
 
 
 @router.get("/mutual/{user_id}", response_model=MutualMatchesResponse)
+@limiter.limit("60/minute")
 def get_mutual(
+    request: Request,
     user_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)

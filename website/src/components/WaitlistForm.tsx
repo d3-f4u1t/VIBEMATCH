@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const KEY = "vibematch_waitlist";
 
@@ -29,8 +29,7 @@ export function WaitlistForm({ compact = false }: { compact?: boolean }) {
 
   if (done) {
     return (
-      <div className="waitlist-ok">
-        <CheckCircle2 size={19} color="#82F7A6" />
+      <div className="waitlist-ok" role="status">
         <span><b>You&apos;re on the list.</b> We&apos;ll text you when your city opens. Tell a friend with great taste.</span>
       </div>
     );
@@ -50,7 +49,7 @@ export function WaitlistForm({ compact = false }: { compact?: boolean }) {
           {compact ? "Notify me" : "Join waitlist"} <ArrowRight size={16} />
         </button>
       </form>
-      {error ? <div className="micro" style={{ color: "#ff9db8" }}>{error}</div> : <div className="micro">Free to join • No spam • Early access by city</div>}
+      {error ? <div className="micro" style={{ color: "#ff9db8" }}>{error}</div> : <div className="micro">Free to join</div>}
     </div>
   );
 }

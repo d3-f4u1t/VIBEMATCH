@@ -26,6 +26,11 @@ env/
 *.sqlite
 *.sqlite3
 
+# ── Local seed / PII dumps — never commit ─────────────────────────────────────
+proxy_seed_data.json
+proxy_USER_DATA
+seed_*.json
+
 # ── IDE / OS ──────────────────────────────────────────────────────────────────
 .vscode/
 .idea/

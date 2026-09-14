@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AudioWaveform, Menu, X, ArrowRight } from "lucide-react";
+import { Menu, X, ArrowRight } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 
 export function Navbar() {
@@ -17,8 +17,8 @@ export function Navbar() {
     <>
       <nav className="nav">
         <Link to="/" className="brand" onClick={() => setOpen(false)}>
-          <span className="brand-mark">
-            <AudioWaveform size={19} color="#fff" />
+          <span className="brand-mark" aria-hidden="true">
+            V
           </span>
           VibeMatch
         </Link>

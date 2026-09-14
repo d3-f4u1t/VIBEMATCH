@@ -1,12 +1,14 @@
 """Auth routes: registration, login, and token issuance."""
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.limiter import limiter
 from app.models.user import User
 from app.schemas.user import (
     AccessTokenResponse,
@@ -18,7 +20,8 @@ from app.schemas.user import (
 from app.auth import create_access_token, get_current_user, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-limiter = Limiter(key_func=get_remote_address)
+
+logger = logging.getLogger("vibematch.auth")
 
 # Minimum password length enforced on registration
 _MIN_PASSWORD_LEN = 8
@@ -53,9 +56,15 @@ def register(request: Request, data: UserCreate, db: Session = Depends(get_db)):
         token = create_access_token(user.id)
         return {"access_token": token, "token_type": "bearer", "user": user}
 
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Email already registered")
+    except HTTPException:
+        raise
     except Exception:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Registration failed")
+        logger.exception("registration failed")
+        raise HTTPException(status_code=500, detail="Registration failed")
 
 
 @router.post("/login", response_model=TokenResponse)

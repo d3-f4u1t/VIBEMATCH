@@ -14,9 +14,36 @@ from app.database import get_db
 load_dotenv()
 
 # ── Configuration (loaded from .env) ──────────────────────────────────────────
-SECRET_KEY = os.getenv("VIBEMATCH_SECRET_KEY", "vibematch-fallback-dev-key-replace-in-production")
+# Fail closed in production: no fallback secret. Dev/test may use an
+# explicit non-production default with a loud warning so `pytest` works
+# without env, but production boot raises instead of forging tokens.
+_ENV = os.getenv("VIBEMATCH_ENV", "development").lower()
+_SECRET_FROM_ENV = os.getenv("VIBEMATCH_SECRET_KEY")
+if _SECRET_FROM_ENV:
+    SECRET_KEY = _SECRET_FROM_ENV
+elif _ENV == "production":
+    raise RuntimeError(
+        "VIBEMATCH_SECRET_KEY is required in production. "
+        "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+    )
+else:
+    import logging as _logging
+
+    _logging.getLogger("vibematch.auth").warning(
+        "VIBEMATCH_SECRET_KEY not set — using dev-only key. Never use in production."
+    )
+    SECRET_KEY = "vibematch-dev-only-key-do-not-use-in-production"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+
+
+def _expire_minutes() -> int:
+    try:
+        return max(5, int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")))
+    except (TypeError, ValueError):
+        return 1440
+
+
+ACCESS_TOKEN_EXPIRE_MINUTES = _expire_minutes()
 
 # ── Password hashing ───────────────────────────────────────────────────────────
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
