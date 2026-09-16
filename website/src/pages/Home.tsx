@@ -3,7 +3,7 @@ import {
   Music2, Fingerprint, Activity, HeartHandshake, ArrowRight, Play,
   Disc3, MessagesSquare, ShieldCheck, MapPin, BadgeCheck, X, Heart, Sparkles, Flame, Eye,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Reveal } from "../components/Reveal";
 import { WaitlistForm } from "../components/WaitlistForm";
@@ -16,19 +16,31 @@ const fadeUp = {
 };
 
 function SwipeDemo() {
-  const profiles = [
-    { name: "Maya, 24", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=800&auto=format&fit=crop", score: 94, shared: ["SZA", "Frank Ocean"], reason: "Both live in late-night R&B" },
-    { name: "Jordan, 26", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop", score: 91, shared: ["The Weeknd", "Indie"], reason: "Same concert energy" },
-    { name: "Sofia, 23", img: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=800&auto=format&fit=crop", score: 89, shared: ["FKA twigs", "Soul"], reason: "Same soft-chaos frequency" },
-  ];
+  const profiles = useMemo(
+    () => [
+      { name: "Maya, 24", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=800&auto=format&fit=crop", score: 94, shared: ["SZA", "Frank Ocean"], reason: "Both live in late-night R&B" },
+      { name: "Jordan, 26", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop", score: 91, shared: ["The Weeknd", "Indie"], reason: "Same concert energy" },
+      { name: "Sofia, 23", img: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=800&auto=format&fit=crop", score: 89, shared: ["FKA twigs", "Soul"], reason: "Same soft-chaos frequency" },
+    ],
+    []
+  );
   const [idx, setIdx] = useState(0);
   const [notice, setNotice] = useState("");
+  const timer = useRef<number | null>(null);
   const p = profiles[idx % profiles.length];
 
-  const swipe = (kind: "like" | "pass") => {
-    setNotice(kind === "like" ? `You felt ${p.name.split(",")[0]} — ${p.score}% vibe fit` : `Not your frequency? The engine recalibrates…`);
-    setTimeout(() => setIdx((v) => v + 1), 450);
-  };
+  useEffect(() => () => {
+    if (timer.current !== null) window.clearTimeout(timer.current);
+  }, []);
+
+  const swipe = useCallback(
+    (kind: "like" | "pass") => {
+      setNotice(kind === "like" ? `You felt ${p.name.split(",")[0]} — ${p.score}% vibe fit` : `Not your frequency? The engine recalibrates…`);
+      if (timer.current !== null) window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setIdx((v) => v + 1), 280);
+    },
+    [p]
+  );
 
   return (
     <div>
@@ -37,12 +49,14 @@ function SwipeDemo() {
         className="swipe-card"
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
+        dragMomentum={false}
         onDragEnd={(_, info) => { if (info.offset.x > 90) swipe("like"); else if (info.offset.x < -90) swipe("pass"); }}
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         whileDrag={{ scale: 1.03, rotate: 2 }}
+        style={{ touchAction: "pan-y" }}
       >
-        <img src={p.img} alt={p.name} />
+        <img src={p.img} alt={p.name} loading="lazy" decoding="async" draggable={false} />
         <div style={{ padding: 18 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <b style={{ fontSize: 20 }}>{p.name}</b>
@@ -63,6 +77,7 @@ function SwipeDemo() {
 }
 
 export function Home() {
+  const marqueeItems = useMemo(() => [...GENRES, ...GENRES], []);
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("waitlist")) {
       setTimeout(() => document.getElementById("waitlist")?.scrollIntoView({ behavior: "smooth" }), 300);
@@ -101,7 +116,7 @@ export function Home() {
           <div className="float-card float-1"><BadgeCheck size={18} color="#82F7A6" /> <span><b>It&apos;s a Vibe</b><br /><span style={{ color: "var(--muted)", fontSize: 12.5 }}>You + Maya both loop SZA</span></span></div>
           <div className="phone">
             <div className="phone-screen">
-              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop" alt="Concert crowd — find your crowd" />
+              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop" alt="Concert crowd — find your crowd" fetchPriority="high" decoding="async" />
               <div className="phone-body">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <b style={{ fontSize: 19 }}>Maya, 24</b>
@@ -118,7 +133,7 @@ export function Home() {
 
       <div className="marquee" aria-hidden>
         <div className="marquee-track">
-          {[...GENRES, ...GENRES].map((g, i) => <span key={i}>✦ {g}</span>)}
+          {marqueeItems.map((g, i) => <span key={i}>✦ {g}</span>)}
         </div>
       </div>
 
@@ -127,7 +142,7 @@ export function Home() {
         <div className="wrap grid-2">
           <Reveal>
             <div className="img-card">
-              <img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1000&auto=format&fit=crop" alt="DJ decks — taste is a signal" />
+              <img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1000&auto=format&fit=crop" alt="DJ decks — taste is a signal" loading="lazy" decoding="async" />
               <div className="overlay">
                 <span className="eyebrow">Why now</span>
                 <h2 className="h2" style={{ fontSize: 34 }}>Swiping on photos is broken. You feel it.</h2>
@@ -228,7 +243,7 @@ export function Home() {
           </Reveal>
           <Reveal delay={120}>
             <div className="img-card">
-              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=1000&auto=format&fit=crop" alt="Listening session" />
+              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=1000&auto=format&fit=crop" alt="Listening session" loading="lazy" decoding="async" />
               <div className="overlay">
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <span className="chip"><MessagesSquare size={13} /> Learns your energy</span>

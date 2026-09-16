@@ -293,3 +293,72 @@ footer { border-top: 1px solid var(--stroke); padding: 56px 0 32px; margin-top: 
   .float-1 { left: 2vw; } .float-2 { right: 2vw; }
   .section { padding: 60px 0; }
 }
+
+/* ── Performance layer (no visual changes — compositing + offscreen savings) ── */
+html { scrollbar-gutter: stable; }
+body { overflow-x: clip; }
+.fluid-bg { contain: strict; pointer-events: none; transform: translateZ(0); }
+.fluid-bg::after { pointer-events: none; }
+.orb {
+  contain: strict;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  pointer-events: none;
+}
+.nav, .card, .float-card, .mobile-menu.open, .phone, .swipe-card, .banner, .img-card {
+  transform: translateZ(0);
+}
+.nav, .mobile-menu.open { -webkit-backdrop-filter: blur(18px); }
+.card, .float-card { -webkit-backdrop-filter: blur(14px); }
+.section { content-visibility: auto; contain-intrinsic-size: auto 900px; }
+.hero, .banner { content-visibility: visible; }
+.marquee { contain: content; }
+.marquee-track {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+}
+.swipe-card { touch-action: pan-y; }
+.swipe-card img, .img-card img, .phone-screen img {
+  transform: translateZ(0);
+  -webkit-user-drag: none;
+}
+.reveal { will-change: opacity, transform; contain: layout style; }
+.reveal.in { will-change: auto; }
+.score-fill { will-change: width; }
+html.bg-paused .orb, html.bg-paused .marquee-track, html.bg-paused .float-1, html.bg-paused .float-2 {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .float-1, .float-2, .marquee-track { animation: none; }
+  .reveal { transition: none; opacity: 1; transform: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* ── Responsiveness feel layer (no redesign — instant-feeling taps/scroll) ── */
+html { scroll-padding-top: 84px; }
+body { -webkit-tap-highlight-color: transparent; }
+a, button, input, .circle-btn, .faq button, .hamburger {
+  touch-action: manipulation;
+}
+.btn, .circle-btn, .hamburger, .faq button, .nav-links a {
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* Tactile press feedback on the existing shapes — static look unchanged. */
+.btn:active { transform: translateY(0) scale(0.97); filter: brightness(1.02); }
+.btn-primary:active { box-shadow: 0 6px 18px rgba(255, 78, 136, 0.35); }
+.btn-ghost:active { background: rgba(255, 255, 255, 0.12); }
+.circle-btn:active { transform: scale(0.93); }
+.nav-links a:active, .mobile-menu a:active { background: rgba(255, 255, 255, 0.1); }
+.faq button:active { opacity: 0.85; }
+/* Keyboard users get a clear ring; mouse/touch see zero change. */
+.btn:focus-visible, .circle-btn:focus-visible, .hamburger:focus-visible,
+.faq button:focus-visible, .nav-links a:focus-visible, .waitlist input:focus-visible {
+  outline: 2px solid rgba(255, 143, 184, 0.9);
+  outline-offset: 2px;
+}
+/* Keep focus ring subtle on inputs without changing the resting look. */
+.waitlist input { caret-color: #ff8fb8; }

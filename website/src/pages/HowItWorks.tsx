@@ -42,7 +42,7 @@ export function HowItWorks() {
         <div className="wrap grid-2">
           <Reveal>
             <div className="img-card">
-              <img src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1000&auto=format&fit=crop" alt="Concert lights" />
+              <img src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1000&auto=format&fit=crop" alt="Concert lights" loading="lazy" decoding="async" />
               <div className="overlay">
                 <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                   <span className="chip mint"><ShieldCheck size={13} /> Mutual by design</span>

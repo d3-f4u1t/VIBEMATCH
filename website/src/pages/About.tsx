@@ -15,7 +15,7 @@ export function About() {
         <div className="grid-2" style={{ marginTop: 32 }}>
           <Reveal>
             <div className="img-card">
-              <img src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?q=80&w=1000&auto=format&fit=crop" alt="Concert crowd with hands up" />
+              <img src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?q=80&w=1000&auto=format&fit=crop" alt="Concert crowd with hands up" loading="lazy" decoding="async" />
               <div className="overlay"><span className="chip mint">Designed to be deleted</span></div>
             </div>
           </Reveal>
@@ -70,7 +70,7 @@ export function About() {
           </Reveal>
           <Reveal delay={120}>
             <div className="img-card">
-              <img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1000&auto=format&fit=crop" alt="Person with headphones" />
+              <img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1000&auto=format&fit=crop" alt="Person with headphones" loading="lazy" decoding="async" />
               <div className="overlay"><span className="chip">Founding era • Private preview soon</span></div>
             </div>
           </Reveal>
