@@ -20,14 +20,6 @@ type InboxScreenProps = {
   onChatError: string;
 };
 
-// Dummy data from DiscoverScreen
-const COMMUNITY_PEOPLE = [
-  { name: "Sarah", color: "#FF7B59" },
-  { name: "Marcus", color: "#82F7A6" },
-  { name: "Elena", color: "#BFD6F3" },
-  { name: "David", color: "#F26A8D" },
-];
-
 export function InboxScreen({
   session,
   onOpenConversation,
@@ -52,11 +44,12 @@ export function InboxScreen({
 
         if (isCancelled) return;
 
+        const errors: string[] = [];
         if (mutualResult.status === "fulfilled") {
           setMutualMatches(mutualResult.value);
         } else {
           setMutualMatches([]);
-          setError(
+          errors.push(
             mutualResult.reason instanceof Error
               ? mutualResult.reason.message
               : "Could not load your matches."
@@ -67,12 +60,13 @@ export function InboxScreen({
           setConversations(conversationsResult.value);
         } else {
           setConversations([]);
-          setError(
+          errors.push(
             conversationsResult.reason instanceof Error
               ? conversationsResult.reason.message
               : "Could not load your inbox."
           );
         }
+        setError(errors.join(" "))
       } finally {
         if (!isCancelled) setLoading(false);
       }
@@ -229,25 +223,6 @@ export function InboxScreen({
         <Text style={styles.emptyStateBody}>
           Keep swiping through the feed. When someone likes you back, they will show up here as a real match.
         </Text>
-      </View>
-
-      <View style={styles.feedStageCard}>
-        <View style={styles.communityStoryCard}>
-          <Text style={styles.communityStoryTitle}>Shared energy right now</Text>
-          <View style={styles.communityStoryRow}>
-            {COMMUNITY_PEOPLE.map((person) => (
-              <View key={person.name} style={styles.communityStoryPill}>
-                <View
-                  style={[
-                    styles.communityAvatar,
-                    { backgroundColor: person.color },
-                  ]}
-                />
-                <Text style={styles.communityAvatarLabel}>{person.name}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
       </View>
     </View>
   );

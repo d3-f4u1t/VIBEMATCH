@@ -12,8 +12,6 @@ type NearbyScreenProps = {
   onOpenDetail: (match: MatchResult) => void;
 };
 
-const NEARBY_DISTANCES = ["1.4 km", "2.1 km", "3.8 km", "5.2 km", "7.0 km", "12 km"];
-
 const useMatchTone = (index: number) => {
   const tones = [
     { start: "#FF7B59", end: "#F26A8D" },
@@ -26,6 +24,20 @@ const useMatchTone = (index: number) => {
 };
 
 export function NearbyScreen({ nearbyCards, onOpenDetail }: NearbyScreenProps) {
+  if (nearbyCards.length === 0) {
+    return (
+      <View style={styles.sectionBody}>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>No nearby vibes yet</Text>
+          <Text style={styles.emptyBody}>
+            Nearby is a preview of your discover stack for now — no GPS yet.
+            Swipe in Feed and matches will show up here.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.sectionBody}>
       <View style={styles.feedStageCard}>
@@ -34,7 +46,7 @@ export function NearbyScreen({ nearbyCards, onOpenDetail }: NearbyScreenProps) {
           <View style={styles.mapLineTwo} />
           <View style={styles.mapMarkerOne} />
           <View style={styles.mapMarkerTwo} />
-          <Text style={styles.mapPlaceholder}>Map layer</Text>
+          <Text style={styles.mapPlaceholder}>Preview — GPS coming soon</Text>
         </View>
 
         <View style={styles.nearbyCardsRow}>
@@ -55,7 +67,7 @@ export function NearbyScreen({ nearbyCards, onOpenDetail }: NearbyScreenProps) {
                 />
                 <Text style={styles.nearbyMiniName}>{match.name.split(" ")[0]}</Text>
                 <Text style={styles.nearbyMiniDistance}>
-                  {NEARBY_DISTANCES[index] ?? "1.4 km"}
+                  {Math.round(match.similarity * 100)}% match
                 </Text>
               </Pressable>
             );
@@ -65,8 +77,8 @@ export function NearbyScreen({ nearbyCards, onOpenDetail }: NearbyScreenProps) {
         <View style={styles.contextCard}>
           <Text style={styles.contextCardTitle}>Why these people?</Text>
           <Text style={styles.contextCardBody}>
-            Shared late-night artists, city overlap, and matching listening pace
-            keep these profiles near the top of your discover stack.
+            Same list as your discover feed, ranked by music similarity.
+            Distances are placeholders until location is enabled.
           </Text>
         </View>
       </View>
@@ -78,6 +90,25 @@ const styles = StyleSheet.create({
   sectionBody: {
     paddingHorizontal: 16,
     paddingTop: 12,
+  },
+  emptyCard: {
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+  emptyTitle: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 8,
+  },
+  emptyBody: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: "SpaceGrotesk_400Regular",
   },
   feedStageCard: {
     backgroundColor: "rgba(8,8,11,0.48)",

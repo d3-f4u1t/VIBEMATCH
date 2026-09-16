@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -6,12 +6,17 @@ from app.limiter import limiter
 from app.models.user import User
 from app.models.artist import Artist
 from app.models.track import Track
+from app.models.swipe import Swipe
+from app.models.conversation import Conversation
+from app.models.message import Message
+from app.models.safety import Block, Report
+from sqlalchemy import or_
 from app.schemas.user import UserProfileResponse, UserProfileUpdate, UserResponse
 from app.schemas.artist import ArtistCreate
 from app.schemas.track import TrackCreate
 from app.auth import get_current_user
 from app.services.behavior import build_behavior_summary, build_behavior_vector
-from app.services.vector import build_and_save_vector, rebuild_vector_for_user_id
+from app.services.vector import build_and_save_vector
 from app.schemas.behavior import BehaviorSummaryResponse, BehaviorVectorResponse
 
 router = APIRouter(tags=["users"])
@@ -43,11 +48,40 @@ def delete_account(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """GDPR-style self delete: removes the user row (swipes/conversations cascade separately)."""
+    """GDPR-style self delete: removes user + swipes, conversations, messages, blocks, reports."""
     _require_self(current_user, user_id)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    # Clear M2M music links first (works on SQLite + Postgres without migration)
+    user.artists.clear()
+    user.tracks.clear()
+
+    # Swipes in either direction
+    db.query(Swipe).filter(
+        or_(Swipe.swiper_id == user_id, Swipe.swiped_user_id == user_id)
+    ).delete(synchronize_session=False)
+
+    # Messages sent by user (conversation messages cascade on conversation delete too)
+    db.query(Message).filter(Message.sender_id == user_id).delete(synchronize_session=False)
+
+    # Conversations involving user (remaining messages cascade via relationship on Postgres;
+    # explicit message delete above covers SQLite legacy FK-off case)
+    convos = db.query(Conversation).filter(
+        or_(Conversation.user_one_id == user_id, Conversation.user_two_id == user_id)
+    ).all()
+    for c in convos:
+        db.delete(c)
+
+    # Blocks / reports in either direction
+    db.query(Block).filter(
+        or_(Block.blocker_id == user_id, Block.blocked_user_id == user_id)
+    ).delete(synchronize_session=False)
+    db.query(Report).filter(
+        or_(Report.reporter_id == user_id, Report.reported_user_id == user_id)
+    ).delete(synchronize_session=False)
+
     db.delete(user)
     db.commit()
     return {"message": "Account deleted"}
@@ -85,11 +119,36 @@ def update_user_profile(
 
     updates = data.model_dump(exclude_unset=True)
 
+    # Validate age range on partial PATCH (schema validator only sees sent fields)
+    eff_min = updates.get("age_min", user.age_min)
+    eff_max = updates.get("age_max", user.age_max)
+    if eff_min is not None and eff_max is not None and eff_max < eff_min:
+        raise HTTPException(status_code=422, detail="age_max must be >= age_min")
+
+    # Normalize enrichment + preference lists (strip, drop empties, cap)
+    for list_field in ("music_moods", "music_eras", "music_contexts", "dealbreakers"):
+        if list_field in updates and updates[list_field] is not None:
+            cleaned = [str(x).strip()[:40] for x in updates[list_field] if str(x).strip()]
+            updates[list_field] = cleaned[:8] if list_field != "dealbreakers" else cleaned[:10]
+    if "music_energy" in updates and updates["music_energy"]:
+        updates["music_energy"] = str(updates["music_energy"]).strip()[:30] or None
+    if "intent" in updates and updates["intent"]:
+        updates["intent"] = str(updates["intent"]).strip().lower()[:30] or None
+
     for field_name, value in updates.items():
         setattr(user, field_name, value)
 
     db.commit()
     db.refresh(user)
+
+    # Personality vector depends on bio — rebuild music+personality vectors when bio changes
+    if "bio" in updates:
+        try:
+            from app.services.vector import build_and_save_vector
+            build_and_save_vector(user, db)
+        except Exception:
+            pass
+        db.refresh(user)
     return user
 
 
@@ -97,7 +156,6 @@ def update_user_profile(
 def add_artist_to_user(
     user_id: str,
     data: ArtistCreate,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -167,7 +225,6 @@ def get_user_artists(
 def add_track_to_user(
     user_id: str,
     data: TrackCreate,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -375,7 +432,6 @@ def get_behavior_vector(
 def remove_artist_from_user(
     user_id: str,
     artist_mb_id: str,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -409,7 +465,6 @@ def remove_artist_from_user(
 def remove_track_from_user(
     user_id: str,
     track_mb_id: str,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

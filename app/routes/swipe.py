@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.limiter import limiter
 from app.models.user import User
+from app.models.safety import Block
 from app.auth import get_current_user
 from app.schemas.swipe import (
     SwipeCreate,
@@ -57,6 +58,18 @@ def create_swipe(
     # Prevent self-swiping
     if swipe_data.swiped_user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot swipe on yourself")
+
+    # Blocked users (either direction) cannot swipe on each other
+    blocked = (
+        db.query(Block)
+        .filter(
+            ((Block.blocker_id == current_user.id) & (Block.blocked_user_id == swipe_data.swiped_user_id))
+            | ((Block.blocker_id == swipe_data.swiped_user_id) & (Block.blocked_user_id == current_user.id))
+        )
+        .first()
+    )
+    if blocked:
+        raise HTTPException(status_code=403, detail="Cannot swipe on a blocked user")
 
     if not swiped_user.music_vector:
         raise HTTPException(
@@ -174,8 +187,8 @@ def get_mutual(
     """
     Get all users that have mutual LIKE connection with this user
     
-    A match only happens when both the users like each other 
-    super_like is a base booster for likes and it improves visibility for the swiping user
+    A match happens when both users send LIKE or SUPER_LIKE.
+    SUPER_LIKE counts as a like with a visibility booster.
     """
     if current_user.id != user_id:
         raise HTTPException(status_code=403, detail="not allowed")

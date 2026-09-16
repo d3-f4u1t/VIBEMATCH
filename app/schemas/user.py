@@ -46,6 +46,15 @@ class UserProfileResponse(UserResponse):
     pets: str | None = None
     religion: str | None = None
     habit: Habits | None = None
+    music_moods: list[str] | None = None
+    music_eras: list[str] | None = None
+    music_energy: str | None = None
+    music_contexts: list[str] | None = None
+    age_min: int | None = None
+    age_max: int | None = None
+    max_distance_km: int | None = None
+    intent: str | None = None
+    dealbreakers: list[str] | None = None
 
 
 class UserProfileUpdate(BaseModel):
@@ -70,6 +79,15 @@ class UserProfileUpdate(BaseModel):
     pets: str | None = Field(default=None, max_length=100)
     religion: str | None = Field(default=None, max_length=80)
     habit: Habits | None = None
+    music_moods: list[str] | None = Field(default=None, max_length=8)
+    music_eras: list[str] | None = Field(default=None, max_length=8)
+    music_energy: str | None = Field(default=None, max_length=30)
+    music_contexts: list[str] | None = Field(default=None, max_length=8)
+    age_min: int | None = Field(default=None, ge=18, le=100)
+    age_max: int | None = Field(default=None, ge=18, le=100)
+    max_distance_km: int | None = Field(default=None, ge=1, le=20000)
+    intent: str | None = Field(default=None, max_length=30)
+    dealbreakers: list[str] | None = Field(default=None, max_length=10)
 
     @field_validator("date_of_birth")
     @classmethod
@@ -90,6 +108,14 @@ class UserProfileUpdate(BaseModel):
             raise ValueError("User must be at least 18 years old")
 
         return value
+
+    @field_validator("age_max")
+    @classmethod
+    def validate_age_range(cls, v: int | None, info):
+        # age_min <= age_max when both set; handled at route level too for PATCH partials
+        if v is not None and info.data.get("age_min") is not None and v < info.data["age_min"]:
+            raise ValueError("age_max must be >= age_min")
+        return v
 
 
 class LoginRequest(BaseModel):

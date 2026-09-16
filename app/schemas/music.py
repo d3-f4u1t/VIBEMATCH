@@ -5,8 +5,12 @@ herethe file str is just taht the file are in a compact way so that can enter us
 
 from pydantic import BaseModel, ConfigDict
 
-class MessageResponc(BaseModel):
-    message:str
+class MessageResponse(BaseModel):
+    message: str
+
+
+# Backwards-compat alias for old typo'd name
+MessageResponc = MessageResponse
 
 
 class ArtistSearchItem(BaseModel):
@@ -19,7 +23,7 @@ class ArtistSearchItem(BaseModel):
     score: int | None = None
 
 class ArtistSearchResponse(BaseModel):
-    artist: list[ArtistSearchItem]
+    artists: list[ArtistSearchItem]
 
 
 class TrackSearchItem(BaseModel):
@@ -30,8 +34,12 @@ class TrackSearchItem(BaseModel):
     release_title: str | None = None
     length_ms : int | None = None
 
-class TrakeSearchResponce(BaseModel):
-    artist: list[TrackSearchItem]
+class TrackSearchResponse(BaseModel):
+    tracks: list[TrackSearchItem]
+
+
+# Backwards-compat alias for old typo'd name
+TrakeSearchResponce = TrackSearchResponse
 
 class UserArtistItem(BaseModel):
     mb_id: str

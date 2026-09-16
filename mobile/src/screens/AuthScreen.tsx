@@ -248,6 +248,20 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   };
 
   const handleAuthSubmit = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
+    if (!cleanEmail || !password) {
+      setError("Enter your email and password to continue.");
+      return;
+    }
+    if (selectedMode === "signup" && !cleanName) {
+      setError("Enter your name to create an account.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
     try {
       setLoading(true);
       setError("");
@@ -255,14 +269,14 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       const result =
         selectedMode === "signup"
           ? await registerUser({
-              name: name.trim(),
-              email: email.trim().toLowerCase(),
+              name: cleanName,
+              email: cleanEmail,
               password,
               bio: "",
               location_city: "",
             })
           : await loginUser({
-              email: email.trim().toLowerCase(),
+              email: cleanEmail,
               password,
             });
 

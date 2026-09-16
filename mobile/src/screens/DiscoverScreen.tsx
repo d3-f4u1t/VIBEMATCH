@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -65,32 +65,6 @@ const FEED_TONES: FeedCardTone[] = [
   },
 ];
 
-function buildFallbackMatches(currentUserName: string): MatchResult[] {
-  return [
-    {
-      userId: "preview-1",
-      name: "Kristin Watson",
-      similarity: 0.91,
-      artistCount: 4,
-      trackCount: 4,
-      sharedArtists: ["Frank Ocean", "SZA", "Tyler, The Creator"],
-      sharedTracks: ["Nights", "Good Days"],
-      matchReason: `The system sees a strong overlap between ${currentUserName}'s late-night listening and Kristin's softer alt-pop taste.`,
-    },
-    {
-      userId: "preview-2",
-      name: "Kathryn Murphy",
-      similarity: 0.88,
-      artistCount: 5,
-      trackCount: 4,
-      sharedArtists: ["Drake", "Travis Scott", "The Weeknd"],
-      sharedTracks: ["MY EYES", "After Hours"],
-      matchReason:
-        "You both lean into high-energy rap and cinematic night-drive tracks, so the match score stays consistently high.",
-    },
-  ];
-}
-
 function useMatchTone(index: number) {
   return FEED_TONES[index % FEED_TONES.length];
 }
@@ -115,11 +89,6 @@ export function DiscoverScreen({
   const swipeTranslate = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const matchModalScale = useRef(new Animated.Value(0.7)).current;
   const matchModalOpacity = useRef(new Animated.Value(0)).current;
-
-  const fallbackMatches = useMemo(
-    () => buildFallbackMatches(session.user.name),
-    [session.user.name]
-  );
 
   useEffect(() => {
     let isCancelled = false;
@@ -205,12 +174,14 @@ export function DiscoverScreen({
     });
   };
 
-  const displayMatches = matches.length > 0 ? matches : fallbackMatches;
+  const displayMatches = matches;
 
   const submitSwipeAction = async (
     action: SwipeAction,
     profileToSwipe: MatchResult
   ) => {
+    // Never swipe on preview rows
+    if (profileToSwipe.userId.startsWith("preview-")) return;
     if (swipeLoading) return;
     setSwipeLoading(true);
 
@@ -230,7 +201,7 @@ export function DiscoverScreen({
       ]);
 
       if (
-        action === "like" &&
+        (action === "like" || action === "super_like") &&
         refreshedMutualMatches.some((match) => match.userId === profileToSwipe.userId)
       ) {
         setMatchNotice(`It's a match with ${profileToSwipe.name}.`);
@@ -282,7 +253,8 @@ export function DiscoverScreen({
   };
 
   const handleQuickSwipe = (action: SwipeAction) => {
-    triggerSwipeAnimation(action, action === "like" ? "right" : "left");
+    const direction = action === "like" ? "right" : action === "super_like" ? "up" : "left";
+    triggerSwipeAnimation(action, direction);
   };
 
   const swipePanResponder = useRef(
@@ -391,16 +363,18 @@ export function DiscoverScreen({
     }
 
     const details = [
-      { label: "Location", value: "New York, NY" },
-      { label: "Astrology", value: "Scorpio Sun" },
-      { label: "Height", value: "5'9\"" },
-      { label: "Looking for", value: "Short-term fun" },
+      { label: "Location", value: detailMatch.locationCity || detailMatch.bio || "—" },
+      { label: "Astrology", value: detailMatch.zSign || "—" },
+      { label: "Height", value: detailMatch.height || "—" },
+      { label: "Looking for", value: detailMatch.fPlan || "—" },
+      { label: "Gender", value: detailMatch.gender || "—" },
+      { label: "Pronouns", value: detailMatch.pronouns || "—" },
     ];
 
     const habits = [
-      { label: "Drinking", value: "Socially" },
-      { label: "Smoking", value: "Never" },
-      { label: "Weed", value: "Sometimes" },
+      { label: "Drinking", value: detailMatch.habit?.drinking || "—" },
+      { label: "Smoking", value: detailMatch.habit?.smoking || "—" },
+      { label: "Weed", value: detailMatch.habit?.weed || "—" },
     ];
 
     return (
@@ -466,6 +440,11 @@ export function DiscoverScreen({
 
   return (
     <View style={styles.sectionBody}>
+      {error ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>{error}</Text>
+        </View>
+      ) : null}
       <View style={styles.heroDeck}>
         {swipeCandidate ? (
           <Animated.View
@@ -562,6 +541,13 @@ export function DiscoverScreen({
             <Text style={styles.heroActionButtonText}>Pass</Text>
           </Pressable>
           <Pressable
+            style={[styles.heroActionButton, styles.heroActionButtonSuper]}
+            onPress={() => handleQuickSwipe("super_like")}
+            disabled={swipeLoading}
+          >
+            <Text style={styles.heroActionButtonText}>Super Like</Text>
+          </Pressable>
+          <Pressable
             style={[styles.heroActionButton, styles.heroActionButtonLike]}
             onPress={() => handleQuickSwipe("like")}
             disabled={swipeLoading}
@@ -572,6 +558,14 @@ export function DiscoverScreen({
       ) : null}
 
       <Text style={styles.sectionTitle}>Recently Played</Text>
+      {displayMatches.length === 0 && !loading ? (
+        <View style={styles.feedEmptyCard}>
+          <Text style={styles.feedEmptyTitle}>No matches yet</Text>
+          <Text style={styles.feedEmptyBody}>
+            Complete your music profile and check back — new vibes land here.
+          </Text>
+        </View>
+      ) : (
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -608,10 +602,11 @@ export function DiscoverScreen({
                   {match.matchReason}
                 </Text>
               </View>
-            </Pressable>
+              </Pressable>
           );
         })}
       </ScrollView>
+      )}
 
       {renderMatchModal()}
     </View>
@@ -656,6 +651,45 @@ const styles = StyleSheet.create({
   heroActionButtonLike: {
     backgroundColor: "rgba(130,247,166,0.14)",
     borderColor: "rgba(130,247,166,0.25)",
+  },
+  heroActionButtonSuper: {
+    backgroundColor: "rgba(255,209,102,0.14)",
+    borderColor: "rgba(255,209,102,0.30)",
+  },
+  errorBanner: {
+    backgroundColor: "rgba(242,106,141,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(242,106,141,0.2)",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  errorBannerText: {
+    color: "#FFB7BD",
+    fontSize: 13,
+    fontFamily: "SpaceGrotesk_500Medium",
+    textAlign: "center",
+  },
+  feedEmptyCard: {
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+  feedEmptyTitle: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 6,
+  },
+  feedEmptyBody: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: "SpaceGrotesk_400Regular",
   },
   heroActionButtonText: {
     color: "#FFFFFF",

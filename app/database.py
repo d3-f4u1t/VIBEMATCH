@@ -51,6 +51,16 @@ def ensure_user_profile_columns():
         "pets": "TEXT",
         "religion": "TEXT",
         "habit": "JSON",
+        "personality_vector": "JSON",
+        "music_moods": "JSON",
+        "music_eras": "JSON",
+        "music_energy": "TEXT",
+        "music_contexts": "JSON",
+        "age_min": "INTEGER",
+        "age_max": "INTEGER",
+        "max_distance_km": "INTEGER",
+        "intent": "TEXT",
+        "dealbreakers": "JSON",
     }
 
     try:

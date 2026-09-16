@@ -1,4 +1,4 @@
-import { Heart, Music2, Users, ShieldCheck, ArrowRight, AudioWaveform, Sparkles, Target } from "lucide-react";
+import { Heart, Music2, Users, ShieldCheck, ArrowRight, AudioWaveform, Sparkles, Target, MapPin, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Reveal } from "../components/Reveal";
 import { WaitlistForm } from "../components/WaitlistForm";
@@ -8,9 +8,9 @@ export function About() {
     <>
       <div className="wrap" style={{ padding: "64px 0 8px" }}>
         <Reveal>
-          <span className="eyebrow"><Heart size={14} /> Our mission</span>
+          <span className="eyebrow"><Heart size={14} /> Our mission — the startup behind VibeMatch</span>
           <h1 className="h2" style={{ fontSize: "clamp(38px,5.6vw,64px)" }}>Dating should feel like<br />a great <span style={{ background: "linear-gradient(92deg,#ff8fb8,#ff7b4f)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>collab</span>, not a catalog.</h1>
-          <p className="sub">Most apps rank you by photos and one-line filters. We think music taste, energy, behavior and intent together predict chemistry far better. VibeMatch is a music-first matchmaking app built to model compatibility the way people actually feel it — then get you off the app.</p>
+          <p className="sub">We&apos;re a new dating startup with a simple obsession: help people who <b>feel music deeply</b> find people who feel it the same way. Not more swiping. Not louder profiles. Better matches — built on taste, energy and intent — then off the app and into real life.</p>
         </Reveal>
         <div className="grid-2" style={{ marginTop: 32 }}>
           <Reveal>
@@ -21,13 +21,13 @@ export function About() {
           </Reveal>
           <div>
             <Reveal delay={100}>
-              <div className="card" style={{ marginBottom: 14 }}><div className="icon"><Music2 size={20} color="#FF8FB8" /></div><h3>Why music?</h3><p>People with overlapping taste share mood, energy, values and rituals — concerts, late drives, Sunday mornings. It&apos;s the highest-signal cold-start data we have.</p></div>
+              <div className="card" style={{ marginBottom: 14 }}><div className="icon"><Music2 size={20} color="#FF8FB8" /></div><h3>Why music? Because it never lies.</h3><p>People who overlap in taste overlap in mood, energy, rituals and values — late drives, concert highs, soft Sunday mornings. It&apos;s the most honest signal about who you&apos;ll actually vibe with.</p></div>
             </Reveal>
             <Reveal delay={160}>
-              <div className="card" style={{ marginBottom: 14 }}><div className="icon"><Users size={20} color="#FF8FB8" /></div><h3>Why multi-dimensional?</h3><p>Similar playlists aren&apos;t enough. Personality, behavior and explicit goals matter — so we keep identity, preference and behavior as separate vectors, not one mushy score.</p></div>
+              <div className="card" style={{ marginBottom: 14 }}><div className="icon"><Users size={20} color="#FF8FB8" /></div><h3>Why we&apos;re different? We go deeper.</h3><p>Photos start conversations. They don&apos;t predict them. We model taste, identity, energy and intent together — so you meet people who fit your life, not just your feed.</p></div>
             </Reveal>
             <Reveal delay={220}>
-              <div className="card"><div className="icon"><ShieldCheck size={20} color="#FF8FB8" /></div><h3>Why stable matching?</h3><p>We rank both directions and apply game-theoretic stability, so matches are mutual by construction. Chat only opens on mutual like. No spam, no pay-to-spray.</p></div>
+              <div className="card"><div className="icon"><ShieldCheck size={20} color="#FF8FB8" /></div><h3>Why you&apos;ll trust it? Mutual by construction.</h3><p>Both sides rank each other. Chat only opens on mutual choice. No cold spam, no pay-to-spray, no one-sided situationships baked into the design.</p></div>
             </Reveal>
           </div>
         </div>
@@ -37,13 +37,13 @@ export function About() {
         <div className="wrap">
           <Reveal>
             <div className="kicker">What we believe</div>
-            <h2 className="h2">Three principles, shipped daily.</h2>
+            <h2 className="h2">Three promises. Kept from day one.</h2>
           </Reveal>
           <div className="grid-3" style={{ marginTop: 24 }}>
             {[
-              { icon: <AudioWaveform size={20} color="#FF8FB8" />, t: "Taste over thumbnails", d: "Your top artists and tracks say more than six selfies. We lead with them everywhere — cards, scores, explanations." },
-              { icon: <Target size={20} color="#FF8FB8" />, t: "Explainable by default", d: "Every match tells you why: shared artists, shared tracks, score tier. If we can't explain it, we don't ship it." },
-              { icon: <Sparkles size={20} color="#FF8FB8" />, t: "Effective, not addictive", d: "No infinite doom-swiping. Quality-gated pools, 20–50 ranked candidates, and learning that improves with every mutual conversation." },
+              { icon: <AudioWaveform size={20} color="#FF8FB8" />, t: "Taste over thumbnails", d: "Your sound leads everywhere — cards, scores, explanations. The first thing you see is what you’ll actually love about them." },
+              { icon: <Target size={20} color="#FF8FB8" />, t: "Never a mystery match", d: "Every connection tells you why — shared artists, shared energy, shared intent. Chemistry you can actually understand." },
+              { icon: <Sparkles size={20} color="#FF8FB8" />, t: "Made to get you offline", d: "No infinite deck engineered for addiction. A curated set of high-fit people, built to turn into real dates." },
             ].map((c, i) => (
               <Reveal key={c.t} delay={i * 90}><div className="card"><div className="icon">{c.icon}</div><h3>{c.t}</h3><p>{c.d}</p></div></Reveal>
             ))}
@@ -54,15 +54,15 @@ export function About() {
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap grid-2">
           <Reveal>
-            <div className="kicker">Where we are</div>
-            <h2 className="h2">An MVP today, a matching engine tomorrow.</h2>
-            <p className="sub">Right now: auth, 17-step profile onboarding, artist/track selection, 384-d vectors, swipe + mutual-only chat. Next: richer ranking, candidate generation, behavioral learning, then full multi-vector weighting.</p>
+            <div className="kicker">Why VibeMatch wins</div>
+            <h2 className="h2">The dating app for people who feel more.</h2>
+            <p className="sub">Other apps optimize for time-on-screen. We optimize for <b>that feeling when someone just gets your frequency</b> — and for the date that follows it.</p>
             <div className="timeline">
               {[
-                ["Now", "Phase 1 — Music cold start, vectors, swipe, chat. You're here."],
-                ["Next", "Phase 2 — Candidate pools, filters, completeness, quality gates."],
-                ["Soon", "Phase 3 — Behavioral vectors + ensemble learning after 20+ swipes."],
-                ["Vision", "Phase 4 — Full 4-layer scoring, clustering at 10M+ scale."],
+                ["Taste", "Your sound becomes your profile. Discovery starts from artists and energy, not filters."],
+                ["Fair", "Ranking respects both sides. The engine looks for mutual fit, not just who swiped first."],
+                ["Alive", "Recommendations adapt as you vibe — learning your patterns, sharpening with every connection."],
+                ["Yours", "City-by-city launch so every launch feels full. Your city, your crowd, your wavelength."],
               ].map(([t, d]) => (
                 <div className="t-step" key={t}><span className="t-time">{t}</span><span style={{ color: "var(--muted)" }}>{d}</span></div>
               ))}
@@ -71,7 +71,7 @@ export function About() {
           <Reveal delay={120}>
             <div className="img-card">
               <img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1000&auto=format&fit=crop" alt="Person with headphones" />
-              <div className="overlay"><span className="chip">Built in the open • Pre-launch</span></div>
+              <div className="overlay"><span className="chip">Founding era • Private preview soon</span></div>
             </div>
           </Reveal>
         </div>
@@ -79,13 +79,26 @@ export function About() {
 
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">
+          <div className="grid-2">
+            <Reveal>
+              <div className="card"><div className="icon"><Lock size={20} color="#FF8FB8" /></div><h3>Respect is the feature</h3><p>Mutual-only chat, easy block &amp; report, full delete anytime. Your taste powers matching — nothing else. No ads. No selling your data. Ever.</p></div>
+            </Reveal>
+            <Reveal delay={100}>
+              <div className="card"><div className="icon"><MapPin size={20} color="#FF8FB8" /></div><h3>Launching with intention</h3><p>We open city by city so day one is alive with people worth meeting. Join the waitlist — your vote decides where we tune in next.</p></div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      <section className="section" style={{ paddingTop: 0 }}>
+        <div className="wrap">
           <Reveal>
             <div className="banner">
-              <span className="eyebrow">Join us early</span>
-              <h2>Help shape what<br />dating sounds like.</h2>
-              <p className="sub" style={{ margin: "0 auto 8px", textAlign: "center" }}>Early members define the culture. Bring your best playlist.</p>
+              <span className="eyebrow">Founding members wanted</span>
+              <h2>Help decide what<br />dating sounds like next.</h2>
+              <p className="sub" style={{ margin: "0 auto 8px", textAlign: "center" }}>Early members don&apos;t just join the culture — they create it. Bring your best playlist.</p>
               <div style={{ display: "flex", justifyContent: "center" }}><WaitlistForm /></div>
-              <div style={{ marginTop: 18 }}><Link className="btn btn-ghost" to="/how-it-works">How matching works <ArrowRight size={16} /></Link></div>
+              <div style={{ marginTop: 18 }}><Link className="btn btn-ghost" to="/how-it-works">See the sneak peek <ArrowRight size={16} /></Link></div>
             </div>
           </Reveal>
         </div>

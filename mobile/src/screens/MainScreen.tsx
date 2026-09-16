@@ -35,7 +35,7 @@ export type MainTab = "matches" | "detail" | "community" | "nearby" | "chat";
 
 const navItems: Array<{ key: Exclude<MainTab, "chat">; icon: string }> = [
   { key: "matches", icon: "Feed" },
-  { key: "detail", icon: "View" },
+  { key: "detail", icon: "Profile" },
   { key: "community", icon: "Inbox" },
   { key: "nearby", icon: "Near" },
 ];

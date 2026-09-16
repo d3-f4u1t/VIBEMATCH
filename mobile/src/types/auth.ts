@@ -41,6 +41,15 @@ export type UserProfileResponse = UserResponse & {
   pets: string | null;
   religion: string | null;
   habit: UserHabits | null;
+  music_moods: string[] | null;
+  music_eras: string[] | null;
+  music_energy: string | null;
+  music_contexts: string[] | null;
+  age_min: number | null;
+  age_max: number | null;
+  max_distance_km: number | null;
+  intent: string | null;
+  dealbreakers: string[] | null;
 };
 
 export type UserProfileUpdatePayload = {
@@ -59,6 +68,15 @@ export type UserProfileUpdatePayload = {
   pets?: string;
   religion?: string;
   habit?: Partial<UserHabits>;
+  music_moods?: string[];
+  music_eras?: string[];
+  music_energy?: string | null;
+  music_contexts?: string[];
+  age_min?: number | null;
+  age_max?: number | null;
+  max_distance_km?: number | null;
+  intent?: string | null;
+  dealbreakers?: string[];
 };
 
 export type TokenResponse = {

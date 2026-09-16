@@ -2,15 +2,19 @@ import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 
 const KEY = "vibematch_waitlist";
+const API_BASE = (import.meta as unknown as { env?: Record<string, string> }).env
+  ?.VITE_API_BASE_URL || "http://localhost:8000";
 
 export function WaitlistForm({ compact = false }: { compact?: boolean }) {
   const [email, setEmail] = useState("");
+  const [city, setCity] = useState("");
   const [done, setDone] = useState(() => {
     try { return !!localStorage.getItem(KEY); } catch { return false; }
   });
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const v = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
@@ -18,12 +22,21 @@ export function WaitlistForm({ compact = false }: { compact?: boolean }) {
       return;
     }
     setError("");
+    setSaving(true);
     try {
       const raw = localStorage.getItem(KEY);
       const list: string[] = raw ? JSON.parse(raw) : [];
       if (!list.includes(v)) localStorage.setItem(KEY, JSON.stringify([...list, v]));
-      else localStorage.setItem(KEY, raw as string);
-    } catch { /* private mode — still show success */ }
+    } catch { /* private mode */ }
+    try {
+      const res = await fetch(`${API_BASE.replace(/\/+$/, "")}/waitlist`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: v, city: city.trim() || undefined }),
+      });
+      if (!res.ok && res.status !== 201) console.warn("waitlist API", res.status);
+    } catch { /* offline — local cache enough */ }
+    finally { setSaving(false); }
     setDone(true);
   };
 
@@ -45,8 +58,16 @@ export function WaitlistForm({ compact = false }: { compact?: boolean }) {
           onChange={(e) => setEmail(e.target.value)}
           aria-label="Email for waitlist"
         />
-        <button className="btn btn-primary" type="submit">
-          {compact ? "Notify me" : "Join waitlist"} <ArrowRight size={16} />
+        <input
+          type="text"
+          placeholder="City (optional)"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          aria-label="City for waitlist"
+          style={{ maxWidth: 140 }}
+        />
+        <button className="btn btn-primary" type="submit" disabled={saving}>
+          {saving ? "Joining..." : compact ? "Notify me" : "Join waitlist"} <ArrowRight size={16} />
         </button>
       </form>
       {error ? <div className="micro" style={{ color: "#ff9db8" }}>{error}</div> : <div className="micro">Free to join</div>}

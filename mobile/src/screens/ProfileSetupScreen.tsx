@@ -50,7 +50,12 @@ type ProfileStepKey =
   | "religion"
   | "smoking"
   | "drinking"
-  | "weed";
+  | "weed"
+  | "age_min"
+  | "age_max"
+  | "intent"
+  | "max_distance_km"
+  | "dealbreakers";
 
 type ProfileState = {
   name: string;
@@ -68,6 +73,11 @@ type ProfileState = {
   pets: string;
   religion: string;
   habit: UserHabits;
+  age_min: string;
+  age_max: string;
+  intent: string;
+  max_distance_km: string;
+  dealbreakers: string[];
 };
 
 type Choice = {
@@ -75,14 +85,20 @@ type Choice = {
   value: string;
 };
 
-type StepConfig = {
+type FieldConfig = {
   key: ProfileStepKey;
-  eyebrow: string;
-  title: string;
+  label: string;
   placeholder?: string;
   keyboardType?: "default" | "numeric";
   choices?: Choice[];
   multiline?: boolean;
+  multiSelect?: boolean;
+};
+
+type StepConfig = {
+  eyebrow: string;
+  title: string;
+  fields: FieldConfig[];
 };
 
 const GENDER_CHOICES: Choice[] = [
@@ -134,16 +150,16 @@ const HABIT_CHOICES: Choice[] = [
 const ETH_CHOICES: Choice[] = [
   {label: "Asian", value: "asian"},
   {label: "African", value: "african"},
-  {label: "European", value: "erupean"},
+  {label: "European", value: "european"},
   {label: "Hispanic", value: "hispanic"},
 ];
 
 const Z_Sig: Choice[] = [
   {label: "Aquarius", value: "aquarius"},
-  {label: "Pisences", value: "pisences"},
+  {label: "Pisces", value: "pisces"},
   {label: "Aries", value: "aries"},
   {label: "Taurus", value: "taurus"},
-  {label: "gemini", value: "gemini"},
+  {label: "Gemini", value: "gemini"},
   {label: "Cancer", value: "cancer"},
   {label: "Leo", value: "leo"},
   {label: "Virgo", value: "virgo"},
@@ -160,116 +176,87 @@ const R_CHOICES: Choice[] = [
   {label: "Hindu", value: "hindu"},
   {label: "Buddhism", value:"buddhism"},
   {label: "Sikh", value: "sikh"},
-  {label: "Jud", value: "jud"},
+  {label: "Jewish", value: "jewish"},
   {label: "Jain", value:"jain"},
+];
+
+const INTENT_CHOICES: Choice[] = [
+  { label: "Short-term fun", value: "short_term" },
+  { label: "Long-term", value: "long_term" },
+  { label: "Friendship", value: "friendship" },
+  { label: "Open to anything", value: "open" },
+];
+
+const DEALBREAKER_CHOICES: Choice[] = [
+  { label: "Smoking", value: "smoking" },
+  { label: "Drinking", value: "drinking" },
+  { label: "Weed", value: "weed" },
 ];
 
 const PROFILE_STEPS: StepConfig[] = [
   {
-    key: "name",
-    eyebrow: "Core profile",
-    title: "What should people call you?",
-    placeholder: "Your first name",
+    eyebrow: "Core profile · 1 of 7",
+    title: "The basics",
+    fields: [
+      { key: "name", label: "What should people call you?", placeholder: "Your first name" },
+      { key: "dob", label: "When's your birthday?", placeholder: "DD / MM / YYYY", keyboardType: "numeric" },
+    ],
   },
   {
-    key: "dob",
-    eyebrow: "Core profile",
-    title: "When's your birthday?",
-    placeholder: "DD / MM / YYYY",
-    keyboardType: "numeric",
-  },
-  {
-    key: "gender",
-    eyebrow: "Identity",
+    eyebrow: "Identity · 2 of 7",
     title: "How do you identify?",
-    choices: GENDER_CHOICES,
+    fields: [
+      { key: "gender", label: "Gender", choices: GENDER_CHOICES },
+      { key: "sexuality", label: "Sexuality", choices: SEXUALITY_CHOICES },
+      { key: "pronouns", label: "Pronouns", choices: PRONOUN_CHOICES },
+    ],
   },
   {
-    key: "sexuality",
-    eyebrow: "Identity",
-    title: "What describes your sexuality?",
-    choices: SEXUALITY_CHOICES,
+    eyebrow: "Story · 3 of 7",
+    title: "Where + who you are",
+    fields: [
+      { key: "location", label: "Where are you dating from?", placeholder: "City or area" },
+      { key: "bio", label: "Short bio people can feel", placeholder: "Give your profile a little personality", multiline: true },
+    ],
   },
   {
-    key: "pronouns",
-    eyebrow: "Identity",
-    title: "What pronouns should we show?",
-    choices: PRONOUN_CHOICES,
+    eyebrow: "Details · 4 of 7",
+    title: "The details",
+    fields: [
+      { key: "height", label: "Height", placeholder: `5'10" or 178 cm` },
+      { key: "weight", label: "Weight", placeholder: "e.g., 70 kg" },
+      { key: "ethnicity", label: "Ethnicity", choices: ETH_CHOICES },
+      { key: "z_sign", label: "Zodiac", choices: Z_Sig },
+    ],
   },
   {
-    key: "location",
-    eyebrow: "Discovery",
-    title: "Where are you dating from?",
-    placeholder: "City or area",
+    eyebrow: "Life · 5 of 7",
+    title: "Life and values",
+    fields: [
+      { key: "f_plan", label: "Family plans", choices: FAMILY_PLAN_CHOICES },
+      { key: "pets", label: "Pet vibe", choices: PET_CHOICES },
+      { key: "religion", label: "Beliefs", choices: R_CHOICES },
+    ],
   },
   {
-    key: "bio",
-    eyebrow: "Story",
-    title: "Write a short bio people can feel.",
-    placeholder: "Give your profile a little personality",
-    multiline: true,
+    eyebrow: "Habits · 6 of 7",
+    title: "Lifestyle habits",
+    fields: [
+      { key: "smoking", label: "Smoking", choices: HABIT_CHOICES },
+      { key: "drinking", label: "Drinking", choices: HABIT_CHOICES },
+      { key: "weed", label: "Weed", choices: HABIT_CHOICES },
+    ],
   },
   {
-    key: "height",
-    eyebrow: "Details",
-    title: "How tall are you?",
-    placeholder: `5'10" or 178 cm`,
-  },
-  {
-    key: "weight",
-    eyebrow: "Details",
-    title: "What is your weight?",
-    placeholder: "e.g., 70 kg",
-  },
-  {
-    key: "ethnicity",
-    eyebrow: "Details",
-    title: "How do you describe your ethnicity?",
-    placeholder: "Write what feels right for you",
-    choices: ETH_CHOICES,
-  },
-  {
-    key: "z_sign",
-    eyebrow: "Details",
-    title: "What's your zodiac sign?",
-    choices: Z_Sig,
-  },
-  {
-    key: "f_plan",
-    eyebrow: "Life plans",
-    title: "What are your family plans?",
-    choices: FAMILY_PLAN_CHOICES,
-  },
-  {
-    key: "pets",
-    eyebrow: "Lifestyle",
-    title: "What is your pet vibe?",
-    choices: PET_CHOICES,
-  },
-  {
-    key: "religion",
-    eyebrow: "Values",
-    title: "Any religious belief you want shown?",
-    placeholder: "Optional style, but required for this flow",
-    choices: R_CHOICES,
-  },
-  {
-    key: "smoking",
-    eyebrow: "Habits",
-    title: "What's your smoking habit?",
-    choices: HABIT_CHOICES,
-  },
-  {
-    key: "drinking",
-    eyebrow: "Habits",
-    title: "What's your drinking habit?",
-    choices: HABIT_CHOICES,
-  },
-  {
-    key: "weed",
-    eyebrow: "Habits",
-    title: "What's your weed habit?",
-    choices: HABIT_CHOICES,
+    eyebrow: "Preferences · 7 of 7",
+    title: "Who do you want to meet?",
+    fields: [
+      { key: "age_min", label: "Min age", placeholder: "e.g., 20", keyboardType: "numeric" },
+      { key: "age_max", label: "Max age", placeholder: "e.g., 30", keyboardType: "numeric" },
+      { key: "intent", label: "Looking for", choices: INTENT_CHOICES },
+      { key: "max_distance_km", label: "Max distance km (optional)", placeholder: "e.g., 50", keyboardType: "numeric" },
+      { key: "dealbreakers", label: "Dealbreakers (tap all that apply)", choices: DEALBREAKER_CHOICES, multiSelect: true },
+    ],
   },
 ];
 
@@ -310,6 +297,11 @@ export function ProfileSetupScreen({
       drinking: "",
       weed: "",
     },
+    age_min: "",
+    age_max: "",
+    intent: "",
+    max_distance_km: "",
+    dealbreakers: [],
   });
   const [screenError, setScreenError] = useState("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -372,6 +364,13 @@ export function ProfileSetupScreen({
             drinking: data.habit?.drinking ?? "",
             weed: data.habit?.weed ?? "",
           },
+          age_min: data.age_min != null ? String(data.age_min) : "",
+          age_max: data.age_max != null ? String(data.age_max) : "",
+          intent: (data as unknown as { intent?: string }).intent ?? "",
+          max_distance_km: (data as unknown as { max_distance_km?: number }).max_distance_km != null
+            ? String((data as unknown as { max_distance_km?: number }).max_distance_km)
+            : "",
+          dealbreakers: ((data as unknown as { dealbreakers?: string[] }).dealbreakers ?? []) as string[],
         });
       } catch (error) {
         if (!isMounted) {
@@ -415,7 +414,7 @@ export function ProfileSetupScreen({
   const progressPercent = Math.round(progress * 100);
   const isLastStep = stepIndex === PROFILE_STEPS.length - 1;
 
-  const getStepValue = (stepKey: ProfileStepKey) => {
+  const getFieldValue = (stepKey: ProfileStepKey): string | string[] => {
     switch (stepKey) {
       case "smoking":
         return profile.habit.smoking ?? "";
@@ -423,8 +422,10 @@ export function ProfileSetupScreen({
         return profile.habit.drinking ?? "";
       case "weed":
         return profile.habit.weed ?? "";
+      case "dealbreakers":
+        return profile.dealbreakers;
       default:
-        return profile[stepKey];
+        return (profile as unknown as Record<string, string>)[stepKey] ?? "";
     }
   };
 
@@ -491,33 +492,35 @@ export function ProfileSetupScreen({
     return `${day} / ${month} / ${year}`;
   };
 
-  const updateField = (value: string) => {
-    const nextValue =
-      currentStep.key === "dob" ? formatDobInput(value) : value;
+  const updateFieldValue = (stepKey: ProfileStepKey, value: string) => {
+    const nextValue = stepKey === "dob" ? formatDobInput(value) : value;
 
     setProfile((current) => {
-      if (
-        currentStep.key === "smoking" ||
-        currentStep.key === "drinking" ||
-        currentStep.key === "weed"
-      ) {
+      if (stepKey === "smoking" || stepKey === "drinking" || stepKey === "weed") {
         return {
           ...current,
           habit: {
             ...current.habit,
-            [currentStep.key]: nextValue,
+            [stepKey]: nextValue,
           },
         };
       }
 
       return {
         ...current,
-        [currentStep.key]: nextValue,
+        [stepKey]: nextValue,
       };
     });
   };
 
-  const currentValue = getStepValue(currentStep.key);
+  const toggleDealbreaker = (value: string) => {
+    setProfile((current) => ({
+      ...current,
+      dealbreakers: current.dealbreakers.includes(value)
+        ? current.dealbreakers.filter((d) => d !== value)
+        : [...current.dealbreakers, value],
+    }));
+  };
   const stepAnimatedStyle = {
     opacity: stepMotion,
     transform: [
@@ -593,57 +596,102 @@ export function ProfileSetupScreen({
     return "";
   };
 
-  const currentStepError =
-    currentStep.key === "dob" ? getDobValidationMessage(currentValue) : "";
+  const currentStepError = (() => {
+    if (currentStep.fields.some((f) => f.key === "dob")) {
+      return getDobValidationMessage(String(getFieldValue("dob") ?? ""));
+    }
+    return "";
+  })();
+
+  const isFieldValid = (key: ProfileStepKey): boolean => {
+    if (key === "dob") return !getDobValidationMessage(String(getFieldValue("dob") ?? ""));
+    if (key === "dealbreakers") return true; // optional multi-select
+    if (key === "max_distance_km") return true; // optional
+    const v = getFieldValue(key);
+    if (Array.isArray(v)) return true;
+    return typeof v === "string" && v.trim().length > 0;
+  };
 
   const isStepValid =
-    typeof currentValue === "string"
-      ? currentValue.trim().length > 0 && !currentStepError
-      : false;
+    currentStep.fields.every((f) => isFieldValid(f.key)) && !currentStepError;
 
   const buildProfilePayloadForCurrentStep = () => {
-    switch (currentStep.key) {
-      case "name":
-        return { name: profile.name.trim() };
-      case "dob":
-        return { date_of_birth: formatDobForApi(profile.dob) };
-      case "gender":
-        return { gender: profile.gender };
-      case "sexuality":
-        return { sexuality: profile.sexuality };
-      case "pronouns":
-        return { pronouns: profile.pronouns };
-      case "location":
-        return { location_city: profile.location.trim() };
-      case "bio":
-        return { bio: profile.bio.trim() };
-      case "height":
-        return { height: profile.height.trim() };
-      case "weight":
-        return { weight: profile.weight.trim() };
-      case "ethnicity":
-        return { ethnicity: profile.ethnicity.trim() };
-      case "z_sign":
-        return { z_sign: profile.z_sign.trim() };
-      case "f_plan":
-        return { f_plan: profile.f_plan };
-      case "pets":
-        return { pets: profile.pets };
-      case "religion":
-        return { religion: profile.religion.trim() };
-      case "smoking":
-      case "drinking":
-      case "weed":
-        return {
-          habit: {
+    const payload: Record<string, unknown> = {};
+    for (const f of currentStep.fields) {
+      switch (f.key) {
+        case "name":
+          payload.name = profile.name.trim();
+          break;
+        case "dob":
+          payload.date_of_birth = formatDobForApi(profile.dob);
+          break;
+        case "gender":
+          payload.gender = profile.gender;
+          break;
+        case "sexuality":
+          payload.sexuality = profile.sexuality;
+          break;
+        case "pronouns":
+          payload.pronouns = profile.pronouns;
+          break;
+        case "location":
+          payload.location_city = profile.location.trim();
+          break;
+        case "bio":
+          payload.bio = profile.bio.trim();
+          break;
+        case "height":
+          payload.height = profile.height.trim();
+          break;
+        case "weight":
+          payload.weight = profile.weight.trim();
+          break;
+        case "ethnicity":
+          payload.ethnicity = profile.ethnicity.trim();
+          break;
+        case "z_sign":
+          payload.z_sign = profile.z_sign.trim();
+          break;
+        case "f_plan":
+          payload.f_plan = profile.f_plan;
+          break;
+        case "pets":
+          payload.pets = profile.pets;
+          break;
+        case "religion":
+          payload.religion = profile.religion.trim();
+          break;
+        case "smoking":
+        case "drinking":
+        case "weed":
+          payload.habit = {
             smoking: profile.habit.smoking || null,
             drinking: profile.habit.drinking || null,
             weed: profile.habit.weed || null,
-          },
-        };
-      default:
-        return {};
+          };
+          break;
+        case "age_min":
+          payload.age_min = profile.age_min.trim() ? Number(profile.age_min) : null;
+          break;
+        case "age_max":
+          payload.age_max = profile.age_max.trim() ? Number(profile.age_max) : null;
+          break;
+        case "intent":
+          payload.intent = profile.intent || null;
+          break;
+        case "max_distance_km":
+          payload.max_distance_km = profile.max_distance_km.trim() ? Number(profile.max_distance_km) : null;
+          break;
+        case "dealbreakers":
+          payload.dealbreakers = profile.dealbreakers;
+          break;
+      }
     }
+    // age sanity: client-side clamp, server re-validates
+    if (payload.age_min != null && payload.age_max != null && (payload.age_max as number) < (payload.age_min as number)) {
+      payload.age_max = payload.age_min;
+    }
+    return payload;
   };
 
   const hydrateProfileFromResponse = (data: UserProfileResponse) => {
@@ -668,6 +716,11 @@ export function ProfileSetupScreen({
         drinking: data.habit?.drinking ?? current.habit.drinking,
         weed: data.habit?.weed ?? current.habit.weed,
       },
+      age_min: (data as unknown as { age_min?: number }).age_min != null ? String((data as unknown as { age_min?: number }).age_min) : current.age_min,
+      age_max: (data as unknown as { age_max?: number }).age_max != null ? String((data as unknown as { age_max?: number }).age_max) : current.age_max,
+      intent: (data as unknown as { intent?: string }).intent ?? current.intent,
+      max_distance_km: (data as unknown as { max_distance_km?: number }).max_distance_km != null ? String((data as unknown as { max_distance_km?: number }).max_distance_km) : current.max_distance_km,
+      dealbreakers: ((data as unknown as { dealbreakers?: string[] }).dealbreakers ?? current.dealbreakers) as string[],
     }));
   };
 
@@ -771,59 +824,74 @@ export function ProfileSetupScreen({
               <Text style={styles.kicker}>Matching signal</Text>
               <Text style={styles.title}>{currentStep.title}</Text>
 
-              {currentStep.choices ? (
-                <View style={styles.choiceGrid}>
-                  {currentStep.choices.map((choice) => {
-                    const isActive = currentValue === choice.value;
-
-                    return (
-                      <Pressable
-                        key={choice.value}
-                        style={({ pressed }) => [
-                          styles.choiceTile,
-                          isActive && styles.choiceTileActive,
-                          pressed && styles.choiceTilePressed,
-                        ]}
-                        onPress={() => updateField(choice.value)}
-                      >
-                        <Text
-                          style={[
-                            styles.choiceTileText,
-                            isActive && styles.choiceTileTextActive,
-                          ]}
-                        >
-                          {choice.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              ) : (
-                <View style={styles.inputBlock}>
-                  <TextInput
-                    value={currentValue}
-                    onChangeText={updateField}
-                    placeholder={currentStep.placeholder}
-                    placeholderTextColor="#9D97A5"
-                    keyboardType={currentStep.keyboardType ?? "default"}
-                    multiline={currentStep.multiline}
-                    autoCapitalize={
-                      currentStep.key === "location" ||
-                      currentStep.key === "name" ||
-                      currentStep.key === "ethnicity" ||
-                      currentStep.key === "religion"
-                        ? "words"
-                        : "none"
-                    }
-                    autoCorrect={false}
-                    textAlignVertical={currentStep.multiline ? "top" : "center"}
-                    style={[
-                      styles.input,
-                      currentStep.multiline && styles.inputMultiline,
-                    ]}
-                  />
-                </View>
-              )}
+              {currentStep.fields.map((field) => {
+                const val = getFieldValue(field.key);
+                if (field.choices) {
+                  const isMulti = !!field.multiSelect;
+                  return (
+                    <View key={field.key} style={{ marginTop: 16 }}>
+                      <Text style={styles.fieldLabel}>{field.label}</Text>
+                      <View style={styles.choiceGrid}>
+                        {field.choices.map((choice) => {
+                          const isActive = isMulti
+                            ? (val as string[]).includes(choice.value)
+                            : val === choice.value;
+                          return (
+                            <Pressable
+                              key={choice.value}
+                              style={({ pressed }) => [
+                                styles.choiceTile,
+                                isActive && styles.choiceTileActive,
+                                pressed && styles.choiceTilePressed,
+                              ]}
+                              onPress={() => {
+                                if (isMulti) toggleDealbreaker(choice.value);
+                                else updateFieldValue(field.key, choice.value);
+                              }}
+                            >
+                              <Text
+                                style={[
+                                  styles.choiceTileText,
+                                  isActive && styles.choiceTileTextActive,
+                                ]}
+                              >
+                                {choice.label}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  );
+                }
+                return (
+                  <View key={field.key} style={styles.inputBlock}>
+                    <Text style={styles.fieldLabel}>{field.label}</Text>
+                    <TextInput
+                      value={String(val ?? "")}
+                      onChangeText={(t) => updateFieldValue(field.key, t)}
+                      placeholder={field.placeholder}
+                      placeholderTextColor="#9D97A5"
+                      keyboardType={field.keyboardType ?? "default"}
+                      multiline={field.multiline}
+                      autoCapitalize={
+                        field.key === "location" ||
+                        field.key === "name" ||
+                        field.key === "ethnicity" ||
+                        field.key === "religion"
+                          ? "words"
+                          : "none"
+                      }
+                      autoCorrect={false}
+                      textAlignVertical={field.multiline ? "top" : "center"}
+                      style={[
+                        styles.input,
+                        field.multiline && styles.inputMultiline,
+                      ]}
+                    />
+                  </View>
+                );
+              })}
 
               {currentStepError ? (
                 <Text style={styles.errorText}>{currentStepError}</Text>
@@ -1003,6 +1071,12 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceGrotesk_700Bold",
     marginBottom: 10,
     letterSpacing: 1.6,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    color: "rgba(255,248,251,0.85)",
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 8,
   },
   title: {
     fontSize: 30,

@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, Date, DateTime, JSON, String
+from sqlalchemy import Column, Date, DateTime, Integer, JSON, String
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.models.artist import user_artist
@@ -21,6 +21,7 @@ class User(Base):
     gender = Column(String, nullable=True)
     sexuality = Column(String, nullable=True)
     music_vector = Column(JSON, nullable = True)
+    personality_vector = Column(JSON, nullable = True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     height = Column(String, nullable= True)
     weight = Column(String, nullable= True)
@@ -31,6 +32,17 @@ class User(Base):
     ethnicity = Column(String, nullable= True)
     #json cuz we are using a sub type fields in habits
     habit = Column(JSON, nullable= True)
+    # ── Music enrichment (v1: picked chips, folded into music_vector text) ──
+    music_moods = Column(JSON, nullable=True)
+    music_eras = Column(JSON, nullable=True)
+    music_energy = Column(String, nullable=True)
+    music_contexts = Column(JSON, nullable=True)
+    # ── Explicit preferences (v1) ──
+    age_min = Column(Integer, nullable=True)
+    age_max = Column(Integer, nullable=True)
+    max_distance_km = Column(Integer, nullable=True)
+    intent = Column(String, nullable=True)
+    dealbreakers = Column(JSON, nullable=True)
 
 
     #relationship vector base

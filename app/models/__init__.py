@@ -5,6 +5,7 @@ from app.models.swipe import Swipe, SwipeAction
 from app.models.conversation import Conversation
 from app.models.message import Message
 from app.models.safety import Block, Report
+from app.models.waitlist import WaitlistEntry
 
 __all__ = [
     "User",
@@ -16,4 +17,5 @@ __all__ = [
     "Message",
     "Block",
     "Report",
+    "WaitlistEntry",
 ]

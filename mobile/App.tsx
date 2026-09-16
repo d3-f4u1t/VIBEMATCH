@@ -96,13 +96,21 @@ export default function App() {
     ];
 
     const habits = profile.habit;
+    const prefs = profile as unknown as {
+      age_min?: number | null;
+      age_max?: number | null;
+      intent?: string | null;
+    };
 
     return (
       requiredValues.every((value) => !!value && value.toString().trim().length > 0) &&
       !!habits &&
       !!habits.smoking?.trim() &&
       !!habits.drinking?.trim() &&
-      !!habits.weed?.trim()
+      !!habits.weed?.trim() &&
+      prefs.age_min != null &&
+      prefs.age_max != null &&
+      !!prefs.intent?.trim()
     );
   };
 

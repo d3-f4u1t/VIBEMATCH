@@ -27,17 +27,17 @@ export function Navbar() {
             Home
           </NavLink>
           <NavLink to="/about" className={({ isActive }) => (isActive ? "active" : "")}>
-            About
+            Our story
           </NavLink>
           <NavLink to="/how-it-works" className={({ isActive }) => (isActive ? "active" : "")}>
-            How it works
+            Sneak peek
           </NavLink>
           <a href="/#labs">Vibe Lab</a>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span className="nav-cta">
             <button className="btn btn-primary btn-sm" onClick={goWaitlist}>
-              Join waitlist <ArrowRight size={15} />
+              Get early access <ArrowRight size={15} />
             </button>
           </span>
           <button className="hamburger" onClick={() => setOpen((v) => !v)} aria-label="Menu">
@@ -47,11 +47,11 @@ export function Navbar() {
       </nav>
       <div className={`mobile-menu ${open ? "open" : ""}`}>
         <Link to="/" onClick={() => setOpen(false)}>Home</Link>
-        <Link to="/about" onClick={() => setOpen(false)}>About</Link>
-        <Link to="/how-it-works" onClick={() => setOpen(false)}>How it works</Link>
+        <Link to="/about" onClick={() => setOpen(false)}>Our story</Link>
+        <Link to="/how-it-works" onClick={() => setOpen(false)}>Sneak peek</Link>
         <a href="/#labs" onClick={() => setOpen(false)}>Vibe Lab</a>
         <button className="btn btn-primary" onClick={goWaitlist} style={{ marginTop: 8 }}>
-          Join waitlist <ArrowRight size={15} />
+          Get early access <ArrowRight size={15} />
         </button>
       </div>
     </>

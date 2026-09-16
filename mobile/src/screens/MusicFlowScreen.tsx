@@ -31,6 +31,7 @@ import {
   searchTracks,
   type TrackSearchResult,
 } from "../lib/tracks";
+import { getUserProfile, updateUserProfile } from "../lib/profile";
 import type { TokenResponse } from "../types/auth";
 
 type MusicSetupScreenProps = {
@@ -42,6 +43,11 @@ type MusicSetupScreenProps = {
 type Artist = ArtistSearchResult;
 type Track = TrackSearchResult;
 type MusicStep = "artists" | "tracks";
+
+const MOOD_CHOICES = ["chill", "hype", "romantic", "melancholy", "euphoric", "angry", "dreamy", "groovy"];
+const ERA_CHOICES = ["60s", "70s", "80s", "90s", "2000s", "2010s", "2020s"];
+const ENERGY_CHOICES = ["low", "medium", "high"];
+const CONTEXT_CHOICES = ["gym", "study", "party", "drive", "sleep", "social"];
 
 const SUGGESTED_ARTISTS: Artist[] = [
   {
@@ -113,6 +119,49 @@ export function MusicSetupScreen({
   const [trackSaveError, setTrackSaveError] = useState("");
   const [mutatingArtistId, setMutatingArtistId] = useState<string | null>(null);
   const [mutatingTrackId, setMutatingTrackId] = useState<string | null>(null);
+  const [vibeMoods, setVibeMoods] = useState<string[]>([]);
+  const [vibeEras, setVibeEras] = useState<string[]>([]);
+  const [vibeEnergy, setVibeEnergy] = useState("");
+  const [vibeContexts, setVibeContexts] = useState<string[]>([]);
+  const [vibeSaving, setVibeSaving] = useState(false);
+  const [vibeError, setVibeError] = useState("");
+
+  const toggleListValue = (list: string[], v: string) =>
+    list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const p = await getUserProfile(session.user.id, session.access_token);
+        if (!mounted) return;
+        setVibeMoods(((p as unknown as { music_moods?: string[] }).music_moods ?? []) as string[]);
+        setVibeEras(((p as unknown as { music_eras?: string[] }).music_eras ?? []) as string[]);
+        setVibeEnergy(((p as unknown as { music_energy?: string }).music_energy ?? "") as string);
+        setVibeContexts(((p as unknown as { music_contexts?: string[] }).music_contexts ?? []) as string[]);
+      } catch { /* optional — vibe chips start empty */ }
+    })();
+    return () => { mounted = false; };
+  }, [session.access_token, session.user.id]);
+
+  const handleFinishMusic = async () => {
+    try {
+      setVibeSaving(true);
+      setVibeError("");
+      await updateUserProfile(session.user.id, session.access_token, {
+        music_moods: vibeMoods,
+        music_eras: vibeEras,
+        music_energy: vibeEnergy || null,
+        music_contexts: vibeContexts,
+      } as unknown as Parameters<typeof updateUserProfile>[2]);
+    } catch (e) {
+      setVibeError(e instanceof Error ? e.message : "Could not save vibe picks.");
+      setVibeSaving(false);
+      return;
+    }
+    setVibeSaving(false);
+    onComplete();
+  };
 
   useEffect(() => {
     const trimmedSearch = artistSearch.trim();
@@ -721,6 +770,49 @@ export function MusicSetupScreen({
             </>
           )}
 
+          {step === "tracks" ? (
+            <View style={styles.vibeCard}>
+              <Text style={styles.vibeTitle}>Your vibe (optional, improves matches)</Text>
+              <Text style={styles.vibeLabel}>Moods</Text>
+              <View style={styles.chipRow}>
+                {MOOD_CHOICES.map((m) => (
+                  <Pressable key={m} onPress={() => setVibeMoods((v) => toggleListValue(v, m))}
+                    style={[styles.chip, vibeMoods.includes(m) && styles.chipActive]}>
+                    <Text style={[styles.chipText, vibeMoods.includes(m) && styles.chipTextActive]}>{m}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={styles.vibeLabel}>Eras</Text>
+              <View style={styles.chipRow}>
+                {ERA_CHOICES.map((e) => (
+                  <Pressable key={e} onPress={() => setVibeEras((v) => toggleListValue(v, e))}
+                    style={[styles.chip, vibeEras.includes(e) && styles.chipActive]}>
+                    <Text style={[styles.chipText, vibeEras.includes(e) && styles.chipTextActive]}>{e}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={styles.vibeLabel}>Energy</Text>
+              <View style={styles.chipRow}>
+                {ENERGY_CHOICES.map((e) => (
+                  <Pressable key={e} onPress={() => setVibeEnergy((v) => (v === e ? "" : e))}
+                    style={[styles.chip, vibeEnergy === e && styles.chipActive]}>
+                    <Text style={[styles.chipText, vibeEnergy === e && styles.chipTextActive]}>{e}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={styles.vibeLabel}>Contexts</Text>
+              <View style={styles.chipRow}>
+                {CONTEXT_CHOICES.map((c) => (
+                  <Pressable key={c} onPress={() => setVibeContexts((v) => toggleListValue(v, c))}
+                    style={[styles.chip, vibeContexts.includes(c) && styles.chipActive]}>
+                    <Text style={[styles.chipText, vibeContexts.includes(c) && styles.chipTextActive]}>{c}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              {vibeError ? <Text style={styles.vibeError}>{vibeError}</Text> : null}
+            </View>
+          ) : null}
+
           <View style={styles.footerActions}>
             {step === "tracks" ? (
               <Pressable
@@ -748,13 +840,14 @@ export function MusicSetupScreen({
                   return;
                 }
 
-                if (step === "tracks" && canFinishMusic) {
-                  onComplete();
+                if (step === "tracks" && canFinishMusic && !vibeSaving) {
+                  void handleFinishMusic();
                 }
               }}
               disabled={
                 (step === "artists" && !canMoveToTracks) ||
-                (step === "tracks" && !canFinishMusic)
+                (step === "tracks" && !canFinishMusic) ||
+                vibeSaving
               }
             >
               <Text style={styles.primaryActionText}>
@@ -762,9 +855,11 @@ export function MusicSetupScreen({
                   ? canMoveToTracks
                     ? "Continue to songs"
                     : `Select ${Math.max(0, 3 - selectedArtists.length)} more artist${3 - selectedArtists.length === 1 ? "" : "s"}`
-                  : canFinishMusic
-                    ? "Music profile complete"
-                    : `Select ${Math.max(0, 4 - selectedTracks.length)} more song${4 - selectedTracks.length === 1 ? "" : "s"}`}
+                  : vibeSaving
+                    ? "Saving vibe..."
+                    : canFinishMusic
+                      ? "Save vibe + finish"
+                      : `Select ${Math.max(0, 4 - selectedTracks.length)} more song${4 - selectedTracks.length === 1 ? "" : "s"}`}
               </Text>
             </Pressable>
           </View>
@@ -1170,6 +1265,59 @@ const styles = StyleSheet.create({
   loadMoreButtonText: {
     color: "#FFFFFF",
     fontSize: 13,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  vibeCard: {
+    marginTop: 18,
+    borderRadius: 20,
+    padding: 16,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  vibeTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginBottom: 12,
+  },
+  vibeLabel: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 12,
+    fontFamily: "SpaceGrotesk_700Bold",
+    marginTop: 10,
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  chipActive: {
+    backgroundColor: "rgba(242,106,141,0.25)",
+    borderColor: "rgba(242,106,141,0.5)",
+  },
+  chipText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+    fontFamily: "SpaceGrotesk_500Medium",
+  },
+  chipTextActive: {
+    color: "#FFFFFF",
+  },
+  vibeError: {
+    marginTop: 10,
+    color: "#FFB4B6",
+    fontSize: 12,
     fontFamily: "SpaceGrotesk_500Medium",
   },
 });

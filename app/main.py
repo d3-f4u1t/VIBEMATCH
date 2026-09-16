@@ -12,7 +12,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.database import Base, engine, ensure_user_profile_columns
 from app.limiter import limiter
-from app.routes import artists, auth, chat, matching, safety, swipe, users
+from app.routes import artists, auth, chat, matching, safety, swipe, users, waitlist
 
 load_dotenv()
 
@@ -92,6 +92,7 @@ app.include_router(matching.router)
 app.include_router(swipe.router)
 app.include_router(chat.router)
 app.include_router(safety.router)
+app.include_router(waitlist.router)
 
 
 @app.get("/")

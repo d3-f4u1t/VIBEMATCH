@@ -9,6 +9,7 @@ from app.database import get_db
 from app.limiter import limiter
 from app.models.conversation import Conversation
 from app.models.message import Message
+from app.models.safety import Block
 from app.models.user import User
 from app.schemas.chat import (
     ConversationListResponse,
@@ -39,6 +40,19 @@ def get_other_user(conversation: Conversation, current_user_id: str) -> User:
 
 def get_last_message(conversation: Conversation) -> Message | None:
     return conversation.messages[-1] if conversation.messages else None
+
+
+def is_blocked(user_id: str, other_user_id: str, db: Session) -> bool:
+    """True if either user blocked the other."""
+    return (
+        db.query(Block)
+        .filter(
+            ((Block.blocker_id == user_id) & (Block.blocked_user_id == other_user_id))
+            | ((Block.blocker_id == other_user_id) & (Block.blocked_user_id == user_id))
+        )
+        .first()
+        is not None
+    )
 
 
 def build_match_context(current_user: User, other_user: User) -> tuple[list[str], list[str], str]: #for building a reson for the match in terms of the song/artist context
@@ -112,6 +126,12 @@ def open_conversation(#error handeling
             detail="conversation can only be opened after a mutual match",
         )
 
+    if is_blocked(current_user.id, matched_user_id, db):
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot chat with a blocked user",
+        )
+
     user_one_id, user_two_id = ordered_pair(current_user.id, matched_user_id)
     conversation = (
         db.query(Conversation)
@@ -150,11 +170,19 @@ def get_conversations(
         .all()
     )
 
+    # Hide conversations with blocked users (either direction)
+    visible = []
+    for c in conversations:
+        other_id = c.user_two_id if c.user_one_id == current_user.id else c.user_one_id
+        if is_blocked(current_user.id, other_id, db):
+            continue
+        visible.append(c)
+
     return {
-        "conversation_count": len(conversations),
+        "conversation_count": len(visible),
         "conversations": [
             build_conversation_response(conversation, current_user.id)
-            for conversation in conversations
+            for conversation in visible
         ],
     }
 
@@ -179,6 +207,14 @@ def get_messages( #adding restriction to the chat (who are chats for and who can
         raise HTTPException(status_code=404, detail="conversation not found")
     if not user_is_participant(conversation, current_user.id):
         raise HTTPException(status_code=403, detail="not allowed")
+
+    other_id = (
+        conversation.user_two_id
+        if conversation.user_one_id == current_user.id
+        else conversation.user_one_id
+    )
+    if is_blocked(current_user.id, other_id, db):
+        raise HTTPException(status_code=403, detail="Cannot view chat with a blocked user")
 
     messages = (
         db.query(Message)
@@ -217,6 +253,14 @@ def send_message(       #sending the message ----
         raise HTTPException(status_code=404, detail="conversation not found")
     if not user_is_participant(conversation, current_user.id):
         raise HTTPException(status_code=403, detail="not allowed")
+
+    other_id = (
+        conversation.user_two_id
+        if conversation.user_one_id == current_user.id
+        else conversation.user_one_id
+    )
+    if is_blocked(current_user.id, other_id, db):
+        raise HTTPException(status_code=403, detail="Cannot message a blocked user")
 
     content = data.content.strip()
     if not content:

@@ -12,7 +12,7 @@ export function Footer() {
               VibeMatch
             </Link>
             <p style={{ color: "var(--muted)", fontSize: 14.5, lineHeight: 1.6, maxWidth: 34 * 10 }}>
-              The music-first dating app. Match on taste, energy and vibe — not just photos. Designed to get you off the app and onto your last first date.
+              The upcoming music-first dating app. Taste, energy and vibe — before photos. Private preview launching city by city. Get first access.
             </p>
             <div className="socials" style={{ marginTop: 14 }}>
               <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram"><Camera size={17} /></a>
@@ -22,32 +22,30 @@ export function Footer() {
             </div>
           </div>
           <div>
-            <h4>Index</h4>
-            <Link to="/about">Our mission</Link>
-            <Link to="/how-it-works">How we match</Link>
-            <a href="/#labs">Vibe Lab</a>
-            <a href="#careers">Careers</a>
+            <h4>Explore</h4>
+            <Link to="/about">Our story</Link>
+            <Link to="/how-it-works">Sneak peek</Link>
+            <a href="/#labs">Inside Vibe Lab</a>
+            <a href="/?waitlist=1">Get early access</a>
           </div>
           <div>
-            <h4>Resources</h4>
-            <a href="#safety">Safe dating tips</a>
-            <a href="#faq">FAQ</a>
-            <a href="#trust">Trust &amp; safety</a>
-            <a href="#press">Press kit</a>
-            <a href="#contact">Contact</a>
+            <h4>Why VibeMatch</h4>
+            <Link to="/about">Music-first matching</Link>
+            <Link to="/how-it-works">Mutual-only chat</Link>
+            <a href="/#labs">Adaptive engine</a>
+            <Link to="/how-it-works">FAQ</Link>
           </div>
           <div>
-            <h4>Legal</h4>
-            <a href="#terms">Terms</a>
-            <a href="#privacy">Privacy</a>
-            <a href="#cookies">Cookie policy</a>
-            <a href="#security">Security</a>
-            <a href="#accessibility">Accessibility</a>
+            <h4>Trust</h4>
+            <a href="#safety">Respect-first design</a>
+            <a href="#privacy">Privacy promise</a>
+            <a href="#contact">Contact the team</a>
+            <a href="#press">Press</a>
           </div>
         </div>
         <div className="foot-bottom">
-          <span>© 2026 VibeMatch. Made for people who feel music deeply.</span>
-          <span>Music-first • Vector-matched • Designed to be deleted</span>
+          <span>© 2026 VibeMatch. A new dating startup for people who feel music deeply.</span>
+          <span>Music-first • Mutual-only • Designed to be deleted</span>
         </div>
       </div>
     </footer>

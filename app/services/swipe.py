@@ -1,8 +1,14 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import and_, or_
 from app.models.swipe import Swipe, SwipeAction
 from app.models.user import User
-from app.services.vector import cosine_similarity, shared_display_names
+from app.services.vector import (
+    build_match_reason_explainable,
+    compatibility_score,
+    cosine_similarity,
+    passes_hard_filters,
+    shared_display_names,
+)
 from app.schemas.swipe import SwipeHistoryItem, NextMatchResponse
 
 
@@ -89,6 +95,27 @@ def get_users_already_swiped(user_id: str, db: Session) -> set[str]:
     return {row[0] for row in swiped}
 
 
+def get_blocked_user_ids(user_id: str, db: Session) -> set[str]:
+    """
+    Get set of user IDs blocked in either direction.
+    Blocks are directional for storage but matching/chat treats
+    them as mutual exclusion: if A blocked B, neither sees the other.
+    """
+    from app.models.safety import Block
+
+    rows = (
+        db.query(Block)
+        .filter((Block.blocker_id == user_id) | (Block.blocked_user_id == user_id))
+        .all()
+    )
+    blocked: set[str] = set()
+    for b in rows:
+        blocked.add(b.blocker_id)
+        blocked.add(b.blocked_user_id)
+    blocked.discard(user_id)
+    return blocked
+
+
 def get_next_match(user_id: str, db: Session) -> dict | None:
     """
     Get the next user to swipe on based on:
@@ -99,7 +126,12 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
     Returns the best remaining match
     """
     # Get current user
-    current_user = db.query(User).filter(User.id == user_id).first()
+    current_user = (
+        db.query(User)
+        .options(selectinload(User.artists), selectinload(User.tracks))
+        .filter(User.id == user_id)
+        .first()
+    )
     if not current_user:
         return None
     
@@ -116,17 +148,27 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
         for keyword in ("straight", "hetero", "heterosexual")
     )
     is_man = user_gender in {"man", "male", "m"}
-    is_woman = user_gender in {"woman", "female", "f"}
+    is_woman = user_gender in {"woman", "female", "f", "w"}
     
     current_user_artist_names = [artist.name for artist in current_user.artists]
     current_user_track_titles = [track.title for track in current_user.tracks]
     
-    # Get all eligible candidates
+    # Get all eligible candidates (eager-load to avoid N+1)
     candidates = []
-    all_users = db.query(User).filter(User.id != user_id).all()
+    all_users = (
+        db.query(User)
+        .options(selectinload(User.artists), selectinload(User.tracks))
+        .filter(User.id != user_id)
+        .limit(500)
+        .all()
+    )
     already_swiped = get_users_already_swiped(user_id, db)
+    blocked_ids = get_blocked_user_ids(user_id, db)
     
     for other_user in all_users:
+        # Skip if blocked in either direction
+        if other_user.id in blocked_ids:
+            continue
         # Skip if already swiped
         if other_user.id in already_swiped:
           continue
@@ -147,9 +189,16 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
                 continue
             if not is_man and not is_woman and not other_gender:
                 continue
+
+        # Explicit-preference hard filters, both directions
+        if not passes_hard_filters(current_user, other_user):
+            continue
+        if not passes_hard_filters(other_user, current_user):
+            continue
         
-        # Calculate similarity
-        similarity = cosine_similarity(current_user.music_vector, other_user.music_vector)
+        # Weighted compatibility (music+personality+preference+behavior)
+        comp = compatibility_score(current_user, other_user, db)
+        similarity = comp["total"]
 
         # Get shared data (case-insensitive — old and new API data differ in casing)
         other_user_artist_names = [artist.name for artist in other_user.artists]
@@ -160,7 +209,7 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
         shared_tracks = shared_display_names(current_user_track_titles, other_user_track_titles)
         
         # Build match reason
-        match_reason = _build_match_reason(shared_artists, shared_tracks, similarity)
+        match_reason = build_match_reason_explainable(shared_artists, shared_tracks, comp)
         
         candidates.append({
             "user_id": other_user.id,
@@ -169,7 +218,7 @@ def get_next_match(user_id: str, db: Session) -> dict | None:
             "location_city": other_user.location_city or "",
             "artist_count": len(other_user.artists),
             "track_count": len(other_user.tracks),
-            "similarity": round(similarity, 4),
+            "similarity": similarity,
             "shared_artists": shared_artists,
             "shared_tracks": shared_tracks,
             "match_reason": match_reason,
@@ -209,16 +258,18 @@ def _build_match_reason(shared_artists: list[str], shared_tracks: list[str], sim
 
 def check_mutual_like(user_id_1: str, user_id_2: str, db: Session) -> bool:
     """
-    Check if two users have both liked each other
-    Returns True only if both have LIKE action
+    Check if two users have both liked each other.
+    LIKE and SUPER_LIKE both count as positive signals.
+    PASS never counts toward a mutual.
     """
+    positive_actions = (SwipeAction.LIKE, SwipeAction.SUPER_LIKE)
     swipe_1_to_2 = (
         db.query(Swipe)
         .filter(
             and_(
                 Swipe.swiper_id == user_id_1,
                 Swipe.swiped_user_id == user_id_2,
-                Swipe.action == SwipeAction.LIKE
+                Swipe.action.in_(positive_actions)
             )
         )
         .first()
@@ -230,7 +281,7 @@ def check_mutual_like(user_id_1: str, user_id_2: str, db: Session) -> bool:
             and_(
                 Swipe.swiper_id == user_id_2,
                 Swipe.swiped_user_id == user_id_1,
-                Swipe.action == SwipeAction.LIKE
+                Swipe.action.in_(positive_actions)
             )
         )
         .first()
@@ -241,15 +292,15 @@ def check_mutual_like(user_id_1: str, user_id_2: str, db: Session) -> bool:
 
 def get_mutual_likes(user_id: str, db: Session) -> list[dict]:
     """
-    Get all users that have mutual LIKE with current user
+    Get all users that have mutual LIKE/SUPER_LIKE with current user
     """
-    # Get all users who liked current user
+    # Get all users who liked current user (LIKE or SUPER_LIKE count)
     likes_received = (
         db.query(Swipe)
         .filter(
             and_(
                 Swipe.swiped_user_id == user_id,
-                Swipe.action == SwipeAction.LIKE
+                Swipe.action.in_((SwipeAction.LIKE, SwipeAction.SUPER_LIKE))
             )
         )
         .all()

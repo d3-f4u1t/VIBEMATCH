@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 #app IMPORTS
 from app.auth import get_current_user
 from app.database import get_db
@@ -7,7 +7,12 @@ from app.limiter import limiter
 from app.models.safety import Block
 from app.models.user import User
 from app.schemas.matching import MatchResponse
-from app.services.vector import cosine_similarity, shared_display_names
+from app.services.vector import (
+    build_match_reason_explainable,
+    compatibility_score,
+    passes_hard_filters,
+    shared_display_names,
+)
 from app.services.swipe import get_users_already_swiped
 
 router = APIRouter(tags=["matching"])
@@ -36,14 +41,14 @@ def get_matches(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     limit: int = Query(default=10, ge=1, le=25),
-    exclude_swiped: bool = False,
+    exclude_swiped: bool = True,
 ):
     """
     Get matches for a user based on music vector similarity.
     
     - **user_id**: User to find matches for (must be yourself)
     - **limit**: Maximum number of matches to return (1-25, default 10)
-    - **exclude_swiped**: If True, excludes users already swiped on (default False)
+    - **exclude_swiped**: If True, excludes users already swiped on (default True)
     """
     if current_user.id != user_id:
         raise HTTPException(status_code=403, detail="not allowed")
@@ -79,10 +84,20 @@ def get_matches(
 
     other_users = (
         db.query(User)
+        .options(selectinload(User.artists), selectinload(User.tracks))
         .filter(User.id != user_id)
         .limit(500)
         .all()
     )
+
+    # Same straight-preference filter as swipe/next for parity
+    user_gender = (user.gender or "").strip().lower()
+    user_sexuality = (user.sexuality or "").strip().lower()
+    prefers_opposite = any(
+        k in user_sexuality for k in ("straight", "hetero", "heterosexual")
+    )
+    is_man = user_gender in {"man", "male", "m"}
+    is_woman = user_gender in {"woman", "female", "f", "w"}
 
     user_artist_names = [artist.name for artist in user.artists]
     user_track_titles = [track.title for track in user.tracks]
@@ -100,13 +115,29 @@ def get_matches(
         # Skip if already swiped (if requested)
         if exclude_swiped and other.id in already_swiped:
             continue
+
+        if prefers_opposite:
+            other_gender = (other.gender or "").strip().lower()
+            if is_man and other_gender not in {"woman", "female", "f", "w"}:
+                continue
+            if is_woman and other_gender not in {"man", "male", "m"}:
+                continue
+            if not is_man and not is_woman and not other_gender:
+                continue
             
         if not other.music_vector:
             continue
         if len(other.artists) < 3 or len(other.tracks) < 4:
             continue
 
-        similarity= cosine_similarity(user.music_vector, other.music_vector)
+        # Explicit-preference hard filters (age/intent/dealbreakers/tight-city), both directions
+        if not passes_hard_filters(user, other):
+            continue
+        if not passes_hard_filters(other, user):
+            continue
+
+        comp = compatibility_score(user, other, db)
+        similarity = comp["total"]
         other_artist_names = [artist.name for artist in other.artists]
         other_track_titles = [track.title for track in other.tracks]
 
@@ -116,12 +147,12 @@ def get_matches(
         matches.append({
             "user_id": other.id,
             "name": other.name,
-            "similarity": round(similarity,4),
+            "similarity": similarity,
             "artist_count": len(other.artists),
             "track_count": len(other.tracks),
             "shared_artists": shared_artists,
             "shared_tracks": shared_tracks,
-            "match_reason": build_match_reason(shared_artists, shared_tracks, similarity),
+            "match_reason": build_match_reason_explainable(shared_artists, shared_tracks, comp),
             "bio": other.bio or "",
             "location_city": other.location_city or "",
             "pronouns": other.pronouns or "",
