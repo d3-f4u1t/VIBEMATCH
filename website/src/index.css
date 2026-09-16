@@ -157,9 +157,10 @@ section { position: relative; }
 /* waitlist */
 .waitlist { display: flex; gap: 10px; margin-top: 22px; max-width: 480px; }
 .waitlist input {
-  flex: 1; background: rgba(255,255,255,0.07); border: 1px solid var(--stroke);
+  flex: 1; min-width: 0; background: rgba(255,255,255,0.07); border: 1px solid var(--stroke);
   border-radius: 999px; padding: 14px 20px; color: #fff; font-family: var(--font); font-size: 15px; outline: none;
 }
+.waitlist-city { max-width: 140px; }
 .waitlist input:focus { border-color: rgba(255,77,148,0.6); box-shadow: 0 0 0 4px rgba(255,77,148,0.15); }
 .waitlist-ok {
   margin-top: 14px; font-size: 14.5px; line-height: 1.6; max-width: 480px;
@@ -171,7 +172,7 @@ section { position: relative; }
 /* phone mock */
 .phone-stage { position: relative; display: flex; justify-content: center; min-height: 560px; }
 .phone {
-  width: 300px; border-radius: 44px; padding: 12px;
+  width: min(300px, 100%); border-radius: 44px; padding: 12px;
   background: rgba(20,12,20,0.9); border: 1px solid rgba(255,255,255,0.16);
   box-shadow: 0 40px 100px rgba(0,0,0,0.55), 0 0 80px rgba(255,77,148,0.18);
   position: relative; z-index: 2;
@@ -230,8 +231,9 @@ section { position: relative; }
 
 /* demo swipe */
 .demo { display: grid; grid-template-columns: 380px 1fr; gap: 48px; align-items: center; }
+.demo > * { min-width: 0; }
 .swipe-card {
-  width: 340px; border-radius: 28px; overflow: hidden; cursor: grab;
+  width: min(340px, 100%); margin-inline: auto; border-radius: 28px; overflow: hidden; cursor: grab;
   background: #17101a; border: 1px solid var(--stroke);
   box-shadow: 0 30px 80px rgba(0,0,0,0.5);
 }
@@ -287,11 +289,68 @@ footer { border-top: 1px solid var(--stroke); padding: 56px 0 32px; margin-top: 
 
 @media (max-width: 960px) {
   .hero, .grid-2, .demo { grid-template-columns: 1fr; }
+  .hero { gap: 36px; padding: 56px 0 40px; }
+  .grid-2, .demo { gap: 32px; }
   .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .foot-grid { grid-template-columns: 1fr 1fr; }
   .phone-stage { min-height: 480px; }
   .float-1 { left: 2vw; } .float-2 { right: 2vw; }
   .section { padding: 60px 0; }
+}
+
+/* ── Phones: type scale, spacing rhythm, stacked inputs ── */
+@media (max-width: 640px) {
+  .hero { padding: 44px 0 32px; gap: 30px; }
+  .hero .eyebrow { font-size: 12.5px; letter-spacing: 0.12em; }
+  .hero h1 { font-size: clamp(36px, 11vw, 44px); margin: 16px 0 14px; }
+  .lead, .sub { font-size: 16px; }
+  .h2 { font-size: clamp(27px, 8vw, 34px); }
+  .hero-ctas { margin-top: 20px; }
+  .hero-ctas .btn { flex: 1 1 100%; justify-content: center; }
+  .hero-meta { gap: 16px 20px; margin-top: 24px; }
+  .stat b { font-size: 21px; }
+
+  /* waitlist stacks: full-width email, city, button */
+  .waitlist { flex-direction: column; max-width: 100%; }
+  .waitlist input { font-size: 16px; width: 100%; }
+  .waitlist-city { max-width: none; }
+  .waitlist .btn { justify-content: center; padding: 15px 22px; }
+
+  .section { padding: 52px 0; }
+  .grid-2, .demo { gap: 26px; }
+  .card { padding: 22px; }
+  .card .icon { margin-bottom: 14px; }
+
+  /* demo centers on phones */
+  .demo { justify-items: center; text-align: center; }
+  .demo .chip-row { justify-content: center; }
+  .swipe-card img { height: 340px; }
+
+  /* phone mock compacts */
+  .phone-stage { min-height: 0; }
+  .phone-screen img { height: 320px; }
+  .float-card { font-size: 12.5px; padding: 10px 13px; border-radius: 15px; }
+  .float-1 { left: 0; top: 36px; }
+  .float-2 { right: 0; bottom: 36px; }
+
+  .banner { border-radius: 24px; }
+  .banner .waitlist { max-width: 420px; margin-inline: auto; }
+  .img-card .overlay { padding: 18px; }
+  .faq button { font-size: 15px; padding: 16px 18px; }
+  .t-step { grid-template-columns: 64px 1fr; gap: 12px; }
+  .marquee-track { font-size: 14px; gap: 28px; }
+  .brand { font-size: 18px; }
+  .nav { padding: 8px 8px 8px 14px; }
+  .foot-grid { gap: 24px 16px; }
+  footer { padding: 44px 0 28px; }
+}
+
+/* ── Small phones: keep everything inside 320–360px viewports ── */
+@media (max-width: 380px) {
+  .hero h1 { font-size: 34px; }
+  .hero-meta { gap: 14px 16px; }
+  .circle-btn { width: 56px; height: 56px; }
+  .float-card { max-width: 44vw; }
 }
 
 /* ── Performance layer (no visual changes — compositing + offscreen savings) ── */

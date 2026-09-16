@@ -90,7 +90,7 @@ export function WaitlistForm({ compact = false }: { compact?: boolean }) {
           name="city"
           autoComplete="address-level2"
           enterKeyHint="go"
-          style={{ maxWidth: 140 }}
+          className="waitlist-city"
         />
         <button className="btn btn-primary" type="submit" disabled={saving}>
           {saving ? "Joining..." : compact ? "Notify me" : "Join waitlist"} <ArrowRight size={16} />
