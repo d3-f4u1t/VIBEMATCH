@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Heart, Music2, ShieldCheck, MessagesSquare, X, Sparkles, BadgeCheck } from "lucide-react";
+import { ArrowRight, Heart, Music2, ShieldCheck, MessagesSquare, X, BadgeCheck } from "lucide-react";
 import { Reveal } from "../components/Reveal";
 import { WaitlistForm } from "../components/WaitlistForm";
 
@@ -25,7 +25,7 @@ export function Home() {
       {/* ── HERO ── */}
       <div className="wrap hero">
         <div>
-          <span className="pill"><i />Music-first dating • Private preview soon</span>
+          <span className="eyebrow-text">Music-first dating • Private preview soon</span>
           <h1>
             Date someone on your <span className="pop">wave&shy;length.</span>
           </h1>
@@ -35,17 +35,6 @@ export function Home() {
             into real dates. No endless swiping, no cold DMs.
           </p>
           <WaitlistForm />
-          <div className="trust">
-            <div className="avatars">
-              <img src={IMG_MAIN} alt="Member" loading="lazy" />
-              <img src={IMG_MAN} alt="Member" loading="lazy" />
-              <img src={IMG_WOMAN2} alt="Member" loading="lazy" />
-            </div>
-            <div>
-              <span className="stars">★★★★★</span>
-              <small><b>2,400+ daters</b> already waiting<br />for their city to open</small>
-            </div>
-          </div>
         </div>
 
         <div className="deck" aria-label="Preview of VibeMatch profiles">
@@ -60,7 +49,7 @@ export function Home() {
             <div className="profile-body">
               <div className="profile-name">
                 <b>Maya, 24</b>
-                <span className="vibe"><i />94% vibe</span>
+                <span className="vibe">94% vibe</span>
               </div>
               <div className="profile-sub">Late-night R&amp;B • Same concert energy</div>
               <div className="tags">
@@ -94,7 +83,7 @@ export function Home() {
       <section className="section">
         <div className="wrap">
           <Reveal>
-            <span className="kicker"><i />Why VibeMatch</span>
+            <span className="kicker">Why VibeMatch</span>
             <h2 className="h2">Photos start chats.<br />Taste starts <span className="pop">relationships.</span></h2>
             <p className="sub">Endless decks and dead “hey”s are a design choice. We chose differently — mutual, explained, and built to get you offline fast.</p>
           </Reveal>
@@ -120,7 +109,7 @@ export function Home() {
       <section className="section night">
         <div className="wrap">
           <Reveal>
-            <span className="kicker"><i />How it feels</span>
+            <span className="kicker">How it feels</span>
             <h2 className="h2">From playlist<br />to first date.</h2>
             <p className="sub">Three moves. No 200-question quiz, no vibe-check guessing.</p>
           </Reveal>
@@ -161,7 +150,7 @@ export function Home() {
             </div>
           </Reveal>
           <Reveal delay={110}>
-            <span className="kicker"><i />Chats that start warm</span>
+            <span className="kicker">Chats that start warm</span>
             <h2 className="h2">Never open with “hey” again.</h2>
             <p className="sub">Every match shows its reason, so every conversation has somewhere real to start.</p>
             <div className="chat" style={{ marginTop: 22 }}>
@@ -169,7 +158,7 @@ export function Home() {
                 <img src={IMG_MAIN} alt="Maya" loading="lazy" />
                 <div><b>Maya, 24 • 94%</b><br /><span style={{ color: "var(--muted)", fontSize: 13 }}>You both loop SZA after midnight</span></div>
               </div>
-              <span className="chat-hint"><Sparkles size={13} /> Shared sound opener</span>
+              <span className="chat-hint">Shared sound opener</span>
               <div className="bubble them">ok wait — you were at the SZA show too?? row F??</div>
               <div className="bubble me pop">ROW F. I cried at “Good Days” don’t judge me</div>
               <div className="bubble them">judging you = instantly asking you out instead ♥</div>
@@ -182,7 +171,7 @@ export function Home() {
       <section className="section">
         <div className="wrap grid-2">
           <Reveal>
-            <span className="kicker"><i />Made to be deleted</span>
+            <span className="kicker">Made to be deleted</span>
             <h2 className="h2">Built for the date, not the doom-scroll.</h2>
             <p className="sub">A curated set of high-fit people instead of 500 lookalikes. Less screen time, more across-the-table time — concerts, late drives, soft Sundays.</p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18 }}>
@@ -197,23 +186,6 @@ export function Home() {
             </div>
           </Reveal>
         </div>
-        <div className="wrap grid-3" style={{ marginTop: 22 }}>
-          {[
-            { img: IMG_WOMAN2, q: "“He opened with my exact closing track. I’ve never said yes so fast.”", n: "Sofia, 23 — matched on FKA twigs" },
-            { img: IMG_MAN, q: "“Felt like she already got my humor before we met. Because… she did.”", n: "Jordan, 26 — matched on The Weeknd" },
-            { img: IMG_CONCERT, q: "“Our first date was the concert we both had saved. Of course it worked.”", n: "A real VibeMatch story (soon)" },
-          ].map((t, i) => (
-            <Reveal key={t.n} delay={i * 90}>
-              <div className="quote">
-                <p>{t.q}</p>
-                <footer>
-                  <img src={t.img} alt="" loading="lazy" />
-                  <span><b style={{ fontSize: 14 }}>{t.n.split(" — ")[0]}</b><small>{t.n.split(" — ")[1] || ""}</small></span>
-                </footer>
-              </div>
-            </Reveal>
-          ))}
-        </div>
       </section>
 
       {/* ── CTA ── */}
@@ -222,7 +194,7 @@ export function Home() {
           <Reveal>
             <div className="cta">
               <div className="cta-copy">
-                <span className="kicker" style={{ color: "#fff" }}><i />Founding members • Your city could be first</span>
+                <span className="kicker" style={{ color: "#fff" }}>Founding members • Your city could be first</span>
                 <h2>Your person is already <span className="pop">listening.</span></h2>
                 <p>We open city by city so day one feels electric — not empty. Join the waitlist to vote for your city and get first access.</p>
                 <WaitlistForm />

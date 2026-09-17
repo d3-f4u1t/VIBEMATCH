@@ -12,7 +12,7 @@ export function About() {
     <>
       <div className="wrap" style={{ padding: "72px 0 8px" }}>
         <Reveal>
-          <span className="kicker"><i />Our story</span>
+          <span className="kicker">Our story</span>
           <h1 className="h2" style={{ fontSize: "clamp(38px,5.6vw,64px)" }}>
             Dating should feel like a great <span className="pop">collab</span>, not a catalog.
           </h1>
@@ -44,7 +44,7 @@ export function About() {
           </Reveal>
           <div>
             <Reveal>
-              <span className="kicker"><i />Why music</span>
+              <span className="kicker">Why music</span>
               <h2 className="h2">Because it never lies.</h2>
               <p className="sub">Shared taste predicts shared rhythm — late drives, concert highs, soft Sundays, how you fight and make up. Photos can&apos;t tell you that. Playlists can.</p>
             </Reveal>
@@ -68,7 +68,7 @@ export function About() {
       <section className="section night">
         <div className="wrap">
           <Reveal>
-            <span className="kicker"><i />How we keep it fair</span>
+            <span className="kicker">How we keep it fair</span>
             <h2 className="h2">Made for the date,<br />not the doom-scroll.</h2>
             <p className="sub">Other apps sell screen time. We optimize for the across-the-table moment.</p>
           </Reveal>
@@ -91,7 +91,7 @@ export function About() {
           <Reveal>
             <div className="cta">
               <div className="cta-copy">
-                <span className="kicker" style={{ color: "#fff" }}><i />Founding members wanted</span>
+                <span className="kicker" style={{ color: "#fff" }}>Founding members wanted</span>
                 <h2>Help decide what dating <span className="pop">sounds like</span> next.</h2>
                 <p>Early members don&apos;t just join the culture — they create it. Bring your best playlist.</p>
                 <WaitlistForm />

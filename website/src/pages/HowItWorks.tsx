@@ -28,7 +28,7 @@ export function HowItWorks() {
     <>
       <div className="wrap" style={{ padding: "72px 0 8px" }}>
         <Reveal>
-          <span className="kicker"><i />How it works</span>
+          <span className="kicker">How it works</span>
           <h1 className="h2" style={{ fontSize: "clamp(38px,5.6vw,64px)" }}>
             From playlist to first date in <span className="pop">four moves.</span>
           </h1>
@@ -62,7 +62,7 @@ export function HowItWorks() {
             </div>
           </Reveal>
           <Reveal delay={110}>
-            <span className="kicker"><i />Under the hood</span>
+            <span className="kicker">Under the hood</span>
             <h2 className="h2">Real engine,<br />real <span className="pop">butterflies.</span></h2>
             <p className="sub">Behind the cute cards: two-sided scoring for mutual fit, adaptive learning from what actually turns into dates, and city-aware launch so day one is full of people worth meeting.</p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18 }}>
@@ -77,7 +77,7 @@ export function HowItWorks() {
       <section className="section">
         <div className="wrap" style={{ maxWidth: 800 }}>
           <Reveal>
-            <span className="kicker"><i />Curious minds</span>
+            <span className="kicker">Curious minds</span>
             <h2 className="h2">Asked, answered.</h2>
           </Reveal>
           <div style={{ marginTop: 22 }}>
@@ -100,7 +100,7 @@ export function HowItWorks() {
           <Reveal>
             <div className="cta">
               <div className="cta-copy">
-                <span className="kicker" style={{ color: "#fff" }}><i />Your city could be first</span>
+                <span className="kicker" style={{ color: "#fff" }}>Your city could be first</span>
                 <h2>Stop scrolling.<br />Start <span className="pop">resonating.</span></h2>
                 <p>Join the waitlist — founding members get first access when their city opens.</p>
                 <WaitlistForm />

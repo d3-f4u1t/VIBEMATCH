@@ -7,7 +7,7 @@ export function Footer() {
         <div className="foot-grid">
           <div>
             <Link to="/" className="foot-brand" aria-label="vibematch home">
-              <span className="foot-dot" aria-hidden />vibematch
+              vibematch
             </Link>
             <p className="foot-tag">
               Music-first dating. Match on taste, meet on vibe — then get off the app and into real life.

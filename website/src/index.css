@@ -54,15 +54,9 @@ section { position: relative; }
   line-height: 1;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
 }
 .brand { color: var(--ink); }
 .foot-brand { color: #fff; }
-.brand-dot, .foot-dot {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: var(--pop); display: inline-block; flex: none;
-  box-shadow: 0 0 0 5px var(--pop-soft);
-}
 
 /* ── Nav: white floating ── */
 .nav {
@@ -125,22 +119,25 @@ section { position: relative; }
 .btn-ghost-dark:hover { border-color: var(--ink); }
 .btn-sm { padding: 10px 20px; font-size: 14px; }
 
-/* ── Hero: dating, white ── */
+/* ── Hero: dating, white with a whisper of pink ── */
 .hero {
   display: grid; grid-template-columns: 1.02fr 0.98fr; gap: 56px;
   align-items: center; padding: 64px 0 56px;
   background:
-    radial-gradient(480px 300px at 12% 8%, rgba(255,61,92,0.09), transparent 70%),
+    radial-gradient(560px 340px at 8% 4%, rgba(255,61,92,0.1), transparent 70%),
+    radial-gradient(640px 400px at 94% 10%, rgba(255,61,92,0.07), transparent 70%),
     radial-gradient(560px 340px at 88% 18%, rgba(11,11,12,0.05), transparent 70%);
   border-bottom: 1px solid var(--line);
 }
-.pill {
-  display: inline-flex; align-items: center; gap: 9px;
-  font-size: 13px; font-weight: 700; letter-spacing: 0.01em;
-  background: var(--ink); color: #fff; border-radius: 999px; padding: 9px 16px;
+/* plain eyebrow text — no pill, no dot */
+.eyebrow-text {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted);
 }
-.pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--pop); display: inline-block; animation: pulse 1.8s infinite; }
-@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,61,92,0.5); } 50% { box-shadow: 0 0 0 7px rgba(255,61,92,0); } }
+/* faint pink wash over plain white sections so they feel warm, not sterile */
+.section:not(.night):not(.smoke) {
+  background: linear-gradient(180deg, rgba(255,61,92,0.05), transparent 340px);
+}
 .hero h1 {
   font-family: var(--display); font-weight: 700;
   font-size: clamp(44px, 6vw, 74px); line-height: 0.98; letter-spacing: -0.045em;
@@ -156,7 +153,6 @@ section { position: relative; }
 .avatars img + img { margin-left: -12px; }
 .trust small { color: var(--muted); font-size: 13.5px; line-height: 1.5; display: block; }
 .trust small b { color: var(--ink); }
-.stars { color: var(--pop); letter-spacing: 2px; font-size: 13px; }
 
 /* waitlist — dating clean */
 .waitlist { display: flex; gap: 10px; margin-top: 24px; max-width: 520px; }
@@ -189,7 +185,6 @@ section { position: relative; }
   font-size: 13px; font-weight: 800; background: var(--ink); color: #fff;
   padding: 7px 13px; border-radius: 999px; display: inline-flex; align-items: center; gap: 7px;
 }
-.vibe i { width: 8px; height: 8px; border-radius: 50%; background: var(--pop); display: inline-block; }
 .profile-sub { color: var(--muted); font-size: 13.5px; margin-top: 6px; }
 .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .tag { font-size: 12.5px; font-weight: 700; padding: 7px 13px; border-radius: 999px; background: var(--smoke); border: 1px solid var(--line); }
@@ -239,7 +234,6 @@ section { position: relative; }
   display: inline-flex; align-items: center; gap: 9px;
   font-size: 12.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
 }
-.kicker i { width: 9px; height: 9px; border-radius: 50%; background: var(--pop); display: inline-block; }
 .section.night .kicker { color: #fff; }
 .h2 {
   font-family: var(--display); font-weight: 700; letter-spacing: -0.04em;
@@ -291,13 +285,6 @@ section { position: relative; }
 .step-num { font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--pop); letter-spacing: 0.1em; }
 .step h3 { font-family: var(--display); font-size: 21px; margin: 12px 0 9px; letter-spacing: -0.02em; }
 .step p { color: var(--night-muted); font-size: 14.5px; line-height: 1.65; margin: 0; }
-
-/* quotes */
-.quote { background: #fff; border: 1.5px solid var(--line); border-radius: var(--r-md); padding: 26px; }
-.quote p { font-size: 16px; line-height: 1.6; margin: 0 0 16px; }
-.quote footer { border: 0; padding: 0; margin: 0; background: none; display: flex; gap: 12px; align-items: center; }
-.quote footer img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
-.quote footer small { color: var(--muted); display: block; font-size: 13px; }
 
 /* CTA — black dating panel */
 .cta {
@@ -357,6 +344,6 @@ footer.site { background: var(--night); color: #fff; padding: 64px 0 30px; margi
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal { transition: none; opacity: 1; transform: none; }
-  .strip-track, .float-1, .float-2, .pill i { animation: none; }
+  .strip-track, .float-1, .float-2 { animation: none; }
   html { scroll-behavior: auto; }
 }

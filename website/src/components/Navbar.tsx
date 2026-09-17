@@ -53,7 +53,7 @@ export function Navbar() {
       <nav className="nav">
         <div className="nav-inner">
           <Link to="/" className="brand" onClick={() => setOpen(false)} aria-label="vibematch home">
-            <span className="brand-dot" aria-hidden />vibematch
+            vibematch
           </Link>
           <div className="nav-links">
             <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")}>
