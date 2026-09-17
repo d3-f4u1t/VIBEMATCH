@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Suspense, lazy, useEffect } from "react";
-import { FluidBackground } from "./components/FluidBackground";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 import { Home } from "./pages/Home";
@@ -49,7 +48,7 @@ export default function App() {
   usePrefetchRoutes();
   return (
     <BrowserRouter>
-      <FluidBackground />
+      <div className="fluid-bg" aria-hidden />
       <ScrollToTop />
       <Navbar />
       <main>

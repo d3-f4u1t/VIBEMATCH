@@ -92,11 +92,11 @@ export function WaitlistForm({ compact = false }: { compact?: boolean }) {
           enterKeyHint="go"
           className="waitlist-city"
         />
-        <button className="btn btn-primary" type="submit" disabled={saving}>
+        <button className="btn btn-dark" type="submit" disabled={saving}>
           {saving ? "Joining..." : compact ? "Notify me" : "Join waitlist"} <ArrowRight size={16} />
         </button>
       </form>
-      {error ? <div className="micro" style={{ color: "#ff9db8" }}>{error}</div> : <div className="micro">Free to join</div>}
+      {error ? <div className="micro" style={{ color: "var(--pop-deep)" }}>{error}</div> : <div className="micro">Free to join</div>}
     </div>
   );
 }
