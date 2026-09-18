@@ -29,14 +29,13 @@ html { scroll-behavior: smooth; scroll-padding-top: 92px; }
 body {
   margin: 0;
   font-family: var(--sans);
-  /* blush canvas — soft pink woven through the whole page, edge to edge */
+  /* blush canvas — soft pink woven through the whole page, edge to edge.
+     Compressed to 4 layers: identical look, cheaper to paint. */
   background:
     linear-gradient(180deg, rgba(255, 61, 92, 0.06), transparent 1100px),
-    radial-gradient(1100px 700px at 3% 5%, rgba(255, 61, 92, 0.09), transparent 65%),
-    radial-gradient(1000px 720px at 97% 20%, rgba(255, 61, 92, 0.07), transparent 65%),
-    radial-gradient(1250px 820px at 50% 46%, rgba(255, 61, 92, 0.055), transparent 70%),
-    radial-gradient(1050px 760px at 4% 72%, rgba(255, 61, 92, 0.07), transparent 65%),
-    radial-gradient(1150px 740px at 96% 90%, rgba(255, 61, 92, 0.085), transparent 65%),
+    radial-gradient(1200px 760px at 4% 8%, rgba(255, 61, 92, 0.09), transparent 65%),
+    radial-gradient(1300px 900px at 50% 55%, rgba(255, 61, 92, 0.06), transparent 70%),
+    radial-gradient(1200px 780px at 96% 92%, rgba(255, 61, 92, 0.085), transparent 65%),
     var(--paper);
   color: var(--ink);
   overflow-x: clip;
@@ -46,7 +45,7 @@ a { color: inherit; }
 img { max-width: 100%; display: block; }
 ::selection { background: var(--ink); color: #fff; }
 
-.fluid-bg { position: fixed; inset: 0; z-index: -2; pointer-events: none; background: var(--paper); }
+.fluid-bg { display: none; }
 
 .wrap { width: min(var(--max), 92vw); margin: 0 auto; }
 section { position: relative; }
@@ -70,12 +69,14 @@ section { position: relative; }
 .nav {
   position: sticky; top: 12px; z-index: 60;
   width: min(var(--max), 94vw); margin: 12px auto 0;
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.88);
   border: 1px solid var(--line);
   border-radius: 20px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 10px 34px rgba(11, 11, 12, 0.07);
+  /* own compositor layer: the blur no longer repaints the page on scroll */
+  transform: translateZ(0);
 }
 .nav-inner {
   display: flex; align-items: center; justify-content: space-between;
@@ -225,13 +226,15 @@ section { position: relative; }
 .float-card.dark { background: var(--ink); color: #fff; border-color: var(--ink); }
 .float-card small { color: var(--muted); display: block; font-size: 12.5px; }
 .float-card.dark small { color: var(--night-muted); }
-.float-1 { left: -6px; top: 84px; animation: float 5s ease-in-out infinite; }
-.float-2 { right: -4px; bottom: 96px; animation: float 6s ease-in-out infinite reverse; }
+.float-1 { left: -6px; top: 84px; animation: float 5s ease-in-out infinite; will-change: transform; }
+.float-2 { right: -4px; bottom: 96px; animation: float 6s ease-in-out infinite reverse; will-change: transform; }
 @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+/* background tabs stop paying for decoration */
+html.paused .strip-track, html.paused .float-1, html.paused .float-2 { animation-play-state: paused; }
 
 /* taste strip — black */
-.strip { background: var(--ink); color: #fff; overflow: hidden; padding: 15px 0; }
-.strip-track { display: flex; gap: 14px; width: max-content; animation: scroll 26s linear infinite; align-items: center; }
+.strip { background: var(--ink); color: #fff; overflow: hidden; padding: 15px 0; contain: content; }
+.strip-track { display: flex; gap: 14px; width: max-content; animation: scroll 26s linear infinite; align-items: center; will-change: transform; transform: translateZ(0); }
 .strip-track span {
   font-family: var(--display); font-weight: 600; font-size: 14.5px; letter-spacing: 0.01em;
   border: 1px solid var(--night-line); padding: 9px 18px; border-radius: 999px; white-space: nowrap;
@@ -239,8 +242,8 @@ section { position: relative; }
 .strip-track span.hot { background: var(--pop); border-color: var(--pop); }
 @keyframes scroll { to { transform: translateX(-50%); } }
 
-/* sections */
-.section { padding: 88px 0; }
+/* sections — off-screen sections skip rendering until scrolled near */
+.section { padding: 88px 0; content-visibility: auto; contain-intrinsic-size: auto 800px; }
 .section.night { background: var(--night); color: #fff; }
 .kicker {
   display: inline-flex; align-items: center; gap: 9px;
@@ -317,7 +320,7 @@ section { position: relative; }
 .cta-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, var(--night) 0%, transparent 45%); }
 
 /* footer — black */
-footer.site { background: var(--night); color: #fff; padding: 64px 0 30px; margin-top: 0; }
+footer.site { background: var(--night); color: #fff; padding: 64px 0 30px; margin-top: 0; content-visibility: auto; contain-intrinsic-size: auto 400px; }
 .foot-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 32px; }
 .foot-tag { color: var(--night-muted); font-size: 14.5px; line-height: 1.65; max-width: 34ch; }
 .foot-grid h4 { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--night-faint); margin: 0 0 14px; }

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Heart, Music2, ShieldCheck, MessagesSquare, X, BadgeCheck } from "lucide-react";
+import { ArrowRight, Heart, Music2, Network, Scale, ShieldCheck, MessagesSquare, X, BadgeCheck } from "lucide-react";
 import { Reveal } from "../components/Reveal";
 import { WaitlistForm } from "../components/WaitlistForm";
 
@@ -39,8 +39,8 @@ export function Home() {
         </div>
 
         <div className="deck" aria-label="Preview of VibeMatch profiles">
-          <div className="deck-behind b1"><img src={IMG_MAN} alt="" loading="lazy" /></div>
-          <div className="deck-behind b2"><img src={IMG_WOMAN2} alt="" loading="lazy" /></div>
+          <div className="deck-behind b1"><img src={IMG_MAN.replace("w=800", "w=600")} alt="" loading="lazy" decoding="async" /></div>
+          <div className="deck-behind b2"><img src={IMG_WOMAN2.replace("w=800", "w=600")} alt="" loading="lazy" decoding="async" /></div>
           <div className="float-card float-1">
             <BadgeCheck size={20} color="#FF3D5C" />
             <span><b>It&apos;s a Match</b><small>You + Maya both loop SZA</small></span>
@@ -134,6 +134,49 @@ export function Home() {
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 28 }}>
               <Link className="btn btn-pop" to="/how-it-works">See how it works <ArrowRight size={16} /></Link>
               <Link className="btn btn-light" to="/about">Why we&apos;re different</Link>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── innovative core: the matching engine ── */}
+      <section className="section">
+        <div className="wrap">
+          <Reveal>
+            <span className="kicker">The innovative core</span>
+            <h2 className="h2">You are not a score.<br />You are a <span className="pop">system.</span></h2>
+            <p className="sub">
+              Every dating app flattens you into filters and a photo queue. VibeMatch models you
+              the way chemistry actually works — as <b>four independent dimensions</b> (taste,
+              identity, energy, intent) woven into one living profile. Matching stops being
+              a feed. It becomes an engine.
+            </p>
+          </Reveal>
+          <div className="grid-3" style={{ marginTop: 30 }}>
+            {[
+              { icon: <Music2 size={22} />, pop: true, t: "Taste, mapped in depth", d: "Your artists, moods and eras become a high-dimensional taste map — a position in space, not a quiz result. People near you in sound are near you in rhythm." },
+              { icon: <Network size={22} />, pop: false, t: "Circles, not boxes", d: "You belong to many overlapping circles at once — taste tribes, city rhythms, energy levels — so you're never trapped in a single bucket." },
+              { icon: <Scale size={22} />, pop: false, t: "Stable by mathematics", d: "Both sides rank each other, and Nobel Prize-winning matching theory settles it — no two people who'd both prefer each other ever get skipped." },
+            ].map((c, i) => (
+              <Reveal key={c.t} delay={i * 90}>
+                <div className="card">
+                  <div className={`icon ${c.pop ? "pop" : ""}`}>{c.icon}</div>
+                  <h3>{c.t}</h3>
+                  <p>{c.d}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal delay={120}>
+            <div className="card" style={{ marginTop: 18, display: "flex", gap: 18, alignItems: "flex-start", background: "var(--ink)", borderColor: "var(--ink)" }}>
+              <div className="icon pop"><MessagesSquare size={22} /></div>
+              <div>
+                <h3 style={{ color: "#fff" }}>Explained, always — and learning</h3>
+                <p style={{ color: "var(--night-muted)" }}>Every match states its reason in plain words. If the engine can&apos;t explain a match, you never see it. And with every interaction, the system sharpens — an ensemble that learns what actually turns into dates, architected to scale from first launch to millions.</p>
+                <Link to="/how-it-works" style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 14, color: "#fff", fontWeight: 700, fontSize: 14.5 }}>
+                  Read the engineering story <ArrowRight size={16} />
+                </Link>
+              </div>
             </div>
           </Reveal>
         </div>

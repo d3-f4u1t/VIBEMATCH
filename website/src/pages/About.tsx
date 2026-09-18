@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Heart, Music2, ShieldCheck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Heart, Music2, ShieldCheck } from "lucide-react";
 import { Reveal } from "../components/Reveal";
 import { WaitlistForm } from "../components/WaitlistForm";
 
 const IMG_COUPLE = "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=1000&auto=format&fit=crop";
 const IMG_MAIN = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=800&auto=format&fit=crop";
 const IMG_MAN = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop";
+const BUILDER_IMG = "https://avatars.githubusercontent.com/u/87698102?v=4";
 
 export function About() {
   return (
@@ -61,6 +62,80 @@ export function About() {
                 </div>
               </Reveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── THE BUILDER ── */}
+      <section className="section">
+        <div className="wrap grid-2">
+          <Reveal>
+            <div className="photo">
+              <img src={BUILDER_IMG} alt="Hardik Panwar — builder of VibeMatch" loading="lazy" decoding="async" />
+              <div className="badge">
+                <span style={{ fontSize: 14 }}><b>Hardik Panwar · @d3-f4u1t</b><br /><span style={{ color: "var(--muted)" }}>Developer · CS student · Sole engineer on VibeMatch</span></span>
+              </div>
+            </div>
+          </Reveal>
+          <div>
+            <Reveal>
+              <span className="kicker">The builder</span>
+              <h2 className="h2">Three months. One obsession. <span className="pop">Built by hand.</span></h2>
+            </Reveal>
+            <Reveal delay={90}>
+              <p className="sub">
+                My name is Hardik Panwar. I am a computer science student — and for the past
+                three months, VibeMatch has been my full-time obsession.
+              </p>
+              <p className="sub" style={{ marginTop: 14 }}>
+                It began with a conviction I refused to let go of: chemistry is not a photograph,
+                it is a frequency. The industry optimizes for screen time; I chose to optimize for
+                the across-the-table moment. Matching, held to first principles, is not a feed
+                problem — it is a systems problem. And systems problems can be engineered.
+              </p>
+              <p className="sub" style={{ marginTop: 14 }}>
+                So I engineered it, end to end. A FastAPI service on SQLAlchemy where every user
+                is represented as vectors across four independent layers — taste, identity, behavior,
+                and intent. Multi-set clustering instead of rigid buckets. Hierarchical clustering
+                so the system scales logarithmically, not linearly. A Gale–Shapley stable-matching
+                core, so rankings are fair in both directions. An ensemble feedback loop, so the
+                engine sharpens with every interaction. Around it: a React Native mobile client,
+                this very website in React, Dockerized deployments, and a pytest suite standing
+                guard over all of it — open source, Apache-2.0.
+              </p>
+              <p className="sub" style={{ marginTop: 14 }}>
+                Nothing here was outsourced — not the architecture, not the copy, not the pixels.
+                My foundation is backend systems and security: I train on TryHackMe, compete on
+                LeetCode, and previously shipped an RSA-secured encrypted messenger. That same
+                rigor runs through VibeMatch — mutual-only chat, full delete, and a standing rule
+                that your taste powers matching and nothing else.
+              </p>
+              <p className="sub" style={{ marginTop: 14 }}>
+                This is my proof of work: that a student with conviction, three months, and an
+                unreasonable attention to craft can carry an idea from vector space to a product
+                people can feel. The work is public. My inbox is open.
+              </p>
+            </Reveal>
+            <Reveal delay={140}>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20 }}>
+                {["Python", "FastAPI", "SQLAlchemy", "React Native", "React", "Docker", "pytest", "NumPy", "Git", "Linux"].map((s) => (
+                  <span key={s} className="tag">{s}</span>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
+                <a className="btn btn-dark" href="https://github.com/d3-f4u1t" target="_blank" rel="noreferrer">
+                  View the code on GitHub <ArrowUpRight size={16} />
+                </a>
+                <a className="btn btn-ghost-dark" href="https://www.linkedin.com/in/d3fa41t/" target="_blank" rel="noreferrer">
+                  Connect on LinkedIn <ArrowUpRight size={16} />
+                </a>
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                <a href="https://github.com/d3-f4u1t/VIBEMATCH" target="_blank" rel="noreferrer" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--pop-deep)" }}>
+                  ★ VIBEMATCH repo — Apache-2.0, open source
+                </a>
+              </div>
+            </Reveal>
           </div>
         </div>
       </section>

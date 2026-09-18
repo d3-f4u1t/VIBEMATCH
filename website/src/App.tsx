@@ -10,8 +10,18 @@ import "./index.css";
 const About = lazy(() => import("./pages/About").then((m) => ({ default: m.About })));
 const HowItWorks = lazy(() => import("./pages/HowItWorks").then((m) => ({ default: m.HowItWorks })));
 
-// Warm the split chunks during idle so nav feels instant. No visual change.
+// Pause decorative animations while the tab is hidden: zero CPU in background.
+function usePauseHiddenAnims() {
+  useEffect(() => {
+    const onVis = () => document.documentElement.classList.toggle("paused", document.hidden);
+    onVis();
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+}
+
 function usePrefetchRoutes() {
+  // Warm the split chunks during idle so nav feels instant. No visual change.
   useEffect(() => {
     let t: number | undefined;
     const warm = () => {
@@ -46,9 +56,9 @@ function ScrollToTop() {
 
 export default function App() {
   usePrefetchRoutes();
+  usePauseHiddenAnims();
   return (
     <BrowserRouter>
-      <div className="fluid-bg" aria-hidden />
       <ScrollToTop />
       <Navbar />
       <main>
