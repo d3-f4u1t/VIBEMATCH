@@ -5,7 +5,7 @@
   --muted: rgba(11, 11, 12, 0.66);
   --faint: rgba(11, 11, 12, 0.52);
   --line: rgba(11, 11, 12, 0.12);
-  --smoke: #f4f3f1;
+  --smoke: #f9eff2;
   --card: #ffffff;
   --night: #0b0b0c;
   --night-2: #151517;
@@ -29,7 +29,15 @@ html { scroll-behavior: smooth; scroll-padding-top: 92px; }
 body {
   margin: 0;
   font-family: var(--sans);
-  background: var(--paper);
+  /* blush canvas — soft pink woven through the whole page, edge to edge */
+  background:
+    linear-gradient(180deg, rgba(255, 61, 92, 0.06), transparent 1100px),
+    radial-gradient(1100px 700px at 3% 5%, rgba(255, 61, 92, 0.09), transparent 65%),
+    radial-gradient(1000px 720px at 97% 20%, rgba(255, 61, 92, 0.07), transparent 65%),
+    radial-gradient(1250px 820px at 50% 46%, rgba(255, 61, 92, 0.055), transparent 70%),
+    radial-gradient(1050px 760px at 4% 72%, rgba(255, 61, 92, 0.07), transparent 65%),
+    radial-gradient(1150px 740px at 96% 90%, rgba(255, 61, 92, 0.085), transparent 65%),
+    var(--paper);
   color: var(--ink);
   overflow-x: clip;
   -webkit-font-smoothing: antialiased;
@@ -119,24 +127,29 @@ section { position: relative; }
 .btn-ghost-dark:hover { border-color: var(--ink); }
 .btn-sm { padding: 10px 20px; font-size: 14px; }
 
-/* ── Hero: dating, white with a whisper of pink ── */
+/* ── Hero: full-bleed blush band, content stays in the grid ── */
 .hero {
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(1000px 520px at 10% 0%, rgba(255, 61, 92, 0.13), transparent 70%),
+    radial-gradient(1000px 560px at 90% 6%, rgba(255, 61, 92, 0.1), transparent 70%),
+    linear-gradient(180deg, rgba(255, 61, 92, 0.05), transparent 480px);
+}
+.hero-grid {
   display: grid; grid-template-columns: 1.02fr 0.98fr; gap: 56px;
   align-items: center; padding: 64px 0 56px;
-  background:
-    radial-gradient(560px 340px at 8% 4%, rgba(255,61,92,0.1), transparent 70%),
-    radial-gradient(640px 400px at 94% 10%, rgba(255,61,92,0.07), transparent 70%),
-    radial-gradient(560px 340px at 88% 18%, rgba(11,11,12,0.05), transparent 70%);
-  border-bottom: 1px solid var(--line);
 }
 /* plain eyebrow text — no pill, no dot */
 .eyebrow-text {
   font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--muted);
 }
-/* faint pink wash over plain white sections so they feel warm, not sterile */
-.section:not(.night):not(.smoke) {
-  background: linear-gradient(180deg, rgba(255,61,92,0.05), transparent 340px);
+/* white sections stay transparent so the full-page blush shows through */
+.section.smoke {
+  background:
+    radial-gradient(900px 420px at 50% 0%, rgba(255, 61, 92, 0.07), transparent 70%),
+    var(--smoke);
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
 }
 .hero h1 {
   font-family: var(--display); font-weight: 700;
@@ -228,7 +241,6 @@ section { position: relative; }
 
 /* sections */
 .section { padding: 88px 0; }
-.section.smoke { background: var(--smoke); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .section.night { background: var(--night); color: #fff; }
 .kicker {
   display: inline-flex; align-items: center; gap: 9px;
@@ -323,8 +335,8 @@ footer.site { background: var(--night); color: #fff; padding: 64px 0 30px; margi
 .reveal.in { opacity: 1; transform: none; }
 
 @media (max-width: 980px) {
-  .hero, .grid-2, .cta { grid-template-columns: 1fr; }
-  .hero { gap: 40px; padding: 48px 0; }
+  .hero-grid, .grid-2, .cta { grid-template-columns: 1fr; }
+  .hero-grid { gap: 40px; padding: 48px 0; }
   .grid-3, .steps { grid-template-columns: 1fr; }
   .deck { min-height: 540px; }
   .float-1 { left: 0; } .float-2 { right: 0; }

@@ -22,8 +22,9 @@ export function Home() {
 
   return (
     <>
-      {/* ── HERO ── */}
-      <div className="wrap hero">
+      {/* ── HERO (full-bleed blush band) ── */}
+      <header className="hero">
+      <div className="wrap hero-grid">
         <div>
           <span className="eyebrow-text">Music-first dating • Private preview soon</span>
           <h1>
@@ -69,6 +70,7 @@ export function Home() {
           </div>
         </div>
       </div>
+      </header>
 
       {/* ── taste strip ── */}
       <div className="strip" aria-hidden>
