@@ -49,7 +49,36 @@ expo.*.log
 .coverage
 htmlcov/
 
-# ── Node (mobile) ─────────────────────────────────────────────────────────────
+# ── Node (mobile + website) ───────────────────────────────────────────────────
 mobile/node_modules/
 mobile/.expo/
+mobile/.expo-shared/
 mobile/dist/
+mobile/web-build/
+website/node_modules/
+website/dist/
+website/.vite/
+**/.expo/
+**/node_modules/
+**/dist/
+
+# ── Docker — do not commit local overrides / volumes ──────────────────────────
+docker-compose.override.yml
+.docker/
+*.tar
+*.tar.gz
+vibematch-data/
+
+# ── Expo / EAS — local credentials ────────────────────────────────────────────
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+credentials.json
+eas.json.local
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+.wslconfig
+*.tmp
+*.temp
