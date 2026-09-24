@@ -13,20 +13,21 @@
   },
   "dependencies": {
     "@expo-google-fonts/space-grotesk": "^0.4.1",
-    "expo": "~54.0.33",
-    "expo-blur": "~15.0.8",
-    "expo-font": "^55.0.7",
-    "expo-linear-gradient": "~15.0.8",
-    "expo-navigation-bar": "~5.0.10",
+    "expo": "^57.0.24",
+    "expo-blur": "~57.0.3",
+    "expo-font": "~57.0.4",
+    "expo-linear-gradient": "~57.0.2",
+    "expo-navigation-bar": "~57.0.2",
     "expo-secure-store": "^57.0.4",
-    "expo-status-bar": "~3.0.9",
-    "react": "19.1.0",
-    "react-native": "0.81.5",
-    "react-native-svg": "15.12.1"
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "15.15.4"
   },
   "devDependencies": {
-    "@types/react": "~19.1.0",
-    "typescript": "~5.9.2"
+    "@types/react": "~19.2.4",
+    "typescript": "~6.0.3"
   },
   "private": true
 }

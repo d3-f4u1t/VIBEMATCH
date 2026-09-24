@@ -2,17 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  BackHandler,
   Easing,
-  Platform,
   Pressable,
   ScrollView,
-  StatusBar as NativeStatusBar,
   StyleSheet,
   Text,
   TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import {
   SpaceGrotesk_400Regular,
@@ -265,10 +265,11 @@ export function ProfileSetupScreen({
   onSignOut,
   onComplete,
 }: ProfileSetupScreenProps) {
-  const { width } = useWindowDimensions();
-  const contentWidth = Math.min(width - 32, 430);
-  const topInset =
-    Platform.OS === "android" ? (NativeStatusBar.currentHeight ?? 0) + 18 : 18;
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const hPad = Math.round(width * 0.04);
+  const contentWidth = Math.min(width - hPad * 2, 430);
+  const topInset = insets.top;
 
   const [fontsLoaded] = useFonts({
     SpaceGrotesk_400Regular,
@@ -393,6 +394,17 @@ export function ProfileSetupScreen({
       isMounted = false;
     };
   }, [session.access_token, session.user.id]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (stepIndex > 0) {
+        setStepIndex((c) => c - 1);
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [stepIndex]);
 
   useEffect(() => {
     stepMotion.setValue(0);
@@ -792,7 +804,7 @@ export function ProfileSetupScreen({
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: topInset + 94,
+            paddingTop: topInset + 72,
             paddingBottom: 28,
           },
         ]}
@@ -958,7 +970,7 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 10,
     alignItems: "center",
-    backgroundColor: "rgba(13,10,17,0.12)",
+    backgroundColor: "rgba(255,255,255,0.88)",
   },
   topPanel: {
     flexDirection: "row",
@@ -970,13 +982,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   topPanelTitle: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 20,
     fontFamily: "SpaceGrotesk_700Bold",
     letterSpacing: -0.5,
   },
   topPanelSubcopy: {
-    color: "rgba(255,248,251,0.56)",
+    color: "rgba(11,11,12,0.52)",
     fontSize: 12,
     textTransform: "lowercase",
     fontFamily: "SpaceGrotesk_500Medium",
@@ -985,9 +997,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: "rgba(11,11,12,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -995,7 +1007,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   iconGhostText: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 18,
     lineHeight: 18,
     fontFamily: "SpaceGrotesk_700Bold",
@@ -1017,33 +1029,33 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   progressLabel: {
-    color: "rgba(255,248,251,0.76)",
+    color: "rgba(11,11,12,0.66)",
     fontSize: 12,
     textTransform: "uppercase",
     letterSpacing: 1.2,
     fontFamily: "SpaceGrotesk_700Bold",
   },
   progressValue: {
-    color: "rgba(255,248,251,0.76)",
+    color: "rgba(11,11,12,0.66)",
     fontSize: 12,
     fontFamily: "SpaceGrotesk_500Medium",
   },
   progressTrack: {
     height: 6,
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "#ffffff",
     borderRadius: 999,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#F26A8D",
+    backgroundColor: "#ff3d5c",
     borderRadius: 999,
   },
   loadingCard: {
     borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.07)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    borderColor: "rgba(11,11,12,0.12)",
     paddingVertical: 26,
     paddingHorizontal: 22,
     alignItems: "center",
@@ -1052,21 +1064,21 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    color: "rgba(255,248,251,0.72)",
+    color: "rgba(11,11,12,0.52)",
     fontSize: 14,
     fontFamily: "SpaceGrotesk_500Medium",
   },
   questionCard: {
     borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    borderColor: "rgba(11,11,12,0.12)",
     padding: 18,
     marginBottom: 16,
   },
   kicker: {
     fontSize: 11,
-    color: "rgba(255,248,251,0.72)",
+    color: "rgba(11,11,12,0.52)",
     textTransform: "uppercase",
     fontFamily: "SpaceGrotesk_700Bold",
     marginBottom: 10,
@@ -1081,7 +1093,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     lineHeight: 31,
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontFamily: "SpaceGrotesk_700Bold",
     letterSpacing: -1.2,
     maxWidth: 300,
@@ -1093,10 +1105,10 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.09)",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    borderColor: "rgba(11,11,12,0.12)",
+    backgroundColor: "#ffffff",
     paddingHorizontal: 16,
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 14,
     fontFamily: "SpaceGrotesk_400Regular",
   },
@@ -1117,8 +1129,8 @@ const styles = StyleSheet.create({
     minHeight: 72,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: "rgba(11,11,12,0.12)",
+    backgroundColor: "#ffffff",
     paddingHorizontal: 14,
     paddingVertical: 14,
     justifyContent: "flex-end",
@@ -1126,23 +1138,23 @@ const styles = StyleSheet.create({
   },
   choiceTileActive: {
     backgroundColor: "rgba(255,105,122,0.20)",
-    borderColor: "rgba(255,122,89,0.34)",
+    borderColor: "rgba(11,11,12,0.12)",
   },
   choiceTilePressed: {
     opacity: 0.88,
   },
   choiceTileText: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 14,
     lineHeight: 18,
     fontFamily: "SpaceGrotesk_500Medium",
   },
   choiceTileTextActive: {
-    color: "#FFFFFF",
+    color: "#ffffff",
   },
   errorText: {
     marginTop: 12,
-    color: "#FFB4B6",
+    color: "#e11d48",
     fontSize: 13,
     lineHeight: 20,
     fontFamily: "SpaceGrotesk_500Medium",
@@ -1156,21 +1168,21 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 52,
     borderRadius: 17,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: "rgba(11,11,12,0.12)",
     justifyContent: "center",
     alignItems: "center",
   },
   secondaryButtonPressed: {
     opacity: 0.85,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#ffffff",
   },
   secondaryButtonDisabled: {
     opacity: 0.5,
   },
   secondaryButtonText: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 14,
     fontFamily: "SpaceGrotesk_500Medium",
   },
@@ -1178,7 +1190,7 @@ const styles = StyleSheet.create({
     flex: 1.3,
     height: 52,
     borderRadius: 17,
-    backgroundColor: "#F26A8D",
+    backgroundColor: "#ff3d5c",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1189,7 +1201,7 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   primaryButtonText: {
-    color: "#FFFFFF",
+    color: "#ffffff",
     fontSize: 14,
     fontFamily: "SpaceGrotesk_700Bold",
   },
@@ -1203,7 +1215,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   bannerErrorText: {
-    color: "#FFCCCF",
+    color: "#e11d48",
     fontSize: 14,
     lineHeight: 21,
     fontFamily: "SpaceGrotesk_500Medium",

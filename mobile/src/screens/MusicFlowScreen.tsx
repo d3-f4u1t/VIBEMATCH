@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Platform,
+  BackHandler,
   Pressable,
   ScrollView,
-  StatusBar as NativeStatusBar,
   StyleSheet,
   Text,
   TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import {
   SpaceGrotesk_400Regular,
@@ -85,10 +85,11 @@ export function MusicSetupScreen({
   onSignOut: _onSignOut,
   onComplete,
 }: MusicSetupScreenProps) {
-  const { width } = useWindowDimensions();
-  const contentWidth = Math.min(width - 32, 430);
-  const topInset =
-    Platform.OS === "android" ? (NativeStatusBar.currentHeight ?? 0) + 18 : 18;
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const hPad = Math.round(width * 0.04);
+  const contentWidth = Math.min(width - hPad * 2, 430);
+  const topInset = insets.top;
   const artistInputRef = useRef<TextInput | null>(null);
   const trackInputRef = useRef<TextInput | null>(null);
 
@@ -125,6 +126,17 @@ export function MusicSetupScreen({
   const [vibeContexts, setVibeContexts] = useState<string[]>([]);
   const [vibeSaving, setVibeSaving] = useState(false);
   const [vibeError, setVibeError] = useState("");
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (step === "tracks") {
+        setStep("artists");
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [step]);
 
   const toggleListValue = (list: string[], v: string) =>
     list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
@@ -478,7 +490,7 @@ export function MusicSetupScreen({
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: topInset + 94,
+            paddingTop: topInset + 72,
             paddingBottom: 28,
           },
         ]}
@@ -774,38 +786,38 @@ export function MusicSetupScreen({
             <View style={styles.vibeCard}>
               <Text style={styles.vibeTitle}>Your vibe (optional, improves matches)</Text>
               <Text style={styles.vibeLabel}>Moods</Text>
-              <View style={styles.chipRow}>
+              <View style={styles.vibeChipRow}>
                 {MOOD_CHOICES.map((m) => (
                   <Pressable key={m} onPress={() => setVibeMoods((v) => toggleListValue(v, m))}
-                    style={[styles.chip, vibeMoods.includes(m) && styles.chipActive]}>
-                    <Text style={[styles.chipText, vibeMoods.includes(m) && styles.chipTextActive]}>{m}</Text>
+                    style={[styles.vibeChip, vibeMoods.includes(m) && styles.vibeChipActive]}>
+                    <Text style={[styles.vibeChipText, vibeMoods.includes(m) && styles.vibeChipTextActive]}>{m}</Text>
                   </Pressable>
                 ))}
               </View>
               <Text style={styles.vibeLabel}>Eras</Text>
-              <View style={styles.chipRow}>
+              <View style={styles.vibeChipRow}>
                 {ERA_CHOICES.map((e) => (
                   <Pressable key={e} onPress={() => setVibeEras((v) => toggleListValue(v, e))}
-                    style={[styles.chip, vibeEras.includes(e) && styles.chipActive]}>
-                    <Text style={[styles.chipText, vibeEras.includes(e) && styles.chipTextActive]}>{e}</Text>
+                    style={[styles.vibeChip, vibeEras.includes(e) && styles.vibeChipActive]}>
+                    <Text style={[styles.vibeChipText, vibeEras.includes(e) && styles.vibeChipTextActive]}>{e}</Text>
                   </Pressable>
                 ))}
               </View>
               <Text style={styles.vibeLabel}>Energy</Text>
-              <View style={styles.chipRow}>
+              <View style={styles.vibeChipRow}>
                 {ENERGY_CHOICES.map((e) => (
                   <Pressable key={e} onPress={() => setVibeEnergy((v) => (v === e ? "" : e))}
-                    style={[styles.chip, vibeEnergy === e && styles.chipActive]}>
-                    <Text style={[styles.chipText, vibeEnergy === e && styles.chipTextActive]}>{e}</Text>
+                    style={[styles.vibeChip, vibeEnergy === e && styles.vibeChipActive]}>
+                    <Text style={[styles.vibeChipText, vibeEnergy === e && styles.vibeChipTextActive]}>{e}</Text>
                   </Pressable>
                 ))}
               </View>
               <Text style={styles.vibeLabel}>Contexts</Text>
-              <View style={styles.chipRow}>
+              <View style={styles.vibeChipRow}>
                 {CONTEXT_CHOICES.map((c) => (
                   <Pressable key={c} onPress={() => setVibeContexts((v) => toggleListValue(v, c))}
-                    style={[styles.chip, vibeContexts.includes(c) && styles.chipActive]}>
-                    <Text style={[styles.chipText, vibeContexts.includes(c) && styles.chipTextActive]}>{c}</Text>
+                    style={[styles.vibeChip, vibeContexts.includes(c) && styles.vibeChipActive]}>
+                    <Text style={[styles.vibeChipText, vibeContexts.includes(c) && styles.vibeChipTextActive]}>{c}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -881,7 +893,7 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 10,
     alignItems: "center",
-    backgroundColor: "rgba(13,10,17,0.12)",
+    backgroundColor: "rgba(255,255,255,0.88)",
   },
   topPanel: {
     flexDirection: "row",
@@ -893,13 +905,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   topPanelTitle: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 20,
     fontFamily: "SpaceGrotesk_700Bold",
     letterSpacing: -0.5,
   },
   topPanelSubcopy: {
-    color: "rgba(255,248,251,0.56)",
+    color: "rgba(11,11,12,0.52)",
     fontSize: 12,
     textTransform: "lowercase",
     fontFamily: "SpaceGrotesk_500Medium",
@@ -908,9 +920,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: "rgba(11,11,12,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -950,7 +962,7 @@ const styles = StyleSheet.create({
     minHeight: "100%",
   },
   kicker: {
-    color: "rgba(255,248,251,0.72)",
+    color: "rgba(11,11,12,0.52)",
     fontSize: 11,
     textTransform: "uppercase",
     letterSpacing: 1.6,
@@ -958,7 +970,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 30,
     lineHeight: 31,
     letterSpacing: -1.2,
@@ -981,9 +993,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.09)",
+    borderColor: "rgba(11,11,12,0.12)",
     marginTop: 14,
     marginBottom: 14,
   },
@@ -1027,15 +1039,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.09)",
+    borderColor: "rgba(11,11,12,0.12)",
     marginBottom: 14,
     height: 48,
   },
   searchInput: {
     flex: 1,
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 14,
     fontFamily: "SpaceGrotesk_400Regular",
     paddingVertical: 0,
@@ -1044,15 +1056,15 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 999,
-    backgroundColor: "#82F7A6",
+    backgroundColor: "#f9eff2",
     marginLeft: 12,
   },
   sectionCard: {
     borderRadius: 24,
     padding: 16,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(11,11,12,0.12)",
   },
   sectionSpacing: {
     marginBottom: 14,
@@ -1060,7 +1072,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     lineHeight: 22,
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontFamily: "SpaceGrotesk_700Bold",
     marginBottom: 10,
   },
@@ -1075,18 +1087,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(11,11,12,0.12)",
   },
   chipPink: {
-    backgroundColor: "rgba(255,79,136,0.20)",
+    backgroundColor: "rgba(255,61,92,0.10)",
   },
   chipMint: {
-    backgroundColor: "rgba(130,247,166,0.18)",
+    backgroundColor: "#f9eff2",
   },
   chipText: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 12,
     fontFamily: "SpaceGrotesk_500Medium",
   },
@@ -1100,18 +1112,18 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(11,11,12,0.12)",
   },
   trackChipTitle: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 13,
     marginBottom: 4,
     fontFamily: "SpaceGrotesk_700Bold",
   },
   trackChipMeta: {
-    color: "rgba(255,248,251,0.60)",
+    color: "rgba(11,11,12,0.52)",
     fontSize: 12,
     fontFamily: "SpaceGrotesk_400Regular",
   },
@@ -1125,9 +1137,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 11,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: "rgba(11,11,12,0.12)",
   },
   artistAvatarFrame: {
     width: 42,
@@ -1135,10 +1147,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
     position: "relative",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "#ffffff",
   },
   artistAvatar: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   artistAvatarOverlay: {
     position: "absolute",
@@ -1153,9 +1165,9 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: "rgba(255,79,136,0.12)",
+    backgroundColor: "rgba(255,61,92,0.10)",
     borderWidth: 1,
-    borderColor: "rgba(255,122,89,0.18)",
+    borderColor: "rgba(11,11,12,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1169,13 +1181,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   artistName: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 14,
     marginBottom: 4,
     fontFamily: "SpaceGrotesk_700Bold",
   },
   artistDescription: {
-    color: "rgba(255,248,251,0.58)",
+    color: "rgba(11,11,12,0.52)",
     fontSize: 12,
     fontFamily: "SpaceGrotesk_400Regular",
   },
@@ -1183,7 +1195,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 999,
-    backgroundColor: "rgba(130,247,166,0.16)",
+    backgroundColor: "#f9eff2",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1194,7 +1206,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   plusButtonText: {
-    color: "#82F7A6",
+    color: "#0b0b0c",
     fontSize: 18,
     lineHeight: 18,
     fontFamily: "SpaceGrotesk_700Bold",
@@ -1206,13 +1218,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   emptyStateText: {
-    color: "rgba(255,248,251,0.62)",
+    color: "rgba(11,11,12,0.52)",
     fontSize: 13,
     textAlign: "center",
     fontFamily: "SpaceGrotesk_400Regular",
   },
   inlineErrorText: {
-    color: "#FFB7BD",
+    color: "#e11d48",
     fontSize: 12,
     marginBottom: 10,
     fontFamily: "SpaceGrotesk_500Medium",
@@ -1225,20 +1237,20 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: "rgba(11,11,12,0.12)",
+    backgroundColor: "#ffffff",
     alignItems: "center",
     justifyContent: "center",
   },
   secondaryActionText: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 14,
     fontFamily: "SpaceGrotesk_500Medium",
   },
   primaryActionButton: {
     height: 52,
     borderRadius: 18,
-    backgroundColor: "rgba(255,79,136,0.9)",
+    backgroundColor: "#ff3d5c",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
@@ -1247,7 +1259,7 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   primaryActionText: {
-    color: "#FFFFFF",
+    color: "#ffffff",
     fontSize: 14,
     textAlign: "center",
     fontFamily: "SpaceGrotesk_700Bold",
@@ -1257,13 +1269,13 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: "rgba(11,11,12,0.12)",
+    backgroundColor: "#ffffff",
     alignItems: "center",
     justifyContent: "center",
   },
   loadMoreButtonText: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 13,
     fontFamily: "SpaceGrotesk_500Medium",
   },
@@ -1271,52 +1283,52 @@ const styles = StyleSheet.create({
     marginTop: 18,
     borderRadius: 20,
     padding: 16,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(11,11,12,0.12)",
   },
   vibeTitle: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 15,
     fontFamily: "SpaceGrotesk_700Bold",
     marginBottom: 12,
   },
   vibeLabel: {
-    color: "rgba(255,255,255,0.55)",
+    color: "rgba(11,11,12,0.52)",
     fontSize: 12,
     fontFamily: "SpaceGrotesk_700Bold",
     marginTop: 10,
     marginBottom: 8,
     textTransform: "uppercase",
   },
-  chipRow: {
+  vibeChipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
-  chip: {
+  vibeChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
   },
-  chipActive: {
+  vibeChipActive: {
     backgroundColor: "rgba(242,106,141,0.25)",
-    borderColor: "rgba(242,106,141,0.5)",
+    borderColor: "rgba(255,61,92,0.20)",
   },
-  chipText: {
+  vibeChipText: {
     color: "rgba(255,255,255,0.7)",
     fontSize: 13,
     fontFamily: "SpaceGrotesk_500Medium",
   },
-  chipTextActive: {
-    color: "#FFFFFF",
+  vibeChipTextActive: {
+    color: "#0b0b0c",
   },
   vibeError: {
     marginTop: 10,
-    color: "#FFB4B6",
+    color: "#e11d48",
     fontSize: 12,
     fontFamily: "SpaceGrotesk_500Medium",
   },

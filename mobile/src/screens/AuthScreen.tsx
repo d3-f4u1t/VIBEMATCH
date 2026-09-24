@@ -50,79 +50,32 @@ function AuthBackdrop({ width, height }: AuthBackdropProps) {
     >
       <Defs>
         <SvgLinearGradient id="authBase" x1="0%" y1="0%" x2="0%" y2="100%">
-          <Stop offset="0%" stopColor="#24111F" />
-          <Stop offset="48%" stopColor="#130B15" />
-          <Stop offset="100%" stopColor="#09070D" />
+          <Stop offset="0%" stopColor="#ffffff" />
+          <Stop offset="100%" stopColor="#ffffff" />
         </SvgLinearGradient>
-
         <RadialGradient id="pinkGlow" cx="50%" cy="50%" r="50%">
-          <Stop offset="0%" stopColor="#FF4D94" stopOpacity="0.72" />
-          <Stop offset="52%" stopColor="#FF4D94" stopOpacity="0.34" />
-          <Stop offset="100%" stopColor="#FF4F88" stopOpacity="0" />
+          <Stop offset="0%" stopColor="#ff3d5c" stopOpacity={0.09} />
+          <Stop offset="65%" stopColor="#ff3d5c" stopOpacity={0} />
         </RadialGradient>
-
         <RadialGradient id="coralGlow" cx="50%" cy="50%" r="50%">
-          <Stop offset="0%" stopColor="#FF7B4F" stopOpacity="0.5" />
-          <Stop offset="58%" stopColor="#FF7B4F" stopOpacity="0.22" />
-          <Stop offset="100%" stopColor="#FF7A59" stopOpacity="0" />
+          <Stop offset="0%" stopColor="#ff3d5c" stopOpacity={0.06} />
+          <Stop offset="70%" stopColor="#ff3d5c" stopOpacity={0} />
         </RadialGradient>
-
         <RadialGradient id="plumGlow" cx="50%" cy="50%" r="50%">
-          <Stop offset="0%" stopColor="#FF4D94" stopOpacity="0.3" />
-          <Stop offset="60%" stopColor="#FF4D94" stopOpacity="0.12" />
-          <Stop offset="100%" stopColor="#FF4F88" stopOpacity="0" />
+          <Stop offset="0%" stopColor="#ff3d5c" stopOpacity={0.085} />
+          <Stop offset="65%" stopColor="#ff3d5c" stopOpacity={0} />
         </RadialGradient>
-
-        <RadialGradient id="whiteHaze" cx="50%" cy="50%" r="50%">
-          <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.028" />
-          <Stop offset="55%" stopColor="#FFFFFF" stopOpacity="0.008" />
-          <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-        </RadialGradient>
-
-        <RadialGradient id="topMist" cx="50%" cy="50%" r="50%">
-          <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.036" />
-          <Stop offset="62%" stopColor="#FFFFFF" stopOpacity="0.01" />
-          <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-        </RadialGradient>
+        <SvgLinearGradient id="topBlush" x1="0%" y1="0%" x2="0%" y2="100%">
+          <Stop offset="0%" stopColor="#ff3d5c" stopOpacity={0.06} />
+          <Stop offset="100%" stopColor="#ff3d5c" stopOpacity={0} />
+        </SvgLinearGradient>
       </Defs>
-
       <Rect x="0" y="0" width={width} height={height} fill="url(#authBase)" />
-
-      <Ellipse
-        cx={width * 0.16}
-        cy={height * 0.18}
-        rx={width * 0.42}
-        ry={width * 0.42}
-        fill="url(#pinkGlow)"
-      />
-      <Ellipse
-        cx={width * 0.86}
-        cy={height * 0.14}
-        rx={width * 0.25}
-        ry={width * 0.25}
-        fill="url(#coralGlow)"
-      />
-      <Ellipse
-        cx={width * 0.78}
-        cy={height * 0.83}
-        rx={width * 0.21}
-        ry={width * 0.21}
-        fill="url(#plumGlow)"
-      />
-      <Ellipse
-        cx={width * 0.5}
-        cy={height * 0.36}
-        rx={width * 0.62}
-        ry={height * 0.2}
-        fill="url(#whiteHaze)"
-      />
-      <Ellipse
-        cx={width * 0.48}
-        cy={height * 0.2}
-        rx={width * 0.76}
-        ry={height * 0.16}
-        fill="url(#topMist)"
-      />
+      <Rect x="0" y="0" width={width} height={Math.min(1100, height * 0.7)} fill="url(#topBlush)" opacity={0.9} />
+      <Ellipse cx={width * 0.16} cy={height * 0.18} rx={width * 0.42} ry={width * 0.42} fill="url(#pinkGlow)" />
+      <Ellipse cx={width * 0.86} cy={height * 0.14} rx={width * 0.25} ry={width * 0.25} fill="url(#coralGlow)" />
+      <Ellipse cx={width * 0.5} cy={height * 0.36} rx={width * 0.62} ry={height * 0.2} fill="url(#plumGlow)" />
+      <Ellipse cx={width * 0.48} cy={height * 0.2} rx={width * 0.76} ry={height * 0.16} fill="url(#plumGlow)" opacity={0.6} />
     </Svg>
   );
 }
@@ -669,15 +622,15 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#09070D",
+    backgroundColor: "#ffffff",
     overflow: "hidden",
   },
   svgBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   vignette: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(2,1,5,0.12)",
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "transparent",
   },
   scrollContent: {
     alignItems: "center",
@@ -704,24 +657,24 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.98)",
+    backgroundColor: "#0b0b0c",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.12,
     shadowRadius: 28,
     elevation: 6,
   },
   logoMarkText: {
-    color: "#19111A",
+    color: "#ffffff",
     fontSize: 20,
     lineHeight: 20,
     fontFamily: "SpaceGrotesk_700Bold",
   },
   brandWordmark: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 34,
     lineHeight: 34,
     letterSpacing: -2.1,
@@ -733,7 +686,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   landingHeadline: {
-    color: "#FFF8FB",
+    color: "#0b0b0c",
     fontSize: 17,
     lineHeight: 22,
     textAlign: "center",
@@ -749,7 +702,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   landingLegal: {
-    color: "rgba(255,248,251,0.88)",
+    color: "rgba(11,11,12,0.66)",
     fontSize: 12,
     lineHeight: 17,
     textAlign: "center",
@@ -763,7 +716,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   legalStrong: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontFamily: Platform.select({
       android: "sans-serif-bold",
       default: "SpaceGrotesk_700Bold",
@@ -778,19 +731,20 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FF5A84",
-    shadowColor: "#050109",
+    backgroundColor: "#ff3d5c",
+    shadowColor: "#ff3d5c",
     shadowOffset: { width: 0, height: 18 },
     shadowOpacity: 0.28,
     shadowRadius: 32,
     elevation: 8,
   },
   primaryGradient: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 17,
+    backgroundColor: "#ff3d5c",
   },
   primaryButtonText: {
-    color: "#FFFFFF",
+    color: "#ffffff",
     fontSize: 14,
     lineHeight: 17,
     fontFamily: Platform.select({
@@ -803,13 +757,13 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 17,
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.86)",
-    backgroundColor: "rgba(255,255,255,0.03)",
+    borderColor: "rgba(11,11,12,0.12)",
+    backgroundColor: "#ffffff",
     justifyContent: "center",
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 14,
     lineHeight: 17,
     fontFamily: Platform.select({
@@ -824,7 +778,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonPressed: {
     opacity: 0.84,
-    backgroundColor: "rgba(255,255,255,0.07)",
+    backgroundColor: "#f9eff2",
   },
   buttonDisabled: {
     opacity: 0.65,
@@ -842,9 +796,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: "rgba(11,11,12,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -852,7 +806,7 @@ const styles = StyleSheet.create({
     opacity: 0.82,
   },
   backButtonText: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 16,
     lineHeight: 16,
     fontFamily: "SpaceGrotesk_500Medium",
@@ -865,9 +819,9 @@ const styles = StyleSheet.create({
     padding: 5,
     gap: 6,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.065)",
+    backgroundColor: "#f9eff2",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    borderColor: "rgba(11,11,12,0.12)",
   },
   modePill: {
     minWidth: 74,
@@ -878,7 +832,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   modePillActive: {
-    backgroundColor: "#FF5A84",
+    backgroundColor: "#ff3d5c",
   },
   modePillPressed: {
     opacity: 0.88,
@@ -887,14 +841,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 16,
     fontFamily: "SpaceGrotesk_500Medium",
-    color: "rgba(255,248,251,0.74)",
+    color: "rgba(11,11,12,0.66)",
     includeFontPadding: false,
   },
   modePillTextActive: {
-    color: "#FFFFFF",
+    color: "#ffffff",
   },
   modePillTextInactive: {
-    color: "rgba(255,244,248,0.72)",
+    color: "rgba(11,11,12,0.52)",
   },
   formContentWrap: {
     flex: 1,
@@ -910,7 +864,7 @@ const styles = StyleSheet.create({
     right: 0,
   },
   kicker: {
-    color: "rgba(255,248,251,0.72)",
+    color: "rgba(11,11,12,0.52)",
     fontSize: 10,
     lineHeight: 12,
     letterSpacing: 1.9,
@@ -920,7 +874,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   formTitle: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 30,
     lineHeight: 31,
     letterSpacing: -1.9,
@@ -934,9 +888,14 @@ const styles = StyleSheet.create({
     marginTop: 20,
     borderRadius: 28,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1.5,
+    borderColor: "rgba(11,11,12,0.12)",
+    backgroundColor: "#ffffff",
+    shadowColor: "rgba(11,11,12,0.14)",
+    shadowOffset: { width: 0, height: 24 },
+    shadowOpacity: 1,
+    shadowRadius: 70,
+    elevation: 4,
   },
   formCard: {
     paddingHorizontal: 18,
@@ -949,12 +908,13 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     height: 88,
+    backgroundColor: "rgba(255,61,92,0.04)",
   },
   inputGroup: {
     marginBottom: 12,
   },
   inputLabel: {
-    color: "rgba(255,248,251,0.82)",
+    color: "rgba(11,11,12,0.66)",
     fontSize: 12,
     lineHeight: 15,
     letterSpacing: 1.5,
@@ -966,18 +926,18 @@ const styles = StyleSheet.create({
   input: {
     height: 52,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.09)",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1.5,
+    borderColor: "rgba(11,11,12,0.12)",
+    backgroundColor: "#ffffff",
     paddingHorizontal: 16,
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 14,
     lineHeight: 17,
     fontFamily: "SpaceGrotesk_400Regular",
     includeFontPadding: false,
   },
   errorText: {
-    color: "#FFB7BD",
+    color: "#e11d48",
     fontSize: 13,
     lineHeight: 19,
     fontFamily: "SpaceGrotesk_500Medium",
@@ -986,7 +946,7 @@ const styles = StyleSheet.create({
   },
   formFootnote: {
     marginTop: 16,
-    color: "rgba(255,248,251,0.68)",
+    color: "rgba(11,11,12,0.52)",
     fontSize: 12,
     lineHeight: 18,
     fontFamily: "SpaceGrotesk_400Regular",

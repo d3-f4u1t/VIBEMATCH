@@ -5,13 +5,14 @@ import { StatusBar } from "expo-status-bar";
 import {
   Alert,
   Animated,
+  BackHandler,
   Easing,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { FluidBackground } from "./src/components/FluidBackground";
 import { AuthScreen } from "./src/screens/AuthScreen";
@@ -192,12 +193,11 @@ export default function App() {
     if (Platform.OS !== "android") {
       return;
     }
-
+    // SDK 57: expo-navigation-bar legacy APIs (setPositionAsync/setBackgroundColorAsync/setBehaviorAsync) were removed.
+    // edgeToEdgeEnabled in app.json now handles this. Keep a safe no-op for older code paths.
     const applyNavigationBarState = () => {
-      NavigationBar.setPositionAsync("relative").catch(() => {});
-      NavigationBar.setBackgroundColorAsync("#09070D").catch(() => {});
-      NavigationBar.setBehaviorAsync("inset-swipe").catch(() => {});
-      NavigationBar.setVisibilityAsync("visible").catch(() => {});
+      // @ts-ignore - SDK57 stubs these to warnings; guard for safety
+      (NavigationBar as any).setVisibilityAsync?.("visible")?.catch?.(() => {});
     };
 
     applyNavigationBarState();
@@ -205,6 +205,24 @@ export default function App() {
 
     return () => clearTimeout(timeoutId);
   }, [screenKey]);
+
+  // Hardware back: let active screen handle first, otherwise handle stage
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      // If on discover, let MainScreen's handler deal with tabs/detail
+      // For profile/music, go back to previous stage if user is deep in onboarding
+      if (stage === "music") {
+        setStage("profile");
+        return true;
+      }
+      if (stage === "profile") {
+        // Don't pop to auth automatically - stay, the Profile screen handles step back
+        return false;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [stage]);
 
   const screenAnimatedStyle = {
     opacity: screenMotion,
@@ -225,47 +243,49 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.screen}>
-      {!isAuthStage ? <FluidBackground variant={backgroundVariant} /> : null}
-      <Animated.View style={[styles.content, screenAnimatedStyle]}>
-        {isBooting ? (
-          <View style={styles.bootScreen}>
-            <Text style={styles.bootTitle}>
-              {stage === "boot" ? "Loading…" : "Checking your account…"}
-            </Text>
-            <Text style={styles.bootSubtext}>
-              {stage === "boot"
-                ? "Starting VibeMatch"
-                : "Loading your saved profile and matching setup."}
-            </Text>
-          </View>
-        ) : isAuthStage ? (
-          <AuthScreen onAuthenticated={handleAuthenticated} />
-        ) : stage === "profile" ? (
-          <ProfileSetupScreen
-            session={session}
-            onSignOut={handleSignOut}
-            onComplete={handleProfileComplete}
-          />
-        ) : stage === "music" ? (
-          <MusicSetupScreen
-            session={session}
-            onSignOut={handleSignOut}
-            onComplete={handleMusicComplete}
-          />
-        ) : (
-          <MainScreen session={session} onSignOut={handleSignOut} />
-        )}
-      </Animated.View>
-      <StatusBar style="light" hidden={false} />
-    </SafeAreaView>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.screen}>
+        <FluidBackground variant={backgroundVariant} />
+        <Animated.View style={[styles.content, screenAnimatedStyle]}>
+          {isBooting ? (
+            <View style={styles.bootScreen}>
+              <Text style={styles.bootTitle}>
+                {stage === "boot" ? "Loading…" : "Checking your account…"}
+              </Text>
+              <Text style={styles.bootSubtext}>
+                {stage === "boot"
+                  ? "Starting VibeMatch"
+                  : "Loading your saved profile and matching setup."}
+              </Text>
+            </View>
+          ) : isAuthStage ? (
+            <AuthScreen onAuthenticated={handleAuthenticated} />
+          ) : stage === "profile" ? (
+            <ProfileSetupScreen
+              session={session}
+              onSignOut={handleSignOut}
+              onComplete={handleProfileComplete}
+            />
+          ) : stage === "music" ? (
+            <MusicSetupScreen
+              session={session}
+              onSignOut={handleSignOut}
+              onComplete={handleMusicComplete}
+            />
+          ) : (
+            <MainScreen session={session} onSignOut={handleSignOut} />
+          )}
+        </Animated.View>
+        <StatusBar style="dark" hidden={false} />
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#09070D",
+    backgroundColor: "#ffffff",
   },
   content: {
     flex: 1,
@@ -277,7 +297,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   bootTitle: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 22,
     lineHeight: 28,
     fontFamily: "SpaceGrotesk_700Bold",
@@ -285,7 +305,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   bootSubtext: {
-    color: "rgba(255,255,255,0.68)",
+    color: "rgba(11,11,12,0.66)",
     fontSize: 14,
     lineHeight: 20,
     fontFamily: "SpaceGrotesk_400Regular",

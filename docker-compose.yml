@@ -1,0 +1,66 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - VIBEMATCH_ENV=development
+      - VIBEMATCH_CORS_ORIGINS=*
+      - VIBEMATCH_TRUSTED_HOSTS=*
+      - DATABASE_URL=sqlite:///./vibematch.db
+      - PORT=8000
+    volumes:
+      # Live reload: edit app/*.py locally -> container's uvicorn --reload restarts instantly
+      - ./app:/code/app:cached
+      # DB persisted on host. If vibematch.db missing, run.ps1 creates it first.
+      - ./vibematch.db:/code/vibematch.db
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+    develop:
+      watch:
+        - action: sync
+          path: ./app
+          target: /code/app
+        - action: sync
+          path: ./.env
+          target: /code/.env
+        - action: rebuild
+          path: ./req.txt
+        - action: rebuild
+          path: ./Dockerfile
+
+  website:
+    build:
+      context: ./website
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./website:/app:cached
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    depends_on:
+      api:
+        condition: service_started
+    develop:
+      watch:
+        - action: sync
+          path: ./website
+          target: /app
+        - action: rebuild
+          path: ./website/package.json
+          target: /app/package.json
+
+# Usage:
+#   First time (one admin step):  powershell -ExecutionPolicy Bypass -File setup-docker.ps1
+#   Every day:                    powershell -ExecutionPolicy Bypass -File docker-run.ps1
+#              or:                docker compose up --build   (first) / docker compose up --watch
+#              or:                docker compose up --watch   (live sync without rebuild)
+#   Stop:                         docker compose down

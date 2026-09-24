@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -34,6 +35,14 @@ export function ChatThreadScreen({
   const [sendingMessage, setSendingMessage] = useState(false);
   const [chatError, setChatError] = useState("");
   const scrollRef = useRef<ScrollView | null>(null);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      onBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [onBack]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -191,7 +200,7 @@ export function ChatThreadScreen({
           value={chatDraft}
           onChangeText={setChatDraft}
           placeholder="Message them..."
-          placeholderTextColor="rgba(255,255,255,0.42)"
+          placeholderTextColor="rgba(11,11,12,0.52)"
           style={styles.chatInput}
           multiline
         />
@@ -219,24 +228,24 @@ const styles = StyleSheet.create({
   chatHeaderCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: "#ffffff",
     borderRadius: 24,
     padding: 16,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: "rgba(11,11,12,0.12)",
   },
   chatBackButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "#ffffff",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
   },
   chatBackText: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 20,
     fontFamily: "SpaceGrotesk_700Bold",
   },
@@ -245,25 +254,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   chatHeaderTitle: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 18,
     fontFamily: "SpaceGrotesk_700Bold",
   },
   chatHeaderMeta: {
-    color: "rgba(255,255,255,0.6)",
+    color: "rgba(11,11,12,0.66)",
     fontSize: 13,
     fontFamily: "SpaceGrotesk_400Regular",
   },
   infoBanner: {
-    backgroundColor: "rgba(242,106,141,0.12)",
+    backgroundColor: "rgba(255,61,92,0.10)",
     padding: 16,
     borderRadius: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(242,106,141,0.2)",
+    borderColor: "rgba(255,61,92,0.12)",
   },
   infoBannerText: {
-    color: "#F26A8D",
+    color: "#e11d48",
     fontSize: 14,
     fontFamily: "SpaceGrotesk_500Medium",
     textAlign: "center",
@@ -291,14 +300,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   chatEmptyTitle: {
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 20,
     fontFamily: "SpaceGrotesk_700Bold",
     marginBottom: 8,
     textAlign: "center",
   },
   chatEmptyBody: {
-    color: "rgba(255,255,255,0.5)",
+    color: "rgba(11,11,12,0.66)",
     fontSize: 15,
     lineHeight: 22,
     fontFamily: "SpaceGrotesk_400Regular",
@@ -313,25 +322,25 @@ const styles = StyleSheet.create({
   },
   chatBubbleTheirs: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "#ffffff",
     borderBottomLeftRadius: 4,
   },
   chatBubbleMine: {
     alignSelf: "flex-end",
-    backgroundColor: "#82F7A6",
+    backgroundColor: "#f9eff2",
     borderBottomRightRadius: 4,
   },
   chatBubbleText: {
     fontSize: 15,
     lineHeight: 22,
     fontFamily: "SpaceGrotesk_500Medium",
-    color: "#FFFFFF",
+    color: "#0b0b0c",
   },
   chatBubbleTextMine: {
     color: "#08080B",
   },
   chatBubbleTime: {
-    color: "rgba(255,255,255,0.44)",
+    color: "rgba(11,11,12,0.52)",
     fontSize: 10,
     lineHeight: 13,
     fontFamily: "SpaceGrotesk_500Medium",
@@ -344,15 +353,15 @@ const styles = StyleSheet.create({
   chatComposer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: "#ffffff",
     borderRadius: 24,
     padding: 8,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: "rgba(11,11,12,0.12)",
   },
   chatInput: {
     flex: 1,
-    color: "#FFFFFF",
+    color: "#0b0b0c",
     fontSize: 15,
     fontFamily: "SpaceGrotesk_500Medium",
     minHeight: 44,
@@ -365,7 +374,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#ff3d5c",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -373,7 +382,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   chatSendText: {
-    color: "#000000",
+    color: "#ffffff",
     fontSize: 14,
     fontFamily: "SpaceGrotesk_700Bold",
   },
